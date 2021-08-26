@@ -128,7 +128,7 @@ Ps ：
 - Dao方法**不允许**针对某一业务而业务化、否则与Service并无本质上的区分可能导致缓存出现问题
 
 - 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
-- 若Dao类或接口无法加入注解则可以修改Dao的方法名：
+- 若Dao类或接口无法加入注解则可以修改Dao的包名为mapper且方法名格式(默认MyBatis-plus格式)：
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
