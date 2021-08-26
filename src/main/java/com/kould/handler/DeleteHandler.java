@@ -59,12 +59,14 @@ public class DeleteHandler {
         try {
             writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
             log.info("+++++++++Redis缓存删除检测");
-            Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethod());
+            Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethod().getName());
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
-                Map<String, String> keySection = cacheEncoder.section2Field(cacheEncoder.decode(key, HashMap.class, resultClass.getName()), msg.getMethod());
-                if (key.contains(kacheConfig.getMethodLikeKeyword())) {
+                Map<String, String> keySection = cacheEncoder.section2Field(cacheEncoder.decode(key, HashMap.class, resultClass.getName()), msg.getMethod().getName());
+                if (key.contains(KacheConfig.SERVICE_NOARG) || key.contains(KacheConfig.SERVICE_ALL)) {
+                    delKeys.add(key);
+                } else if (key.contains(KacheConfig.SERVICE_LIKE)) {
                     keySection.keySet().parallelStream().forEach(field -> {
                         String KeyField = keySection.get(field);
                         String argField = args.get(field);
@@ -75,8 +77,6 @@ public class DeleteHandler {
                             }
                         }
                     });
-                } else if (key.contains(kacheConfig.getMethodAllKeyword()) || key.contains(kacheConfig.getMethodNoArgTag())) {
-                    delKeys.add(key);
                 } else {
                     keySection.keySet().parallelStream().forEach(field -> {
                         String KeyField = keySection.get(field);

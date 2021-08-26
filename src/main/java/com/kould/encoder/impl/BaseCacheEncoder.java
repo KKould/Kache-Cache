@@ -2,12 +2,14 @@ package com.kould.encoder.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.google.gson.reflect.TypeToken;
+import com.kould.annotation.ServiceCache;
 import com.kould.encoder.CacheEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.kould.json.JsonUtil;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,10 +22,11 @@ public class BaseCacheEncoder implements CacheEncoder {
     private JsonUtil jsonUtil ;
 
     @Override
-    public String encode(Object dto, String serviceMethodName,String daoEnityName, String daoMethodName, String daoArgs) {
+    public String encode(Object dto, Method serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
         return daoMethodName +
                 daoArgs +
-                serviceMethodName +
+                serviceMethod.getAnnotation(ServiceCache.class).status() +
+                serviceMethod.getName() +
                 daoEnityName +
                 jsonUtil.obj2Str(dto) ;
 

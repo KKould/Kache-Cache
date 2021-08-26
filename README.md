@@ -32,14 +32,21 @@ Java标准MVC架构如图：
 
 Service的实现类或接口上添加@CachebeanClassb注解并填入对应的PO类类型
 
-然后在需要缓存的**读取**方法上添加@ServiceCache注解。
+然后在需要缓存的**读取**方法上添加@ServiceCache注解
+
+其对应的@ServiceCache的status是必填的：
+
+- status = KacheConfig.Status.IS : 准确条件查询方法
+- status = KacheConfig.Status.LIKE : 模糊条件查询方法
+- status = KacheConfig.Status.NOARG : 无参查询方法
+- status = KacheConfig.Status.ALL : 无条件查询方法
 
 ```java
 @Service
 @CacheBeanClass(clazz = ConfigIndexPO.class)
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
-    @ServiceCache
+    @ServiceCache(status = KacheConfig.Status.NOARG)
     @Override
     public BaseConfigIndexDTO findAllConfigIndexOrderByCreateTime() {
         QueryWrapper<ConfigIndexPO> wrapper = new QueryWrapper<>();
@@ -102,13 +109,6 @@ kache:
        lock-time: 3
        base-time: 300
        random-time: 120
-   service:
-   	   #唯一性越强越好
-       keyword:
-          all: findAll
-          like: Like
-          #River为To the moon中的女主角
-       no-arg-tag: River
    interprocess-cache:
        enable: true
        size: 50
@@ -125,7 +125,6 @@ Ps ：
 
 - @CacheBeanClass注解和@ServiceCache需要同时出现在实现类**或者**接口中，否则不起效
 - 基于DTO概念，Service方法允许**无参**和**仅有一个参数**、即所需参数需要使用一个**DTO**进行封装
-- Service方法名需要含有规范：搜索全部非条件查询数据时需要含有**All**（可在配置文件中修改）的关键词、模糊条件查询需要含有**Like**（可在配置文件中修改）、准确条件查询则不需要
 - Dao方法**不允许**针对某一业务而业务化、否则与Service并无本质上的区分可能导致缓存出现问题
 
 - 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
@@ -167,7 +166,7 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 
 Key的编码形式则为：
 
-- Dao层方法+Dao层方法参数+Service层方法+Service层方法参数+PO类名的形式
+- Dao层方法+Dao层方法参数+Service注解对应的枚举值+Service层方法+Service层方法参数+PO类名的形式
 
 以此避免同一Service方法下调用同一Dao方法但不同参数而引起的缓存冲突问题
 

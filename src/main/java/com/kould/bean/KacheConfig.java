@@ -12,16 +12,6 @@ public class KacheConfig {
     @Value("${kache.dao.lock-time:2}")
     private int lockTime ;
 
-    @Value("${kache.service.keyword.all:All}")
-    private String methodAllKeyword ;
-
-    @Value("${kache.service.keyword.like:Like}")
-    private String methodLikeKeyword ;
-
-    //只需要为唯一的标识，能够判断含有该标签唯一即可
-    @Value("${kache.service.no-arg-tag:River}")
-    private String methodNoArgTag ;
-
     @Value("${kache.dao.base-time:300}")
     private int baseTime ;
 
@@ -48,4 +38,26 @@ public class KacheConfig {
 
     public static final String POINTCUT_EXPRESSION_SERVICE = "execution(* *.*.service..*.*(..))";
 
+    public static final String SERVICE_LIKE = "KACHE_SERVICE_LIKE" ;
+
+    public static final String SERVICE_IS = "KACHE_SERVICE_IS" ;
+
+    public static final String SERVICE_NOARG = "KACHE_SERVICE_NOARG" ;
+
+    public static final String SERVICE_ALL = "KACHE_SERVICE_ALL" ;
+
+    public enum Status {
+        LIKE(KacheConfig.SERVICE_LIKE), IS(KacheConfig.SERVICE_IS), ALL(KacheConfig.SERVICE_ALL), NOARG(KacheConfig.SERVICE_NOARG);
+
+
+        private final String value ;
+
+        Status(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
 }
