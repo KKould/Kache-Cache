@@ -140,7 +140,7 @@ Ps ：
 
 Kache的原型的描述文章：
 
-https://gitee.com/Kould/kache
+[基于Redis的DTO应用Service层缓存AOP](https://zhuanlan.zhihu.com/p/395076311)
 
 基于上述文章的主要变化为：
 
