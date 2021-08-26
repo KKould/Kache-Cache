@@ -78,6 +78,21 @@ public interface BaseMapper<T> {
 }
 ```
 
+提供RedissonClient与消息队列（此处略）
+
+```java
+@Configuration
+public class RedissonConfig {
+    @Bean
+    public RedissonClient redisson() throws IOException {
+        Config config = new Config();
+        //Redis地址
+        config.useSingleServer().setAddress("redis://123.123.123.123:6379");
+        return Redisson.create(config);
+    }
+}
+```
+
 可选配置（默认值）：
 
 ```yaml
