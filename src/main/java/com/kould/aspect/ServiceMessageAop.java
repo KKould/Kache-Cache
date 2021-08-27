@@ -1,5 +1,8 @@
 package com.kould.aspect;
 
+import com.kould.annotation.CacheBeanClass;
+import com.kould.annotation.CacheChange;
+import com.kould.annotation.ServiceCache;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -26,16 +29,26 @@ public class ServiceMessageAop {
     public void pointCut() {
     }
 
-    @Around("@annotation(com.kould.annotation.ServiceCache) || pointCut()")
+    @Around("@annotation(com.kould.annotation.CacheBeanClass) || pointCut()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        Object arg = null;
+        Class targetClass = point.getTarget().getClass() ;
         Method method = null ;
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         method = methodSignature.getMethod() ;
+        if (!method.isAnnotationPresent(ServiceCache.class) && !method.isAnnotationPresent(CacheChange.class)) {
+            return point.proceed();
+        }
+        Object arg = null;
+        if (point.getArgs() != null) {
+            CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
+            arg = cacheBeanClass.clazz().newInstance() ;
+        } else {
+            arg = point.getArgs()[0] ;
+        }
         DaoCacheAop.localVar.set(Message.builder()
                 .arg(arg)
                 .method(method)
-                .clazz(point.getTarget().getClass())
+                .clazz(targetClass)
                 .build());
         return point.proceed() ;
     }

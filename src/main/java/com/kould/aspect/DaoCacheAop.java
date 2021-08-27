@@ -1,18 +1,21 @@
 package com.kould.aspect;
 
 import com.kould.annotation.CacheBeanClass;
+import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.manager.IBaseCacheManager;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.*;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -71,7 +74,6 @@ public class DaoCacheAop {
             Method daoMethod = methodSignature.getMethod();
             String daoMethodName = daoMethod.getName() ;
             Message serviceMessage = localVar.get();
-            //通过CacheBeanClass注释来获取对应的PO类使用类型，且通过Method上的UnCache标签来判断是否启用缓存
             if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                     && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
                 //需要去获取这个dao代表的po类
@@ -125,12 +127,14 @@ public class DaoCacheAop {
         return getObject(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,localVar.get()) ;
     }
 
-    private Object getObject(ProceedingJoinPoint point, String queue, String exchange,Message serviceMessage) throws Throwable {
+    private Object getObject(ProceedingJoinPoint point, String queue, String exchange, Message serviceMessage) throws Throwable {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.proceed();
-        serviceMessage.setMethod(null);
-        this.amqpTemplate.convertAndSend(queue,serviceMessage);
-        this.amqpTemplate.convertAndSend(exchange,"",serviceMessage);
+        if (serviceMessage != null && serviceMessage.getMethod().isAnnotationPresent(CacheChange.class)) {
+            serviceMessage.setMethod(null);
+            this.amqpTemplate.convertAndSend(queue, serviceMessage);
+            this.amqpTemplate.convertAndSend(exchange, "", serviceMessage);
+        }
         return proceed ;
     }
 

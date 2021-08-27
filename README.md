@@ -32,7 +32,7 @@ Java标准MVC架构如图：
 
 Service的实现类或接口上添加@CachebeanClassb注解并填入对应的PO类类型
 
-然后在需要缓存的**读取**方法上添加@ServiceCache注解
+然后在需要缓存的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
 
 其对应的@ServiceCache的status是必填的：
 
@@ -55,6 +55,18 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
         BaseConfigIndexDTO dto = new BaseConfigIndexDTO() ;
         TransUtil.po2dto(mapper.selectOne(wrapper), dto) ;
         return dto;
+    }
+    
+    @Override
+    @CacheChange
+    public <T extends BaseDTO> int edit(T t) {
+        ConfigIndexPO configIndexPO = new ConfigIndexPO();
+        TransUtil.dto2po(t,configIndexPO) ;
+        ConfigIndexPO result = this.mapper.selectById(configIndexPO.getId());
+        BeanUtil.copyProperties(configIndexPO, result,
+                true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
+        result.setId(null) ;
+        return this.mapper.insert(result);
     }
 }
 ```
@@ -123,7 +135,6 @@ management:
 
 Ps ：
 
-- @CacheBeanClass注解和@ServiceCache需要同时出现在实现类**或者**接口中，否则不起效
 - 基于DTO概念，Service方法允许**无参**和**仅有一个参数**、即所需参数需要使用一个**DTO**进行封装
 - Dao方法**不允许**针对某一业务而业务化、否则与Service并无本质上的区分可能导致缓存出现问题
 

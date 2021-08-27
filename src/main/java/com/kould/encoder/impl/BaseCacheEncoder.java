@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.google.gson.reflect.TypeToken;
 import com.kould.annotation.ServiceCache;
 import com.kould.encoder.CacheEncoder;
+import com.kould.json.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.kould.json.JsonUtil;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -25,7 +25,7 @@ public class BaseCacheEncoder implements CacheEncoder {
     public String encode(Object dto, Method serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
         return daoMethodName +
                 daoArgs +
-                serviceMethod.getAnnotation(ServiceCache.class).status() +
+                serviceMethod.getAnnotation(ServiceCache.class).status().getValue() +
                 serviceMethod.getName() +
                 daoEnityName +
                 jsonUtil.obj2Str(dto) ;
@@ -38,6 +38,15 @@ public class BaseCacheEncoder implements CacheEncoder {
         //需要寻找循环依赖序列化方案-》Mybaits-Plus的Wrapper
         StringBuilder result = new StringBuilder() ;
         try {
+//            Arrays.stream(args)
+//                    .forEach(arg -> {
+//                        for (Field field : arg.getClass().getFields()) {
+//                            //若该类下含有同类属性，则说明为循环依赖，不序列化
+//                            if (field.getType() != arg.getClass()) {
+//                                result.append(jsonUtil.obj2Str(field)) ;
+//                            }
+//                        }
+//                    });
             for (Object arg : args) {
                 if (arg instanceof QueryWrapper) {
                     result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getSqlSelect()));
@@ -73,7 +82,7 @@ public class BaseCacheEncoder implements CacheEncoder {
     }
 
     @Override
-    public Map<String,String> section2Field(Object key, String method) {
+    public Map<String, String> section2Field(Object key, String method) {
         return jsonUtil.str2Obj(jsonUtil.obj2Str(key), new TypeToken<HashMap<String, String>>() {}.getType());
     }
 
