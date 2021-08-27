@@ -1,6 +1,7 @@
 package com.kould.aspect;
 
 import com.kould.annotation.CacheBeanClass;
+import com.kould.annotation.ServiceCache;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
@@ -71,7 +72,8 @@ public class DaoCacheAop {
             String daoMethodName = daoMethod.getName() ;
             Message serviceMessage = localVar.get();
             //通过CacheBeanClass注释来获取对应的PO类使用类型，且通过Method上的UnCache标签来判断是否启用缓存
-            if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)) {
+            if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
+                    && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
                 //需要去获取这个dao代表的po类
                 CacheBeanClass cacheBeanClass = (CacheBeanClass) serviceMessage.getClazz().getAnnotation(CacheBeanClass.class);
                 Class resultClass = cacheBeanClass.clazz();
@@ -126,6 +128,7 @@ public class DaoCacheAop {
     private Object getObject(ProceedingJoinPoint point, String queue, String exchange,Message serviceMessage) throws Throwable {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.proceed();
+        serviceMessage.setMethod(null);
         this.amqpTemplate.convertAndSend(queue,serviceMessage);
         this.amqpTemplate.convertAndSend(exchange,"",serviceMessage);
         return proceed ;

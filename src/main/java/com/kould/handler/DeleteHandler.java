@@ -59,11 +59,11 @@ public class DeleteHandler {
         try {
             writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
             log.info("+++++++++Redis缓存删除检测");
-            Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethod().getName());
+            Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethodName());
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
-                Map<String, String> keySection = cacheEncoder.section2Field(cacheEncoder.decode(key, HashMap.class, resultClass.getName()), msg.getMethod().getName());
+                Map<String, String> keySection = cacheEncoder.section2Field(cacheEncoder.decode(key, HashMap.class, resultClass.getName()), msg.getMethodName());
                 if (key.contains(KacheConfig.SERVICE_NOARG) || key.contains(KacheConfig.SERVICE_ALL)) {
                     delKeys.add(key);
                 } else if (key.contains(KacheConfig.SERVICE_LIKE)) {

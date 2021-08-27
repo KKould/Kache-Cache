@@ -225,7 +225,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             BeanUtil.copyProperties(result, targer,
                     true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
             jedis.setex(id, kacheConfig.getCacheTime(),jsonUtil.obj2Str(targer)) ;
-            return result;
+            return (T) targer;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
