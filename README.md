@@ -30,7 +30,7 @@ Java标准MVC架构如图：
 
 #### 使用 | Use
 
-Service的实现类或接口上添加@CachebeanClassb注解并填入对应的PO类类型
+Service的实现类或接口上添加@CachebeanClass(clazz = PO.class)注解并填入对应的PO类类型
 
 然后在需要缓存的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
 
@@ -42,8 +42,8 @@ Service的实现类或接口上添加@CachebeanClassb注解并填入对应的PO�
 - status = KacheConfig.Status.ALL : 无条件查询方法
 
 ```java
-@Service
 @CacheBeanClass(clazz = ConfigIndexPO.class)
+@Service
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
     @ServiceCache(status = KacheConfig.Status.NOARG)
@@ -57,8 +57,8 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
         return dto;
     }
     
-    @Override
     @CacheChange
+    @Override
     public <T extends BaseDTO> int edit(T t) {
         ConfigIndexPO configIndexPO = new ConfigIndexPO();
         TransUtil.dto2po(t,configIndexPO) ;
@@ -144,7 +144,6 @@ Ps ：
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
-- 若Service方法不符合规范则可以以@Service(methodName = “别名”)在缓存中为该Service方法提供符合规范语义的别名
 
 #### 原理 | principle
 
