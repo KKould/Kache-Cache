@@ -30,7 +30,16 @@ Java标准MVC架构如图：
 
 #### 使用 | Use
 
-Service的实现类或接口上添加@CachebeanClass(clazz = PO.class)注解并填入对应的PO类类型
+**1**.pom文件引入:
+
+```xml
+<dependency>
+  <groupId>io.gitee.kould</groupId>
+  <artifactId>Kache</artifactId>
+</dependency>
+```
+
+**2**.Service的实现类或接口上添加@CachebeanClass(clazz = PO.class)注解并填入对应的PO类类型
 
 然后在需要缓存的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
 
@@ -71,7 +80,7 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
 }
 ```
 
-其对应的Dao层的Dao方法：
+**3**.其对应的Dao层的Dao方法添加注释：
 
 - 搜索方法：@DaoSelect
 - 插入方法：@DaoInsert
@@ -97,7 +106,7 @@ public interface BaseMapper<T> {
 }
 ```
 
-提供RedissonClient与消息队列（此处略）
+**4**.提供RedissonClient与消息队列（此处略）
 
 ```java
 @Configuration
