@@ -1,5 +1,6 @@
 package com.kould.handler;
 
+import com.kould.annotation.CacheBeanClass;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.manager.InterprocessCacheManager;
@@ -75,7 +76,9 @@ public class UpdateHandler {
         RLock writeLock = readWriteLock.writeLock();
         try {
             writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
-            interprocessCacheManager.clear(); ;
+            CacheBeanClass cacheBeanClass = (CacheBeanClass) msg.getClazz().getAnnotation(CacheBeanClass.class);
+            Class resultClass = cacheBeanClass.clazz();
+            interprocessCacheManager.clear(resultClass); ;
             writeLock.unlock();
         } catch (Exception e) {
             e.printStackTrace();

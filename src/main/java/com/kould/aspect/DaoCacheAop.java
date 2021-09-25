@@ -96,7 +96,7 @@ public class DaoCacheAop {
                     result = baseCacheManager.get(key, resultClass);
                     if (result == null) {
                         result = point.proceed();
-                        baseCacheManager.put(key, result);
+                        baseCacheManager.put(key, result, resultClass);
                     }
                     writeLock.unlock();
                 }

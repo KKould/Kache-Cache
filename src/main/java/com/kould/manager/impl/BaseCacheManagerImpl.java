@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ExecutionException;
+
 @Slf4j
 @Component
 public class BaseCacheManagerImpl implements IBaseCacheManager {
@@ -22,19 +24,19 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
     private KacheConfig kacheConfig ;
 
     @Override
-    public <T> T put(String key, T result) {
+    public <T> T put(String key, T result, Class<?> resultClass) throws ExecutionException {
         if (kacheConfig.isEnableInterprocessCache()) {
-            interprocessCacheManager.put(key, result, kacheConfig.getInterprocessCacheSize()) ;
+            interprocessCacheManager.put(key, result, resultClass) ;
         }
         return remoteCacheManager.put(key, result);
     }
 
     @Override
-    public Object get(String key, Class<?> resultClass) {
+    public Object get(String key, Class<?> resultClass) throws ExecutionException {
 
         Object result = null ;
         if (kacheConfig.isEnableInterprocessCache()) {
-            result =interprocessCacheManager.get(key) ;
+            result =interprocessCacheManager.get(key, resultClass) ;
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从进程间缓存获取数据中");
         }
         if (result == null) {
@@ -42,7 +44,7 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
             result = remoteCacheManager.get(key, resultClass) ;
             if (kacheConfig.isEnableInterprocessCache()) {
                 if (result != null) {
-                    interprocessCacheManager.put(key, result, kacheConfig.getInterprocessCacheSize()) ;
+                    interprocessCacheManager.put(key, result, resultClass) ;
                 }
             }
         }

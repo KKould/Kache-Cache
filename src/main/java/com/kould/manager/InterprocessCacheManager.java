@@ -1,11 +1,10 @@
 package com.kould.manager;
 
-import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public interface InterprocessCacheManager {
-    boolean hasKey(String key) ;
-    <T> T update(String key,T result) ;
-    Object get(String key) ;
-    void clear() ;
-    <T> T put(String key, T result, int limit) ;
+    <T> T update(String key,T result, Class<?> resultClass) ;
+    Object get(String key, Class<?> resultClass) throws ExecutionException;
+    void clear(Class<?> resultClass) throws ExecutionException;
+    <T> T put(String key, T result, Class<?> resultClass) throws ExecutionException;
 }
