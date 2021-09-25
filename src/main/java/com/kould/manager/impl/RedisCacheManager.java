@@ -125,7 +125,31 @@ public class RedisCacheManager implements RemoteCacheManager {
                 values.addAll(keys) ;
                 values.add(jsonUtil.obj2Str(page)) ;
                 keys.add(key) ;
-
+            } else if (result instanceof List) {
+                List results = (List) result ;
+                List list = results.getClass().newInstance();
+                //包装类与数据List分离
+                List<Object> records = new ArrayList<>();
+                records.addAll(results);
+                StringBuilder idsNum = new StringBuilder() ;
+                int count = 0 ;
+                for (Object record : records) {
+                    //单条数据缓存
+                    lua.append("redis.call('setex',KEYS["+ ++count +"],"+ kacheConfig.getCacheTime() +",ARGV[" + count + "]);");
+                    Method methodGetId = record.getClass().getMethod(METHOD_GET_ID, null);
+                    keys.add(methodGetId.invoke(record).toString()) ;
+                    values.add(jsonUtil.obj2Str(record)) ;
+                    //拼接id聚合参数
+                    idsNum.append(",ARGV[" + (count + records.size()) + "]") ;
+                }
+                idsNum.append(",ARGV[" + (++count + records.size()) + "]") ;
+                //聚合缓存
+                lua.append("redis.call('del',KEYS[" + (records.size() + 1) + "]);");
+                lua.append("redis.call('lpush',KEYS[" + (records.size() + 1) + "]" + idsNum + ");");
+                lua.append("return redis.call('expire',KEYS[" + (records.size() + 1) + "]," + kacheConfig.getCacheTime() + ");");
+                values.addAll(keys) ;
+                values.add(jsonUtil.obj2Str(list)) ;
+                keys.add(key) ;
             } else {
                 lua.append("redis.call('setex',KEYS[1],"+ kacheConfig.getCacheTime() +",ARGV[1]);");
                 lua.append("redis.call('del',KEYS[2]);");
@@ -173,8 +197,17 @@ public class RedisCacheManager implements RemoteCacheManager {
                     //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                     Collections.reverse(records);
                     return result ;
+                } else if (list.get(0).equals("[]")) {
+                    List result = new ArrayList() ;
+                    //跳过第一位数据的填充
+                    for (int i = 1; i < list.size(); i++) {
+                        records.add(jsonUtil.str2Obj(list.get(i),resultClass)) ;
+                    }
+                    //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                    Collections.reverse(records);
+                    return result ;
                 } else {
-                    return jsonUtil.str2Obj(list.get(0),resultClass) ;
+                    return jsonUtil.str2Obj(list.get(0), resultClass);
                 }
             } else return null ;
         } catch (Exception e) {
