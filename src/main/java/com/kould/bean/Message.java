@@ -15,4 +15,5 @@ public class Message implements Serializable {
     private String methodName ;
     private Object arg ;
     private Class<?> clazz ;
+    private Class<?> cacheClazz ;
 }

@@ -39,9 +39,11 @@ public class ServiceMessageAop {
             return point.proceed();
         }
         Object arg = null;
+        CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
+        Class<?> cacheClass = cacheBeanClass.clazz();
         if (point.getArgs() != null) {
-            CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
-            arg = cacheBeanClass.clazz().newInstance() ;
+
+            arg = cacheClass.getDeclaredConstructor().newInstance() ;
         } else {
             arg = point.getArgs()[0] ;
         }
@@ -49,6 +51,7 @@ public class ServiceMessageAop {
                 .arg(arg)
                 .method(method)
                 .clazz(targetClass)
+                .cacheClazz(cacheClass)
                 .build());
         return point.proceed() ;
     }

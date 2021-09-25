@@ -1,6 +1,5 @@
 package com.kould.handler;
 
-import com.kould.annotation.CacheBeanClass;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
@@ -50,9 +49,7 @@ public class DeleteHandler {
         if (msg.getArg() == null) {
             return;
         }
-        //需要去获取这个dao代表的po类
-        CacheBeanClass cacheBeanClass = (CacheBeanClass) msg.getClazz().getAnnotation(CacheBeanClass.class);
-        Class resultClass = cacheBeanClass.clazz();
+        Class resultClass = msg.getCacheClazz();
         String lockKey = msg.getArg().getClass().getSimpleName();
         RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
         RLock writeLock = readWriteLock.writeLock();
@@ -114,7 +111,7 @@ public class DeleteHandler {
         RLock writeLock = readWriteLock.writeLock();
         try {
             writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
-            interprocessCacheManager.clear(); ;
+            interprocessCacheManager.clear(msg.getCacheClazz()); ;
             writeLock.unlock();
         } catch (Exception e) {
             e.printStackTrace();

@@ -76,9 +76,7 @@ public class DaoCacheAop {
             Message serviceMessage = localVar.get();
             if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                     && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
-                //需要去获取这个dao代表的po类
-                CacheBeanClass cacheBeanClass = (CacheBeanClass) serviceMessage.getClazz().getAnnotation(CacheBeanClass.class);
-                Class resultClass = cacheBeanClass.clazz();
+                Class resultClass = serviceMessage.getCacheClazz();
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
                 String lockKey = resultClass.getTypeName();
                 RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
