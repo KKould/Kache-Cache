@@ -24,27 +24,27 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
     private KacheConfig kacheConfig ;
 
     @Override
-    public <T> T put(String key, T result, Class<?> resultClass) throws ExecutionException {
+    public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
         if (kacheConfig.isEnableInterprocessCache()) {
-            interprocessCacheManager.put(key, result, resultClass) ;
+            interprocessCacheManager.put(key, result, beanClass) ;
         }
         return remoteCacheManager.put(key, result);
     }
 
     @Override
-    public Object get(String key, Class<?> resultClass) throws ExecutionException {
+    public Object get(String key, Class<?> resultClass, Class<?> beanClass) throws ExecutionException {
 
         Object result = null ;
         if (kacheConfig.isEnableInterprocessCache()) {
-            result =interprocessCacheManager.get(key, resultClass) ;
+            result =interprocessCacheManager.get(key, beanClass) ;
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从进程间缓存获取数据中");
         }
         if (result == null) {
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从Redis缓存获取数据中");
-            result = remoteCacheManager.get(key, resultClass) ;
+            result = remoteCacheManager.get(key, resultClass, beanClass) ;
             if (kacheConfig.isEnableInterprocessCache()) {
                 if (result != null) {
-                    interprocessCacheManager.put(key, result, resultClass) ;
+                    interprocessCacheManager.put(key, result, beanClass) ;
                 }
             }
         }

@@ -76,25 +76,25 @@ public class DaoCacheAop {
             Message serviceMessage = localVar.get();
             if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                     && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
-                Class resultClass = serviceMessage.getCacheClazz();
+                Class beanClass = serviceMessage.getCacheClazz();
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
-                String lockKey = resultClass.getTypeName();
+                String lockKey = beanClass.getTypeName();
                 RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
                 readLock = readWriteLock.readLock();
                 readLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
                 String key = cacheEncoder.encode(serviceMessage.getArg()
-                        , serviceMessage.getMethod(), resultClass.getName(), daoMethodName, daoArgs) ;
-                Object result = baseCacheManager.get( key, resultClass);
+                        , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
+                Object result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
                 readLock.unlock();
                 //双重检测，很酷吧 XD
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                     writeLock = readWriteLock.writeLock();
                     writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
-                    result = baseCacheManager.get(key, resultClass);
+                    result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
                     if (result == null) {
                         result = point.proceed();
-                        baseCacheManager.put(key, result, resultClass);
+                        baseCacheManager.put(key, result, beanClass);
                     }
                     writeLock.unlock();
                 }

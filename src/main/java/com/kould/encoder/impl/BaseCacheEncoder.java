@@ -1,6 +1,7 @@
 package com.kould.encoder.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.reflect.TypeToken;
 import com.kould.annotation.ServiceCache;
 import com.kould.encoder.CacheEncoder;
@@ -89,5 +90,10 @@ public class BaseCacheEncoder implements CacheEncoder {
     @Override
     public String getPattern(String poName) {
         return "*" + poName + "*" ;
+    }
+
+    @Override
+    public <T> Class<T> getPackageClass() {
+        return (Class<T>) Page.class;
     }
 }

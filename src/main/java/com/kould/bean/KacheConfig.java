@@ -24,6 +24,9 @@ public class KacheConfig {
     @Value("${kache.interprocess-cache.size:50}")
     private int interprocessCacheSize ;
 
+    @Value("${kache.data-field.name:records}")
+    private String dataField ;
+
     public int getCacheTime() {
         return (int)(baseTime + Math.random() * randomTime) ;
     }

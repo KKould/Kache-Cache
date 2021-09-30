@@ -26,8 +26,8 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     }
 
     @Override
-    public Object get(String key, Class<?> resultClass) throws ExecutionException {
-        String name = resultClass.getName();
+    public Object get(String key, Class<?> beanClass) throws ExecutionException {
+        String name = beanClass.getName();
         Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
             @Override
             public Cache<String,Object> call() throws Exception {
@@ -47,8 +47,8 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     }
 
     @Override
-    public void clear(Class<?> resultClass) throws ExecutionException {
-        String name = resultClass.getName();
+    public void clear(Class<?> beanClass) throws ExecutionException {
+        String name = beanClass.getName();
         Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
             @Override
             public Cache<String,Object> call() throws Exception {
@@ -61,8 +61,8 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     }
 
     @Override
-    public <T> T put(String key, T result, Class<?> resultClass) throws ExecutionException {
-        String name = resultClass.getName();
+    public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
+        String name = beanClass.getName();
         Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
             @Override
             public Cache<String,Object> call() throws Exception {

@@ -2,20 +2,16 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.gson.reflect.TypeToken;
 import com.kould.bean.KacheConfig;
 import com.kould.json.JsonUtil;
 import com.kould.manager.RemoteCacheManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -98,63 +94,20 @@ public class RedisCacheManager implements RemoteCacheManager {
             StringBuilder lua = new StringBuilder();
             List<String> keys = new ArrayList<>() ;
             List<String> values = new ArrayList<>() ;
-            if (result instanceof IPage) {
-                //分页包装类处理
-                IPage<Object> page = new Page() ;
-                BeanUtils.copyProperties(result, page);
-                //包装类与数据List分离
-                List records = page.getRecords();
-                page.setRecords(null) ;
-                //通过id收集来进行数据的关联
-                StringBuilder idsNum = new StringBuilder() ;
-                int count = 0 ;
-                for (Object record : records) {
-                    //单条数据缓存
-                    lua.append("redis.call('setex',KEYS["+ ++count +"],"+ kacheConfig.getCacheTime() +",ARGV[" + count + "]);");
-                    Method methodGetId = record.getClass().getMethod(METHOD_GET_ID, null);
-                    keys.add(methodGetId.invoke(record).toString()) ;
-                    values.add(jsonUtil.obj2Str(record)) ;
-                    //拼接id聚合参数
-                    idsNum.append(",ARGV[" + (count + records.size()) + "]") ;
-                }
-                idsNum.append(",ARGV[" + (++count + records.size()) + "]") ;
-                //聚合缓存
-                lua.append("redis.call('del',KEYS[" + (records.size() + 1) + "]);");
-                lua.append("redis.call('lpush',KEYS[" + (records.size() + 1) + "]" + idsNum + ");");
-                lua.append("return redis.call('expire',KEYS[" + (records.size() + 1) + "]," + kacheConfig.getCacheTime() + ");");
-                values.addAll(keys) ;
-                values.add(jsonUtil.obj2Str(page)) ;
-                keys.add(key) ;
-            } else if (result instanceof List) {
-                List results = (List) result ;
-                List list = results.getClass().newInstance();
-                //包装类与数据List分离
-                List<Object> records = new ArrayList<>();
-                records.addAll(results);
-                StringBuilder idsNum = new StringBuilder() ;
-                int count = 0 ;
-                for (Object record : records) {
-                    //单条数据缓存
-                    lua.append("redis.call('setex',KEYS["+ ++count +"],"+ kacheConfig.getCacheTime() +",ARGV[" + count + "]);");
-                    Method methodGetId = record.getClass().getMethod(METHOD_GET_ID, null);
-                    keys.add(methodGetId.invoke(record).toString()) ;
-                    values.add(jsonUtil.obj2Str(record)) ;
-                    //拼接id聚合参数
-                    idsNum.append(",ARGV[" + (count + records.size()) + "]") ;
-                }
-                idsNum.append(",ARGV[" + (++count + records.size()) + "]") ;
-                //聚合缓存
-                lua.append("redis.call('del',KEYS[" + (records.size() + 1) + "]);");
-                lua.append("redis.call('lpush',KEYS[" + (records.size() + 1) + "]" + idsNum + ");");
-                lua.append("return redis.call('expire',KEYS[" + (records.size() + 1) + "]," + kacheConfig.getCacheTime() + ");");
-                values.addAll(keys) ;
-                values.add(jsonUtil.obj2Str(list)) ;
-                keys.add(key) ;
+            if (result instanceof Collection) {
+                collection2Lua(key, lua, keys, values, (Collection) result);
+            } else if (kacheConfig.getDataField() != null) {
+                Method methodGetRecords = result.getClass().getMethod("get" + kacheConfig.getDataField(), null);
+                collection2Lua(key, lua, keys, values, (Collection) methodGetRecords.invoke(result));
             } else {
-                lua.append("redis.call('setex',KEYS[1],"+ kacheConfig.getCacheTime() +",ARGV[1]);");
+                lua.append("redis.call('setex',KEYS[1],")
+                        .append(kacheConfig.getCacheTime())
+                        .append(",ARGV[1]);");
                 lua.append("redis.call('del',KEYS[2]);");
                 lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
-                lua.append("return redis.call('expire',KEYS[2]," + kacheConfig.getCacheTime() + ");") ;
+                lua.append("return redis.call('expire',KEYS[2],")
+                        .append(kacheConfig.getCacheTime())
+                        .append(");");
                 String id = null ;
                 if (result != null) {
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
@@ -177,38 +130,83 @@ public class RedisCacheManager implements RemoteCacheManager {
         return null ;
     }
 
+    private void collection2Lua(String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        StringBuilder idsNum = new StringBuilder();
+        int count = 0;
+        for (Object record : records) {
+            //单条数据缓存
+            lua.append("redis.call('setex',KEYS[")
+                    .append(++count)
+                    .append("],")
+                    .append(kacheConfig.getCacheTime())
+                    .append(",ARGV[")
+                    .append(count)
+                    .append("]);");
+            Method methodGetId = record.getClass().getMethod(METHOD_GET_ID, null);
+            keys.add(methodGetId.invoke(record).toString());
+            values.add(jsonUtil.obj2Str(record));
+            //拼接id聚合参数
+            idsNum.append(",ARGV[")
+                    .append(count + records.size())
+                    .append("]");
+        }
+        idsNum.append(",ARGV[")
+                .append(++count + records.size())
+                .append("]");
+        //聚合缓存
+        lua.append("redis.call('del',KEYS[")
+                .append(records.size() + 1)
+                .append("]);");
+        lua.append("redis.call('lpush',KEYS[")
+                .append(records.size() + 1)
+                .append("]")
+                .append(idsNum)
+                .append(");");
+        lua.append("return redis.call('expire',KEYS[")
+                .append(records.size() + 1)
+                .append("],")
+                .append(kacheConfig.getCacheTime())
+                .append(");");
+        values.addAll(keys);
+        values.add(jsonUtil.obj2Str(records));
+        keys.add(key);
+    }
+
     @Override
-    public Object get(String key, Class<?> resultClass) {
+    public Object get(String key, Class<?> resultClass, Class<?> beanClass) {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
             List<String> list = (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_GET, 1, key );
-            List records = new ArrayList() ;
+            List<Object> records = new ArrayList() ;
             //IPage对象填充处理
             if ( list != null && !list.isEmpty()) {
-                //使用MyBatisPlus的Page对象的属性名来比对
-                if (list.get(0).contains("total") && list.get(0).contains("size") && list.get(0).contains("current") && list.get(0).contains("orders")) {
-                    IPage result = jsonUtil.str2Obj(list.get(0), Page.class);
-                    result.setRecords(records) ;
+                try {
+                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
+                    Method methodSetRecords = result.getClass().getMethod("set" + kacheConfig.getDataField(), List.class);
+                    methodSetRecords.invoke(result,records) ;
                     //跳过第一位数据的填充
                     for (int i = 1; i < list.size(); i++) {
-                        records.add(jsonUtil.str2Obj(list.get(i),resultClass)) ;
+                        records.add(jsonUtil.str2Obj(list.get(i),beanClass)) ;
                     }
                     //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                     Collections.reverse(records);
                     return result ;
-                } else if (list.get(0).equals("[]")) {
-                    List result = new ArrayList() ;
-                    //跳过第一位数据的填充
-                    for (int i = 1; i < list.size(); i++) {
-                        records.add(jsonUtil.str2Obj(list.get(i),resultClass)) ;
+                } catch (Exception e) {
+                    if (list.get(0).equals("[]")) {
+                        List<Object> result = new ArrayList() ;
+                        //跳过第一位数据的填充
+                        for (int i = 1; i < list.size(); i++) {
+                            records.add(jsonUtil.str2Obj(list.get(i),beanClass)) ;
+                        }
+                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                        Collections.reverse(records);
+                        return result ;
+                    } else {
+                        return jsonUtil.str2Obj(list.get(0), beanClass);
                     }
-                    //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                    Collections.reverse(records);
-                    return result ;
-                } else {
-                    return jsonUtil.str2Obj(list.get(0), resultClass);
                 }
+
             } else return null ;
         } catch (Exception e) {
             log.error(e.getMessage(), e);

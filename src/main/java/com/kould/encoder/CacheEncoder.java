@@ -11,4 +11,5 @@ public interface CacheEncoder {
     <T> T decode(String key, Type type, String serviceMethodName) ;
     Map<String,String> section2Field(Object key, String method) ;
     String getPattern(String poName) ;
+    <T> Class<T> getPackageClass() ;
 }
