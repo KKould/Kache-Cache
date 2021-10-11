@@ -6,22 +6,20 @@ import com.kould.annotation.ServiceCache;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
+import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.redisson.api.RLock;
-import org.redisson.api.RReadWriteLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 import static com.kould.amqp.KacheQueue.*;
 
@@ -36,6 +34,8 @@ public class DaoCacheAop {
     @Autowired
     private KacheConfig kacheConfig ;
 
+    private KacheLock kacheLock ;
+
     @Autowired
     private IBaseCacheManager baseCacheManager;
 
@@ -44,9 +44,6 @@ public class DaoCacheAop {
 
     @Autowired
     private AmqpTemplate amqpTemplate;
-
-    @Autowired
-    private RedissonClient redissonClient;
 
     @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_FIND)
     public void pointCutFind() {
@@ -67,8 +64,8 @@ public class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        RLock readLock = null ;
-        RLock writeLock = null;
+        Lock readLock = null ;
+        Lock writeLock = null;
         try {
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
             Method daoMethod = methodSignature.getMethod();
@@ -76,27 +73,28 @@ public class DaoCacheAop {
             Message serviceMessage = localVar.get();
             if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                     && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
-                Class beanClass = serviceMessage.getCacheClazz();
+                Class<?> beanClass = serviceMessage.getCacheClazz();
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
+
                 String lockKey = beanClass.getTypeName();
-                RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
-                readLock = readWriteLock.readLock();
-                readLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
+                readLock = kacheLock.readLock(lockKey) ;
+
                 String key = cacheEncoder.encode(serviceMessage.getArg()
                         , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 Object result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
-                readLock.unlock();
+
+                kacheLock.unLock(readLock);
+
                 //双重检测，很酷吧 XD
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                    writeLock = readWriteLock.writeLock();
-                    writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
+                    writeLock = kacheLock.writeLock(lockKey) ;
                     result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
                     if (result == null) {
                         result = point.proceed();
                         baseCacheManager.put(key, result, beanClass);
                     }
-                    writeLock.unlock();
+                    kacheLock.unLock(writeLock);
                 }
                 return result;
             } else {
@@ -105,11 +103,11 @@ public class DaoCacheAop {
         }catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (readLock != null && readLock.isLocked() && readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
+            if (!kacheLock.isLock(readLock)) {
+                kacheLock.unLock(readLock);
             }
-            if (writeLock != null && writeLock.isLocked() && writeLock.isHeldByCurrentThread()) {
-                writeLock.unlock();
+            if (!kacheLock.isLock(writeLock)) {
+                kacheLock.unLock(writeLock);
             }
         }
         return null ;

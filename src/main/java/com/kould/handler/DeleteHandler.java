@@ -3,12 +3,10 @@ package com.kould.handler;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
+import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RReadWriteLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -21,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 import static com.kould.amqp.KacheQueue.*;
 
@@ -33,6 +31,9 @@ public class DeleteHandler {
     private KacheConfig kacheConfig ;
 
     @Autowired
+    private KacheLock kacheLock ;
+
+    @Autowired
     private CacheEncoder cacheEncoder ;
 
     @Autowired
@@ -41,9 +42,6 @@ public class DeleteHandler {
     @Autowired
     private InterprocessCacheManager interprocessCacheManager ;
 
-    @Autowired
-    private RedissonClient redissonClient;
-
     @RabbitListener(queues = QUEUE_DELETE_CACHE)
     public void asyncDeleteHandler(Message msg) {
         if (msg.getArg() == null) {
@@ -51,11 +49,10 @@ public class DeleteHandler {
         }
         Class resultClass = msg.getCacheClazz();
         String lockKey = msg.getArg().getClass().getSimpleName();
-        RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
-        RLock writeLock = readWriteLock.writeLock();
+        Lock writeLock = null;
         try {
-            writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
-            log.info("+++++++++Redis缓存删除检测");
+            writeLock = kacheLock.writeLock(lockKey);
+            log.info("Kache:+++++++++Redis缓存删除检测");
             Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethodName());
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
@@ -90,10 +87,10 @@ public class DeleteHandler {
             if (delKeys.size() > 0) {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }
-            writeLock.unlock();
+            kacheLock.unLock(writeLock);
         } finally {
-            if (writeLock.isLocked() && writeLock.isHeldByCurrentThread()) {
-                writeLock.unlock();
+            if (!kacheLock.isLock(writeLock)) {
+                kacheLock.unLock(writeLock);
             }
         }
     }
@@ -103,22 +100,6 @@ public class DeleteHandler {
             exchange = @Exchange(value = INTERPROCESS_DELETE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
     ))
     public void asyncInterprocessDeleteHandler(Message msg) {
-        if (msg.getArg() == null) {
-            return;
-        }
-        String lockKey = msg.getArg().getClass().getSimpleName();
-        RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(lockKey);
-        RLock writeLock = readWriteLock.writeLock();
-        try {
-            writeLock.lock(kacheConfig.getLockTime(), TimeUnit.SECONDS);
-            interprocessCacheManager.clear(msg.getCacheClazz()); ;
-            writeLock.unlock();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (writeLock.isLocked() && writeLock.isHeldByCurrentThread()) {
-                writeLock.unlock();
-            }
-        }
+        UpdateHandler.InterprocessCacheClear(msg, kacheLock, interprocessCacheManager);
     }
 }
