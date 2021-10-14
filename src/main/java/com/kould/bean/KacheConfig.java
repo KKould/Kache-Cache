@@ -24,8 +24,13 @@ public class KacheConfig {
     @Value("${kache.interprocess-cache.size:50}")
     private int interprocessCacheSize ;
 
+    //数据包装类的PO集属性名
     @Value("${kache.data-field.name:records}")
-    private String dataField ;
+    private String dataFieldName ;
+
+    //数据包装类的PO集属性声明类型
+    @Value("${kache.data-field.declare-type:java.util.List}")
+    private String dataFieldDeclareType ;
 
     public int getCacheTime() {
         return (int)(baseTime + Math.random() * randomTime) ;

@@ -48,6 +48,7 @@ public class UpdateHandler {
         try {
             writeLock = kacheLock.writeLock(lockKey);
             Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
+            log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
             remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
             kacheLock.unLock(writeLock);
         } catch (Exception e) {

@@ -45,8 +45,11 @@ public class RedissonLock implements KacheLock{
 
     @Override
     public Boolean isLock(Lock lock) {
+        if (lock == null) {
+            return true ;
+        }
         RLock rLock = (RLock) lock ;
-        if (rLock != null && rLock.isLocked() && rLock.isHeldByCurrentThread()) {
+        if (rLock.isLocked() && rLock.isHeldByCurrentThread()) {
             return false ;
         } else {
             return true ;

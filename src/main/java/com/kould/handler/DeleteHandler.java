@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
-import static com.kould.amqp.KacheQueue.*;
+import static com.kould.amqp.KacheQueue.INTERPROCESS_DELETE_EXCHANGE_NAME;
+import static com.kould.amqp.KacheQueue.QUEUE_DELETE_CACHE;
 
 @Component
 @Slf4j
@@ -52,7 +53,7 @@ public class DeleteHandler {
         Lock writeLock = null;
         try {
             writeLock = kacheLock.writeLock(lockKey);
-            log.info("Kache:+++++++++Redis缓存删除检测");
+            log.info("\r\nKache:+++++++++Redis缓存删除检测....");
             Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethodName());
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();

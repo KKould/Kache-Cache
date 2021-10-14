@@ -16,12 +16,12 @@ public class KacheQueue {
     public static final String INTERPROCESS_UPDATE_EXCHANGE_NAME = "KACHE_INTERPROCESS_UPDATE_EXCHANGE" ;
 
     @Bean
-    public org.springframework.amqp.core.Queue asyncDeleteCache() {
+    public Queue asyncDeleteCache() {
         return new Queue(QUEUE_DELETE_CACHE);
     }
 
     @Bean
-    public org.springframework.amqp.core.Queue asyncUpdateCache() {
+    public Queue asyncUpdateCache() {
         return new Queue(QUEUE_UPDATE_CACHE);
     }
 }

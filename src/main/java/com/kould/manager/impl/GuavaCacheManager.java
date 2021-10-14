@@ -1,5 +1,6 @@
 package com.kould.manager.impl;
 
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.kould.bean.KacheConfig;
@@ -7,7 +8,9 @@ import com.kould.manager.InterprocessCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -17,7 +20,9 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Autowired
     private KacheConfig kacheConfig ;
 
-    private Cache<String,Cache<String,Object>> guavaCacheMap = CacheBuilder.newBuilder().weakValues().build() ;
+    //维护各个业务的进程间缓存Cache:
+    //  Key:DTO名-》Value:Cache<String,Object>
+    private Map<String, Cache<String,Object>> guavaCacheMap = new ConcurrentHashMap<>();
 
     @Override
     public <T> T update(String key, T result, Class<?> resultClass) {
@@ -28,12 +33,7 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public Object get(String key, Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
-            @Override
-            public Cache<String,Object> call() throws Exception {
-                return null;
-            }
-        });
+        Cache<String,Object> cache = guavaCacheMap.get(name);
         if (cache == null) {
             return null ;
         } else {
@@ -49,12 +49,7 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public void clear(Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
-            @Override
-            public Cache<String,Object> call() throws Exception {
-                return null;
-            }
-        });
+        Cache<String,Object> cache = guavaCacheMap.get(name);
         if (cache != null) {
             cache.cleanUp();
         }
@@ -63,12 +58,7 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name, new Callable<Cache<String,Object>>() {
-            @Override
-            public Cache<String,Object> call() throws Exception {
-                return null;
-            }
-        });
+        Cache<String,Object> cache = guavaCacheMap.get(name);
         if (cache == null) {
             cache = CacheBuilder.newBuilder()
                     .weakValues()

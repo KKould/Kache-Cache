@@ -34,6 +34,7 @@ public class DaoCacheAop {
     @Autowired
     private KacheConfig kacheConfig ;
 
+    @Autowired
     private KacheLock kacheLock ;
 
     @Autowired

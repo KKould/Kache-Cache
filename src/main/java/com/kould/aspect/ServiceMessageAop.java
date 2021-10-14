@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 @Component
 @Order(15)
 
+//Service数据采集AOP
 public class ServiceMessageAop {
 
     @Autowired
@@ -29,6 +30,17 @@ public class ServiceMessageAop {
     public void pointCut() {
     }
 
+    /**
+     * 为DAO层缓存AOP提供以下数据
+     *  1、该织入点方法
+     *  2、该织入点方法内参数（首位）
+     *  3、目标对象的类
+     *  4、缓存PO的类
+     *  以ThreadLocal的形式传入给DAO层
+     * @param point 切入点
+     * @return point执行，不影响其正常工作
+     * @throws Throwable
+     */
     @Around("@annotation(com.kould.annotation.CacheBeanClass) || pointCut()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class targetClass = point.getTarget().getClass() ;
@@ -41,9 +53,8 @@ public class ServiceMessageAop {
         Object arg = null;
         CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
         Class<?> cacheClass = cacheBeanClass.clazz();
-        if (point.getArgs() != null) {
-
-            arg = cacheClass.getDeclaredConstructor().newInstance() ;
+        if (point.getArgs() == null) {
+            arg = null ;
         } else {
             arg = point.getArgs()[0] ;
         }
