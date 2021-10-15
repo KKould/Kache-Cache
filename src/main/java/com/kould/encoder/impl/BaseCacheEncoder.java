@@ -3,6 +3,7 @@ package com.kould.encoder.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.reflect.TypeToken;
+import com.kould.KryoUtil;
 import com.kould.annotation.ServiceCache;
 import com.kould.encoder.CacheEncoder;
 import com.kould.json.JsonUtil;
@@ -37,29 +38,11 @@ public class BaseCacheEncoder implements CacheEncoder {
     public String argsEncode(Object... args) {
         //此处可以返回空但是空会导致同一Service方法内调用同一Dao方法且Dao方法的参数不一致时会导致缓存误差
         //需要寻找循环依赖序列化方案-》Mybaits-Plus的Wrapper
+        //new:使用Kryo序列化
         StringBuilder result = new StringBuilder() ;
         try {
-//            Arrays.stream(args)
-//                    .forEach(arg -> {
-//                        for (Field field : arg.getClass().getFields()) {
-//                            //若该类下含有同类属性，则说明为循环依赖，不序列化
-//                            if (field.getType() != arg.getClass()) {
-//                                result.append(jsonUtil.obj2Str(field)) ;
-//                            }
-//                        }
-//                    });
             for (Object arg : args) {
-                if (arg instanceof QueryWrapper) {
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getSqlSelect()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getCustomSqlSegment()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getEntity()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getParamNameValuePairs()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getSqlComment()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getSqlSegment()));
-                    result.append(jsonUtil.obj2Str(((QueryWrapper) arg).getSqlSet()));
-                } else {
-                    result.append(jsonUtil.obj2Str(arg)) ;
-                }
+                result.append(KryoUtil.writeToString(arg)) ;
             }
         } catch (Exception e) {
             throw e ;

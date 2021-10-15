@@ -2,8 +2,8 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import com.kould.KryoUtil;
 import com.kould.bean.KacheConfig;
-import com.kould.json.JsonUtil;
 import com.kould.manager.RemoteCacheManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +25,6 @@ public class RedisCacheManager implements RemoteCacheManager {
 
     @Autowired
     private JedisPool jedisPool;
-
-    @Autowired
-    private JsonUtil jsonUtil ;
 
     @Autowired
     private KacheConfig kacheConfig ;
@@ -145,7 +142,8 @@ public class RedisCacheManager implements RemoteCacheManager {
                 }
                 keys.add(id) ;
                 keys.add(key) ;
-                values.add(jsonUtil.obj2Str(result)) ;
+                values.add(KryoUtil.writeToString(result)) ;
+//                values.add(jsonUtil.obj2Str(result)) ;
                 values.add(keys.get(0)) ;
             }
             jedis.eval(lua.toString(),keys,values) ;
@@ -173,7 +171,8 @@ public class RedisCacheManager implements RemoteCacheManager {
                     .append(count)
                     .append("]);");
             keys.add(methodGetId.invoke(record).toString());
-            values.add(jsonUtil.obj2Str(record));
+            values.add(KryoUtil.writeToString(record)) ;
+//            values.add(jsonUtil.obj2Str(record));
             //拼接id聚合参数
             idsNum.append(",ARGV[")
                     .append(count + records.size())
@@ -198,7 +197,8 @@ public class RedisCacheManager implements RemoteCacheManager {
                 .append(");");
         values.addAll(keys);
         if (page != null) {
-            values.add(jsonUtil.obj2Str(page));
+            values.add(KryoUtil.writeToString(page)) ;
+//            values.add(jsonUtil.obj2Str(page));
         } else {
             values.add("[]") ;
         }
@@ -232,21 +232,25 @@ public class RedisCacheManager implements RemoteCacheManager {
                     List<Object> result = new ArrayList();
                     //跳过第一位数据的填充
                     for (int i = 1; i < list.size(); i++) {
-                        records.add(jsonUtil.str2Obj(list.get(i), beanClass));
+                        records.add(KryoUtil.readFromString(list.get(i))) ;
+//                        records.add(jsonUtil.str2Obj(list.get(i), beanClass));
                     }
                     //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                     Collections.reverse(records);
                     return result;
                 } else if(list.size() == 1) {
-                    return jsonUtil.str2Obj(list.get(0), beanClass);
+                    return KryoUtil.readFromString(list.get(0)) ;
+//                    return jsonUtil.str2Obj(list.get(0), beanClass);
                 } else {
-                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
+                    Object result = KryoUtil.readFromString(list.get(0)) ;
+//                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
                     Field recordsField = result.getClass().getDeclaredField(kacheConfig.getDataFieldName());
                     recordsField.setAccessible(true);
                     recordsField.set(result,records);
                     //跳过第一位数据的填充
                     for (int i = 1; i < list.size(); i++) {
-                        records.add(jsonUtil.str2Obj(list.get(i),beanClass)) ;
+                        records.add(KryoUtil.readFromString(list.get(i)));
+//                        records.add(jsonUtil.str2Obj(list.get(i),beanClass)) ;
                     }
                     //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                     Collections.reverse(records);
@@ -299,10 +303,12 @@ public class RedisCacheManager implements RemoteCacheManager {
             jedis = jedisPool.getResource();
             String s = jedis.get(id);
             if (s != null) {
-                Object targer = jsonUtil.str2Obj(s, result.getClass());
+                Object targer = KryoUtil.readFromString(s) ;
+//                Object targer = jsonUtil.str2Obj(s, result.getClass());
                 BeanUtil.copyProperties(result, targer,
                         true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-                jedis.setex(id, kacheConfig.getCacheTime(), jsonUtil.obj2Str(targer));
+                jedis.setex(id, kacheConfig.getCacheTime(), KryoUtil.writeToString(targer));
+//                jedis.setex(id, kacheConfig.getCacheTime(), jsonUtil.obj2Str(targer));
                 return (T) targer;
             } else {
                 return null ;
