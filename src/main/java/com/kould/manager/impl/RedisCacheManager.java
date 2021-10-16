@@ -228,7 +228,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             List<String> list = (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_GET, 1, key );
             List<Object> records = new ArrayList() ;
             if ( list != null && !list.isEmpty()) {
-                if (list.get(0).equals("[]") && list.get(0).equals("{}")) {
+                if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
                     List<Object> result = new ArrayList();
                     //跳过第一位数据的填充
                     for (int i = 1; i < list.size(); i++) {

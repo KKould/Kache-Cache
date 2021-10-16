@@ -76,16 +76,12 @@ public class DaoCacheAop {
                     && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
                 Class<?> beanClass = serviceMessage.getCacheClazz();
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
-
                 String lockKey = beanClass.getTypeName();
                 readLock = kacheLock.readLock(lockKey) ;
-
                 String key = cacheEncoder.encode(serviceMessage.getArg()
                         , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 Object result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
-
                 kacheLock.unLock(readLock);
-
                 //双重检测，很酷吧 XD
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
