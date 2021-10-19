@@ -11,13 +11,11 @@ import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -69,6 +67,40 @@ public class RedisCacheManager implements RemoteCacheManager {
                     "       end " +
                     "end " +
                     "return result " ;
+
+    private static final  String SCRIPT_KEYS_KACHE = "SCRIPT_KEYS_KACHE";
+
+    private static final  String SCRIPT_GET_KACHE = "SCRIPT_GET_KACHE";
+
+    private String scriptGetSHA1 ;
+
+    private String scriptKeysSHA1 ;
+
+    /**
+     * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
+     */
+    @PostConstruct
+    private void init() {
+        Jedis jedis = null ;
+        try {
+            jedis = jedisPool.getResource();
+            scriptGetSHA1 = scriptLoad(jedis, SCRIPT_GET_KACHE,SCRIPT_LUA_CACHE_GET) ;
+            scriptKeysSHA1 = scriptLoad(jedis, SCRIPT_KEYS_KACHE,SCRIPT_LUA_CACHE_KEYS) ;
+        } catch (Exception e) {
+            log.error(e.getMessage(),e);
+        } finally {
+            close(jedis);
+        }
+    }
+
+    private String scriptLoad(Jedis jedis, String tag, String script) {
+        String sha1 = jedis.get(tag);
+        if (sha1 ==null || !jedis.scriptExists(sha1)) {
+            sha1 = jedis.scriptLoad(script) ;
+            jedis.set(tag, sha1) ;
+        }
+        return sha1;
+    }
 
     private void close(Jedis jedis) {
         if (jedis != null) {
@@ -128,11 +160,6 @@ public class RedisCacheManager implements RemoteCacheManager {
                 lua.append("redis.call('setex',KEYS[1],")
                         .append(kacheConfig.getCacheTime())
                         .append(",ARGV[1]);");
-                lua.append("redis.call('del',KEYS[2]);");
-                lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
-                lua.append("return redis.call('expire',KEYS[2],")
-                        .append(kacheConfig.getCacheTime())
-                        .append(");");
                 String id = null ;
                 if (result != null) {
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
@@ -141,10 +168,18 @@ public class RedisCacheManager implements RemoteCacheManager {
                     id = NULL_TAG ;
                 }
                 keys.add(id) ;
-                keys.add(key) ;
                 values.add(KryoUtil.writeToString(result)) ;
 //                values.add(jsonUtil.obj2Str(result)) ;
-                values.add(keys.get(0)) ;
+                //判断此时是否为id获取的单结果或者为条件查询获取的单结果
+                if (!key.equals(id)) {
+                    keys.add(key) ;
+                    values.add(id) ;
+                    lua.append("redis.call('del',KEYS[2]);");
+                    lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
+                    lua.append("return redis.call('expire',KEYS[2],")
+                            .append(kacheConfig.getCacheTime())
+                            .append(");");
+                }
             }
             jedis.eval(lua.toString(),keys,values) ;
             return result ;
@@ -225,38 +260,50 @@ public class RedisCacheManager implements RemoteCacheManager {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
-            List<String> list = (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_GET, 1, key );
-            List<Object> records = new ArrayList() ;
-            if ( list != null && !list.isEmpty()) {
-                if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
-                    List<Object> result = new ArrayList();
-                    //跳过第一位数据的填充
-                    for (int i = 1; i < list.size(); i++) {
-                        records.add(KryoUtil.readFromString(list.get(i))) ;
-//                        records.add(jsonUtil.str2Obj(list.get(i), beanClass));
-                    }
-                    //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                    Collections.reverse(records);
-                    return result;
-                } else if(list.size() == 1) {
-                    return KryoUtil.readFromString(list.get(0)) ;
-//                    return jsonUtil.str2Obj(list.get(0), beanClass);
+            //判断是否为直接通过ID获取单条方法
+            if (!key.contains(KacheConfig.ID_TAG)) {
+                String result = jedis.get(key);
+                if (result != null) {
+                    return KryoUtil.readFromString(result);
                 } else {
-                    Object result = KryoUtil.readFromString(list.get(0)) ;
-//                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
-                    Field recordsField = result.getClass().getDeclaredField(kacheConfig.getDataFieldName());
-                    recordsField.setAccessible(true);
-                    recordsField.set(result,records);
-                    //跳过第一位数据的填充
-                    for (int i = 1; i < list.size(); i++) {
-                        records.add(KryoUtil.readFromString(list.get(i)));
-//                        records.add(jsonUtil.str2Obj(list.get(i),beanClass)) ;
-                    }
-                    //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                    Collections.reverse(records);
-                    return result ;
+                    return null ;
                 }
-            } else return null ;
+            } else {
+                //为条件查询方法
+//            List<String> list = (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_GET, 1, key );
+                List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
+                List<Object> records = new ArrayList();
+                if (list != null && !list.isEmpty()) {
+                    //判断返回结果是否为Collection或其子类
+                    if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
+                        List<Object> result = new ArrayList();
+                        //跳过第一位数据的填充
+                        for (int i = 1; i < list.size(); i++) {
+                            records.add(KryoUtil.readFromString(list.get(i)));
+                        }
+                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                        Collections.reverse(records);
+                        return result;
+                        //判断结果是否为单个POBean
+                    } else if (list.size() == 1) {
+                        return KryoUtil.readFromString(list.get(0));
+                    } else {
+                        //此时为包装类的情况
+                        Object result = KryoUtil.readFromString(list.get(0));
+//                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
+                        Field recordsField = result.getClass().getDeclaredField(kacheConfig.getDataFieldName());
+                        recordsField.setAccessible(true);
+                        recordsField.set(result, records);
+                        //跳过第一位数据的填充
+                        for (int i = 1; i < list.size(); i++) {
+                            records.add(KryoUtil.readFromString(list.get(i)));
+                        }
+                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                        Collections.reverse(records);
+                        return result;
+                    }
+                } else return null;
+            }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
@@ -270,7 +317,8 @@ public class RedisCacheManager implements RemoteCacheManager {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
-            return (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_KEYS, 1, pattern);
+//            return (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_KEYS, 1, pattern);
+            return (ArrayList)jedis.evalsha(scriptKeysSHA1, 1, pattern);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {

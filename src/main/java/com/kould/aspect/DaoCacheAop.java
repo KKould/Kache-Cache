@@ -46,6 +46,8 @@ public class DaoCacheAop {
     @Autowired
     private AmqpTemplate amqpTemplate;
 
+    private static final String METHOD_GET_ID = "getId" ;
+
     @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_FIND)
     public void pointCutFind() {
     }
@@ -78,8 +80,20 @@ public class DaoCacheAop {
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
                 String lockKey = beanClass.getTypeName();
                 readLock = kacheLock.readLock(lockKey) ;
-                String key = cacheEncoder.encode(serviceMessage.getArg()
-                        , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
+                String methodStatus = serviceMessage.getMethod()
+                        .getAnnotation(ServiceCache.class).status().getValue();
+                String key = null ;
+                //判断serviceMethod的是否为通过id获取数据
+                //  若是则直接使用id进行获取
+                //  若否则经过编码后进行获取
+                if (methodStatus.equals(KacheConfig.SERVICE_BY_ID)) {
+                    Method methodGetId = serviceMessage.getArg().getClass().getMethod(METHOD_GET_ID, null);
+                    key = methodGetId.invoke(serviceMessage.getArg()).toString() ;
+                }else {
+                    key = cacheEncoder.encode(serviceMessage.getArg(), methodStatus
+                            , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
+                }
+                //获取缓存
                 Object result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
                 kacheLock.unLock(readLock);
                 //双重检测，很酷吧 XD

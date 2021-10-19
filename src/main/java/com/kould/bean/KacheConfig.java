@@ -50,12 +50,16 @@ public class KacheConfig {
 
     public static final String SERVICE_IS = "KACHE_SERVICE_IS" ;
 
+    public static final String SERVICE_BY_ID = "KACHE_SERVICE_BY_ID" ;
+
     public static final String SERVICE_NOARG = "KACHE_SERVICE_NOARG" ;
 
     public static final String SERVICE_ALL = "KACHE_SERVICE_ALL" ;
 
+    public static final String ID_TAG = "NO_ID_" ;
+
     public enum Status {
-        LIKE(KacheConfig.SERVICE_LIKE), IS(KacheConfig.SERVICE_IS), ALL(KacheConfig.SERVICE_ALL), NOARG(KacheConfig.SERVICE_NOARG);
+        LIKE(KacheConfig.SERVICE_LIKE), IS(KacheConfig.SERVICE_IS), ALL(KacheConfig.SERVICE_ALL), NOARG(KacheConfig.SERVICE_NOARG), BY_ID(KacheConfig.SERVICE_BY_ID);
 
 
         private final String value ;

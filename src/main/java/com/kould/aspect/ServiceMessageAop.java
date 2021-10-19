@@ -43,7 +43,7 @@ public class ServiceMessageAop {
      */
     @Around("@annotation(com.kould.annotation.CacheBeanClass) || pointCut()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        Class targetClass = point.getTarget().getClass() ;
+        Class<?> targetClass = point.getTarget().getClass() ;
         Method method = null ;
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         method = methodSignature.getMethod() ;
@@ -53,9 +53,7 @@ public class ServiceMessageAop {
         Object arg = null;
         CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
         Class<?> cacheClass = cacheBeanClass.clazz();
-        if (point.getArgs() == null) {
-            arg = null ;
-        } else {
+        if (point.getArgs() != null) {
             arg = point.getArgs()[0] ;
         }
         DaoCacheAop.localVar.set(Message.builder()

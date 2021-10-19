@@ -1,5 +1,6 @@
 package com.kould.handler;
 
+import com.google.gson.reflect.TypeToken;
 import com.kould.bean.KacheConfig;
 import com.kould.bean.Message;
 import com.kould.encoder.CacheEncoder;
@@ -58,7 +59,7 @@ public class DeleteHandler {
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
-                Map<String, String> keySection = cacheEncoder.section2Field(cacheEncoder.decode(key, HashMap.class, resultClass.getName()), msg.getMethodName());
+                Map<String, String> keySection = cacheEncoder.decode(key, new TypeToken<HashMap<String, String>>() {}.getType(), resultClass.getName());
                 if (key.contains(KacheConfig.SERVICE_NOARG) || key.contains(KacheConfig.SERVICE_ALL)) {
                     delKeys.add(key);
                 } else if (key.contains(KacheConfig.SERVICE_LIKE)) {
