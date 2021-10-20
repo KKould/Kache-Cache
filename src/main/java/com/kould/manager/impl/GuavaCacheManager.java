@@ -37,12 +37,16 @@ public class GuavaCacheManager implements InterprocessCacheManager {
         if (cache == null) {
             return null ;
         } else {
-            return cache.get(key, new Callable<Object>() {
-                @Override
-                public Object call() throws Exception {
-                    return null;
-                }
-            }) ;
+            try {
+                return cache.get(key, new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return null;
+                    }
+                }) ;
+            } catch (Exception e) {
+                return null ;
+            }
         }
     }
 

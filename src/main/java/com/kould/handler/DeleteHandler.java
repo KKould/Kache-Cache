@@ -22,8 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
-import static com.kould.amqp.KacheQueue.INTERPROCESS_DELETE_EXCHANGE_NAME;
-import static com.kould.amqp.KacheQueue.QUEUE_DELETE_CACHE;
+import static com.kould.amqp.KacheQueue.*;
 
 @Component
 @Slf4j
@@ -44,7 +43,7 @@ public class DeleteHandler {
     @Autowired
     private InterprocessCacheManager interprocessCacheManager ;
 
-    @RabbitListener(queues = QUEUE_DELETE_CACHE)
+    @RabbitListener(queues = {QUEUE_DELETE_CACHE,QUEUE_UPDATE_CACHE})
     public void asyncDeleteHandler(Message msg) {
         if (msg.getArg() == null) {
             return;
