@@ -3,10 +3,10 @@ package com.kould.manager.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.kould.bean.KacheConfig;
+import com.kould.config.DaoProperties;
+import com.kould.config.InterprocessCacheProperties;
 import com.kould.manager.InterprocessCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -14,15 +14,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-@Component
 public class GuavaCacheManager implements InterprocessCacheManager {
 
     @Autowired
-    private KacheConfig kacheConfig ;
+    private DaoProperties daoProperties ;
+
+    @Autowired
+    private InterprocessCacheProperties interprocessCacheProperties ;
 
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
-    private Map<String, Cache<String,Object>> guavaCacheMap = new ConcurrentHashMap<>();
+    private final Map<String, Cache<String,Object>> guavaCacheMap = new ConcurrentHashMap<>();
 
     @Override
     public <T> T update(String key, T result, Class<?> resultClass) {
@@ -66,8 +68,8 @@ public class GuavaCacheManager implements InterprocessCacheManager {
         if (cache == null) {
             cache = CacheBuilder.newBuilder()
                     .weakValues()
-                    .expireAfterAccess(kacheConfig.getCacheTime(),TimeUnit.SECONDS)
-                    .maximumSize(kacheConfig.getInterprocessCacheSize())
+                    .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
+                    .maximumSize(interprocessCacheProperties.getSize())
                     .build() ;
             guavaCacheMap.put(name, cache);
         }

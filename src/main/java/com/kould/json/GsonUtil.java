@@ -1,11 +1,9 @@
 package com.kould.json;
 
 import com.google.gson.Gson;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Type;
 
-@Component
 public class GsonUtil implements JsonUtil{
 
     private static Gson gson ;

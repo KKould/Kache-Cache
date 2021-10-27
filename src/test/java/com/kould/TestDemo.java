@@ -1,6 +1,7 @@
 package com.kould;
 
 import com.kould.json.GsonUtil;
+import com.kould.utils.KryoUtil;
 
 public class TestDemo {
 

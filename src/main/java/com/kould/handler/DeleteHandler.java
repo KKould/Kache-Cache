@@ -1,13 +1,14 @@
 package com.kould.handler;
 
 import com.google.gson.reflect.TypeToken;
-import com.kould.bean.KacheConfig;
-import com.kould.bean.Message;
+import com.kould.config.KacheConfig;
+import com.kould.message.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -25,11 +26,9 @@ import java.util.concurrent.locks.Lock;
 import static com.kould.amqp.KacheQueue.*;
 
 @Component
-@Slf4j
 public class DeleteHandler {
 
-    @Autowired
-    private KacheConfig kacheConfig ;
+    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
 
     @Autowired
     private KacheLock kacheLock ;
@@ -59,7 +58,7 @@ public class DeleteHandler {
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
                 Map<String, String> keySection = cacheEncoder.decode(key, new TypeToken<HashMap<String, String>>() {}.getType(), resultClass.getName());
-                if (key.contains(KacheConfig.SERVICE_NOARG) || key.contains(KacheConfig.SERVICE_ALL)) {
+                if (key.contains(KacheConfig.SERVICE_NO_ARG) || key.contains(KacheConfig.SERVICE_ALL)) {
                     delKeys.add(key);
                 } else if (key.contains(KacheConfig.SERVICE_LIKE)) {
                     keySection.keySet().parallelStream().forEach(field -> {

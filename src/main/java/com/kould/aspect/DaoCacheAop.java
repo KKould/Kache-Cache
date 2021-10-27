@@ -3,8 +3,8 @@ package com.kould.aspect;
 import com.kould.annotation.CacheBeanClass;
 import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
-import com.kould.bean.KacheConfig;
-import com.kould.bean.Message;
+import com.kould.config.KacheConfig;
+import com.kould.message.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
@@ -30,9 +30,6 @@ import static com.kould.amqp.KacheQueue.*;
 public class DaoCacheAop {
 
     protected static ThreadLocal<Message> localVar = new ThreadLocal<>();
-
-    @Autowired
-    private KacheConfig kacheConfig ;
 
     @Autowired
     private KacheLock kacheLock ;

@@ -1,21 +1,17 @@
 package com.kould.encoder.impl;
 
 import com.google.gson.reflect.TypeToken;
-import com.kould.KryoUtil;
-import com.kould.bean.KacheConfig;
+import com.kould.utils.KryoUtil;
+import com.kould.config.KacheConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.json.JsonUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
-@Slf4j
-@Component
 public class BaseCacheEncoder implements CacheEncoder {
 
     @Autowired

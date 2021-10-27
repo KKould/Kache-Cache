@@ -1,11 +1,11 @@
 package com.kould.handler;
 
-import com.kould.bean.KacheConfig;
-import com.kould.bean.Message;
+import com.kould.message.Message;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -21,13 +21,11 @@ import static com.kould.amqp.KacheQueue.INTERPROCESS_UPDATE_EXCHANGE_NAME;
 import static com.kould.amqp.KacheQueue.QUEUE_UPDATE_CACHE;
 
 @Component
-@Slf4j
 public class UpdateHandler {
 
-    private static final String METHOD_GET_ID = "getId" ;
+    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
 
-    @Autowired
-    private KacheConfig kacheConfig ;
+    private static final String METHOD_GET_ID = "getId" ;
 
     @Autowired
     private KacheLock kacheLock ;

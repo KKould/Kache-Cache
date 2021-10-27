@@ -1,4 +1,4 @@
-package com.kould;
+package com.kould.utils;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;

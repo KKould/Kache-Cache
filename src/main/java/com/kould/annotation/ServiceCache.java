@@ -1,6 +1,6 @@
 package com.kould.annotation;
 
-import com.kould.bean.KacheConfig;
+import com.kould.config.KacheConfig;
 
 import java.lang.annotation.*;
 
@@ -10,5 +10,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ServiceCache {
 
-    KacheConfig.Status status() default KacheConfig.Status.IS;
+    //默认使用全删策略
+    KacheConfig.Status status() default KacheConfig.Status.ALL;
 }
