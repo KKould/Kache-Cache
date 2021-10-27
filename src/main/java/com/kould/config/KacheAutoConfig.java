@@ -21,9 +21,9 @@ import org.springframework.context.annotation.Configuration;
         DataFieldProperties.class,
         InterprocessCacheProperties.class
 })
-public class KacheConfig {
+public class KacheAutoConfig {
 
-    public KacheConfig() {
+    public KacheAutoConfig() {
     }
 
     public static final String POINTCUT_EXPRESSION_DAO_FIND = "execution(* *.*.mapper..*.select*(..))";
@@ -49,7 +49,7 @@ public class KacheConfig {
     public static final String ID_TAG = "NO_ID_" ;
 
     public enum Status {
-        LIKE(KacheConfig.SERVICE_LIKE), IS(KacheConfig.SERVICE_IS), ALL(KacheConfig.SERVICE_ALL), NO_ARG(KacheConfig.SERVICE_NO_ARG), BY_ID(KacheConfig.SERVICE_BY_ID);
+        LIKE(KacheAutoConfig.SERVICE_LIKE), IS(KacheAutoConfig.SERVICE_IS), ALL(KacheAutoConfig.SERVICE_ALL), NO_ARG(KacheAutoConfig.SERVICE_NO_ARG), BY_ID(KacheAutoConfig.SERVICE_BY_ID);
 
 
         private final String value ;

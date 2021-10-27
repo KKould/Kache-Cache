@@ -1,7 +1,7 @@
 package com.kould.handler;
 
 import com.google.gson.reflect.TypeToken;
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 import com.kould.message.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
@@ -58,9 +58,9 @@ public class DeleteHandler {
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
                 Map<String, String> keySection = cacheEncoder.decode(key, new TypeToken<HashMap<String, String>>() {}.getType(), resultClass.getName());
-                if (key.contains(KacheConfig.SERVICE_NO_ARG) || key.contains(KacheConfig.SERVICE_ALL)) {
+                if (key.contains(KacheAutoConfig.SERVICE_NO_ARG) || key.contains(KacheAutoConfig.SERVICE_ALL)) {
                     delKeys.add(key);
-                } else if (key.contains(KacheConfig.SERVICE_LIKE)) {
+                } else if (key.contains(KacheAutoConfig.SERVICE_LIKE)) {
                     keySection.keySet().parallelStream().forEach(field -> {
                         String KeyField = keySection.get(field);
                         String argField = args.get(field);

@@ -5,7 +5,7 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
 import com.kould.utils.KryoUtil;
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 import com.kould.manager.RemoteCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -267,7 +267,7 @@ public class RedisCacheManager implements RemoteCacheManager {
         try {
             jedis = jedisPool.getResource();
             //判断是否为直接通过ID获取单条方法
-            if (!key.contains(KacheConfig.ID_TAG)) {
+            if (!key.contains(KacheAutoConfig.ID_TAG)) {
                 String result = jedis.get(key);
                 if (result != null) {
                     return KryoUtil.readFromString(result);

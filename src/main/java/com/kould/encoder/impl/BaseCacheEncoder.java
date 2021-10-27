@@ -2,7 +2,7 @@ package com.kould.encoder.impl;
 
 import com.google.gson.reflect.TypeToken;
 import com.kould.utils.KryoUtil;
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.json.JsonUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ public class BaseCacheEncoder implements CacheEncoder {
 
     @Override
     public String encode(Object dto,String serviceMethodStatus, Method serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
-        return KacheConfig.ID_TAG +
+        return KacheAutoConfig.ID_TAG +
                 daoMethodName +
                 daoArgs +
                 serviceMethodStatus +

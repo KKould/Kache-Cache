@@ -3,7 +3,7 @@ package com.kould.aspect;
 import com.kould.annotation.CacheBeanClass;
 import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 import com.kould.message.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
@@ -45,19 +45,19 @@ public class DaoCacheAop {
 
     private static final String METHOD_GET_ID = "getId" ;
 
-    @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_FIND)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND)
     public void pointCutFind() {
     }
 
-    @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_ADD)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_ADD)
     public void pointCutAdd() {
     }
 
-    @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_REMOVE)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_REMOVE)
     public void pointCutRemove() {
     }
 
-    @Pointcut(KacheConfig.POINTCUT_EXPRESSION_DAO_EDIT)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_EDIT)
     public void pointCutEdit() {
     }
 
@@ -83,7 +83,7 @@ public class DaoCacheAop {
                 //判断serviceMethod的是否为通过id获取数据
                 //  若是则直接使用id进行获取
                 //  若否则经过编码后进行获取
-                if (methodStatus.equals(KacheConfig.SERVICE_BY_ID)) {
+                if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
                     Method methodGetId = serviceMessage.getArg().getClass().getMethod(METHOD_GET_ID, null);
                     key = methodGetId.invoke(serviceMessage.getArg()).toString() ;
                 }else {

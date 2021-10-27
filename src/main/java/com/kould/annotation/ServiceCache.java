@@ -1,6 +1,6 @@
 package com.kould.annotation;
 
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 
 import java.lang.annotation.*;
 
@@ -11,5 +11,5 @@ import java.lang.annotation.*;
 public @interface ServiceCache {
 
     //默认使用全删策略
-    KacheConfig.Status status() default KacheConfig.Status.ALL;
+    KacheAutoConfig.Status status() default KacheAutoConfig.Status.ALL;
 }

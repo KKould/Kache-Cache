@@ -3,7 +3,7 @@ package com.kould.aspect;
 import com.kould.annotation.CacheBeanClass;
 import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
-import com.kould.config.KacheConfig;
+import com.kould.config.KacheAutoConfig;
 import com.kould.message.Message;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -24,9 +24,9 @@ import java.lang.reflect.Method;
 public class ServiceMessageAop {
 
     @Autowired
-    private KacheConfig kacheConfig ;
+    private KacheAutoConfig kacheAutoConfig;
 
-    @Pointcut(KacheConfig.POINTCUT_EXPRESSION_SERVICE)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_SERVICE)
     public void pointCut() {
     }
 
