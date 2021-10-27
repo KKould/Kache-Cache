@@ -8,5 +8,5 @@ public interface RemoteCacheManager {
     List<String> keys(String pattern) ;
     Long del(String... keys) ;
     <T> T updateById(String id,T result) ;
-    Object get(String key, Class<?> resultClass, Class<?> beanClass) ;
+    Object get(String key, Class<?> beanClass) ;
 }

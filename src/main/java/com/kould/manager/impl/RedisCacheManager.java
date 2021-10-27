@@ -248,15 +248,14 @@ public class RedisCacheManager implements RemoteCacheManager {
      *   若List的大小为1，则说明为单条PO
      *      则直接反序列化为Bean并返回
      *   若以上条件都不满足则说明为包装类
-     *      通过参数中的resultClass进行对应首条数据的反序列化，得到其状态后再如同第一条
+     *      应首条数据的反序列化，得到其状态后再如同Collection的处理
      *      填充其中配置文件所设置的对应数据集属性
      * @param key 索引值
-     * @param resultClass 返回包装类型
      * @param beanClass PO类型
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, Class<?> resultClass, Class<?> beanClass) {
+    public Object get(String key, Class<?> beanClass) {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
@@ -270,7 +269,6 @@ public class RedisCacheManager implements RemoteCacheManager {
                 }
             } else {
                 //为条件查询方法
-//            List<String> list = (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_GET, 1, key );
                 List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
                 List<Object> records = new ArrayList();
                 if (list != null && !list.isEmpty()) {
@@ -290,7 +288,6 @@ public class RedisCacheManager implements RemoteCacheManager {
                     } else {
                         //此时为包装类的情况
                         Object result = KryoUtil.readFromString(list.get(0));
-//                    Object result = jsonUtil.str2Obj(list.get(0), resultClass);
                         Field recordsField = result.getClass().getDeclaredField(kacheConfig.getDataFieldName());
                         recordsField.setAccessible(true);
                         recordsField.set(result, records);

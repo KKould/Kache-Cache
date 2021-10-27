@@ -94,13 +94,13 @@ public class DaoCacheAop {
                             , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 }
                 //获取缓存
-                Object result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
+                Object result = baseCacheManager.get(key, beanClass);
                 kacheLock.unLock(readLock);
                 //双重检测，很酷吧 XD
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                     writeLock = kacheLock.writeLock(lockKey) ;
-                    result = baseCacheManager.get(key, cacheEncoder.getPackageClass(), beanClass);
+                    result = baseCacheManager.get(key, beanClass);
                     if (result == null) {
                         result = point.proceed();
                         baseCacheManager.put(key, result, beanClass);

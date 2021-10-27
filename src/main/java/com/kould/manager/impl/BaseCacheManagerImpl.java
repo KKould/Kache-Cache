@@ -32,7 +32,7 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
     }
 
     @Override
-    public Object get(String key, Class<?> resultClass, Class<?> beanClass) throws ExecutionException {
+    public Object get(String key, Class<?> beanClass) throws ExecutionException {
 
         Object result = null ;
         if (kacheConfig.isEnableInterprocessCache()) {
@@ -41,7 +41,7 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
         }
         if (result == null) {
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从Redis缓存获取数据中");
-            result = remoteCacheManager.get(key, resultClass, beanClass) ;
+            result = remoteCacheManager.get(key, beanClass) ;
             if (kacheConfig.isEnableInterprocessCache()) {
                 if (result != null) {
                     interprocessCacheManager.put(key, result, beanClass) ;

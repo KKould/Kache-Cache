@@ -1,6 +1,5 @@
 package com.kould.encoder.impl;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.reflect.TypeToken;
 import com.kould.KryoUtil;
 import com.kould.bean.KacheConfig;
@@ -73,10 +72,5 @@ public class BaseCacheEncoder implements CacheEncoder {
     @Override
     public String getPattern(String poName) {
         return "*" + poName + "*" ;
-    }
-
-    @Override
-    public <T> Class<T> getPackageClass() {
-        return (Class<T>) Page.class;
     }
 }
