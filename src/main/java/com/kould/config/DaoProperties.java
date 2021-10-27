@@ -4,11 +4,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("kache.dao")
 public class DaoProperties {
-    private int lockTime ;
+    private int lockTime = 3 ;
 
-    private int baseTime ;
+    private int baseTime = 300;
 
-    private int randomTime ;
+    private int randomTime = 120;
 
     public int getCacheTime() {
         return (int)(baseTime + Math.random() * randomTime) ;

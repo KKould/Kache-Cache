@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("kache.data-field")
 public class DataFieldProperties {
-    private String name ;
+    private String name = "records";
 
-    private String declareType ;
+    private String declareType = "java.util.List";
 
     public String getName() {
         return name;
