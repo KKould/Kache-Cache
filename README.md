@@ -21,7 +21,6 @@ Java标准MVC架构如图：
 - **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可避免重复的数据库检索的IO消耗
 - **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用Lua脚本完成了一次网络io完成上述操作，且提高缓存命中率（详情见原理）
 - **支持主流AMQP协议的消息队列**：基于Spring-Amqp框架开发，仅提供对应协议的消息队列即可使用
-- **动态配置更新**：Kache的缓存参数支持配置中心推送配置而变化，给予维护人员更灵活的操作空间
 - **高兼容性、低代码侵入性**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；仅需在对应的方法及类上添加注释而不修改本身的业务代码，不会影响本身的业务流程稳定性
 - **并发同步读，并行异步写**：使用同步读写锁与消息队列，将读操作以：进程间缓存 -> 远程缓存 -> 数据库的次序同步读取，尽可能的减少对网络io的消耗并提高响应时间，而增删改操作则将三个数据源同时操作，并不会因为阻塞而较大地影响写入响应时间
 - **高拓展性**：提供进程间缓存、Json序列化、远程缓存与缓存调度器的接口，允许使用者通过实现对应的接口兼容所需的NoSQL、进程间缓存、Json序列化框架以更好的兼容使用者的项目
@@ -32,7 +31,7 @@ Java标准MVC架构如图：
 
 使用流程：
 
-**1、Kache依赖引入（最新版为1.1.0）**
+**1、Kache依赖引入（最新版为1.1.1）**
 
 **2、Service层写入注解**
 
@@ -72,7 +71,7 @@ Java标准MVC架构如图：
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
     //该标签用于声明该方法需要缓存
-    @ServiceCache(status = KacheConfig.Status.NOARG)
+    @ServiceCache(status = Status.NO_ARG)
     @Override
     public BaseConfigIndexDTO findAllConfigIndexOrderByCreateTime() {
         QueryWrapper<ConfigIndexPO> wrapper = new QueryWrapper<>();
@@ -159,13 +158,6 @@ kache:
    data-field:
    	   name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
        declare-type: java.util.List //上述属性名所对应的属性声明类型（全称），默认为java.util.List
-
-#必填值：用于支持配置动态更新
-management:
-   endpoints:
-       web:
-          exposure:
-             include: refresh
 ```
 
 规范说明：
