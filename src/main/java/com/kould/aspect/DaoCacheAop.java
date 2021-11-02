@@ -76,20 +76,20 @@ public class DaoCacheAop {
                 Class<?> beanClass = serviceMessage.getCacheClazz();
                 String daoArgs = cacheEncoder.argsEncode(point.getArgs());
                 String lockKey = beanClass.getTypeName();
-                readLock = kacheLock.readLock(lockKey) ;
                 String methodStatus = serviceMessage.getMethod()
                         .getAnnotation(ServiceCache.class).status().getValue();
                 String key = null ;
                 //判断serviceMethod的是否为通过id获取数据
-                //  若是则直接使用id进行获取
-                //  若否则经过编码后进行获取
                 if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
+                    //  若是则直接使用id进行获取
                     Method methodGetId = serviceMessage.getArg().getClass().getMethod(METHOD_GET_ID, null);
                     key = methodGetId.invoke(serviceMessage.getArg()).toString() ;
                 }else {
+                    //  若否则经过编码后进行获取
                     key = cacheEncoder.encode(serviceMessage.getArg(), methodStatus
                             , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 }
+                readLock = kacheLock.readLock(lockKey) ;
                 //获取缓存
                 Object result = baseCacheManager.get(key, beanClass);
                 kacheLock.unLock(readLock);
