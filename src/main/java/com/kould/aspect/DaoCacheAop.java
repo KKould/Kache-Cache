@@ -19,6 +19,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
 import static com.kould.amqp.KacheQueue.*;
@@ -29,7 +31,9 @@ import static com.kould.amqp.KacheQueue.*;
 @Order(15)
 public class DaoCacheAop {
 
-    protected static ThreadLocal<Message> localVar = new ThreadLocal<>();
+    private static final Map<String,Integer> exists = new ConcurrentHashMap<>();
+
+    protected static final ThreadLocal<Message> localVar = new ThreadLocal<>();
 
     @Autowired
     private KacheLock kacheLock ;
@@ -64,59 +68,74 @@ public class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        Lock readLock = null ;
-        Lock writeLock = null;
-        try {
+        Message serviceMessage = localVar.get();
+        if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
+                && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
+            Lock readLock = null ;
+            Lock writeLock = null;
+            Class<?> beanClass = serviceMessage.getCacheClazz();
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
             Method daoMethod = methodSignature.getMethod();
             String daoMethodName = daoMethod.getName() ;
-            Message serviceMessage = localVar.get();
-            if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
-                    && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
-                Class<?> beanClass = serviceMessage.getCacheClazz();
-                String daoArgs = cacheEncoder.argsEncode(point.getArgs());
-                String lockKey = beanClass.getTypeName();
-                String methodStatus = serviceMessage.getMethod()
-                        .getAnnotation(ServiceCache.class).status().getValue();
+            String lockKey = beanClass.getTypeName();
+            String daoArgs = cacheEncoder.argsEncode(point.getArgs());
+            String methodStatus = serviceMessage.getMethod()
+                    .getAnnotation(ServiceCache.class).status().getValue();
+            boolean access = false;
+            try {
                 String key = null ;
                 //判断serviceMethod的是否为通过id获取数据
+                //  若是则直接使用id进行获取
+                //  若否则经过编码后进行获取
                 if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
-                    //  若是则直接使用id进行获取
                     Method methodGetId = serviceMessage.getArg().getClass().getMethod(METHOD_GET_ID, null);
                     key = methodGetId.invoke(serviceMessage.getArg()).toString() ;
                 }else {
-                    //  若否则经过编码后进行获取
                     key = cacheEncoder.encode(serviceMessage.getArg(), methodStatus
                             , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 }
-                readLock = kacheLock.readLock(lockKey) ;
-                //获取缓存
-                Object result = baseCacheManager.get(key, beanClass);
-                kacheLock.unLock(readLock);
-                //双重检测，很酷吧 XD
-                if (result == null) {
-                    //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                    writeLock = kacheLock.writeLock(lockKey) ;
+
+                Object result = null ;
+                //使用循环和CAS对纵向的线程穿透进行线程执行限制，减少其重复获取写锁所带来的性能成本
+                while (result == null) {
+                    readLock = kacheLock.readLock(lockKey) ;
+                    //获取缓存
                     result = baseCacheManager.get(key, beanClass);
+                    kacheLock.unLock(readLock);
                     if (result == null) {
-                        result = point.proceed();
-                        baseCacheManager.put(key, result, beanClass);
+                        if (baseCacheManager.hasKey(key)) {
+                            break;
+                        }
+                        //用于错误发生处理，判断是否该线程成功CAS，成功时并发生错误则在错误处理中将exists设置回false，保证exists的事务性
+                        exists.putIfAbsent(lockKey, 0);
+                        access = exists.replace(lockKey,0,1) ;
+                        if (access) {
+                            //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
+                            writeLock = kacheLock.writeLock(lockKey);
+                            result = point.proceed();
+                            baseCacheManager.put(key, result, beanClass);
+                            kacheLock.unLock(writeLock);
+                            exists.put(lockKey, 0);
+                            break;
+                        }
                     }
-                    kacheLock.unLock(writeLock);
                 }
                 return result;
-            } else {
-                return point.proceed() ;
+            }catch (Exception e) {
+                if (access) {
+                    exists.put(lockKey,0);
+                }
+                e.printStackTrace();
+            } finally {
+                if (!kacheLock.isLock(readLock)) {
+                    kacheLock.unLock(readLock);
+                }
+                if (!kacheLock.isLock(writeLock)) {
+                    kacheLock.unLock(writeLock);
+                }
             }
-        }catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (!kacheLock.isLock(readLock)) {
-                kacheLock.unLock(readLock);
-            }
-            if (!kacheLock.isLock(writeLock)) {
-                kacheLock.unLock(writeLock);
-            }
+        } else {
+            return point.proceed() ;
         }
         return null ;
     }

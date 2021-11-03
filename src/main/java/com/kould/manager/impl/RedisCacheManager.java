@@ -156,7 +156,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             List<String> values = new ArrayList<>() ;
             if (result instanceof Collection) {
                 collection2Lua(key, lua, keys, values, (Collection) result,null);
-            } else if (isHasField(result.getClass(), dataFieldProperties.getName())) {
+            } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
                 Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
                 recordsField.setAccessible(true);
                 Collection records = (Collection) recordsField.get(result) ;
@@ -168,7 +168,11 @@ public class RedisCacheManager implements RemoteCacheManager {
                         .append(daoProperties.getCacheTime())
                         .append(",ARGV[1]);");
                 String id = null ;
-                if (result != null) {
+                if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                    //若为ID方法，则直接将key赋值给id
+                    id = key ;
+                } else if (result != null) {
+                    //
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
                     id = methodGetId.invoke(result).toString() ;
                 } else {
@@ -176,7 +180,6 @@ public class RedisCacheManager implements RemoteCacheManager {
                 }
                 keys.add(id) ;
                 values.add(KryoUtil.writeToString(result)) ;
-//                values.add(jsonUtil.obj2Str(result)) ;
                 //判断此时是否为id获取的单结果或者为条件查询获取的单结果
                 if (!key.equals(id)) {
                     keys.add(key) ;
@@ -267,7 +270,7 @@ public class RedisCacheManager implements RemoteCacheManager {
         try {
             jedis = jedisPool.getResource();
             //判断是否为直接通过ID获取单条方法
-            if (!key.contains(KacheAutoConfig.ID_TAG)) {
+            if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
                 String result = jedis.get(key);
                 if (result != null) {
                     return KryoUtil.readFromString(result);

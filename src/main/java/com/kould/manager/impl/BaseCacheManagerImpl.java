@@ -50,4 +50,9 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
         }
         return result ;
     }
+
+    @Override
+    public boolean hasKey(String key) {
+        return remoteCacheManager.hasKey(key);
+    }
 }

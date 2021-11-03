@@ -48,7 +48,7 @@ public class KacheAutoConfig {
 
     public static final String SERVICE_ALL = "KACHE_SERVICE_ALL" ;
 
-    public static final String ID_TAG = "NO_ID_" ;
+    public static final String NO_ID_TAG = "NO_ID_" ;
 
     @Bean
     @ConditionalOnMissingBean

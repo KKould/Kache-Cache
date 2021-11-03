@@ -19,7 +19,7 @@ public class BaseCacheEncoder implements CacheEncoder {
 
     @Override
     public String encode(Object dto,String serviceMethodStatus, Method serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
-        return KacheAutoConfig.ID_TAG +
+        return KacheAutoConfig.NO_ID_TAG +
                 daoMethodName +
                 daoArgs +
                 serviceMethodStatus +
