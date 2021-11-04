@@ -204,24 +204,26 @@ public class RedisCacheManager implements RemoteCacheManager {
     private void collection2Lua(String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records ,Object page) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException, InstantiationException {
         StringBuilder idsNum = new StringBuilder();
         int count = 0;
-        Method methodGetId = records.iterator().next()
-                .getClass().getMethod(METHOD_GET_ID, null);
-        for (Object record : records) {
-            //单条数据缓存
-            lua.append("redis.call('setex',KEYS[")
-                    .append(++count)
-                    .append("],")
-                    .append(daoProperties.getCacheTime())
-                    .append(",ARGV[")
-                    .append(count)
-                    .append("]);");
-            keys.add(methodGetId.invoke(record).toString());
-            values.add(KryoUtil.writeToString(record)) ;
-//            values.add(jsonUtil.obj2Str(record));
-            //拼接id聚合参数
-            idsNum.append(",ARGV[")
-                    .append(count + records.size())
-                    .append("]");
+        Iterator<Object> iterator = records.iterator();
+        if (iterator.hasNext()) {
+            Method methodGetId = iterator.next()
+                    .getClass().getMethod(METHOD_GET_ID, null);
+            for (Object record : records) {
+                //单条数据缓存
+                lua.append("redis.call('setex',KEYS[")
+                        .append(++count)
+                        .append("],")
+                        .append(daoProperties.getCacheTime())
+                        .append(",ARGV[")
+                        .append(count)
+                        .append("]);");
+                keys.add(methodGetId.invoke(record).toString());
+                values.add(KryoUtil.writeToString(record)) ;
+                //拼接id聚合参数
+                idsNum.append(",ARGV[")
+                        .append(count + records.size())
+                        .append("]");
+            }
         }
         idsNum.append(",ARGV[")
                 .append(++count + records.size())
