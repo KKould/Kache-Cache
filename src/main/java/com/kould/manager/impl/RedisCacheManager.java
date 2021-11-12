@@ -4,9 +4,9 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
-import com.kould.utils.KryoUtil;
 import com.kould.config.KacheAutoConfig;
 import com.kould.manager.RemoteCacheManager;
+import com.kould.utils.KryoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,6 @@ import redis.clients.jedis.JedisPool;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -155,13 +154,13 @@ public class RedisCacheManager implements RemoteCacheManager {
             List<String> keys = new ArrayList<>() ;
             List<String> values = new ArrayList<>() ;
             if (result instanceof Collection) {
-                collection2Lua(key, lua, keys, values, (Collection) result,null);
+                collection2Lua(jedis, key, lua, keys, values, (Collection) result,null);
             } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
                 Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
                 recordsField.setAccessible(true);
-                Collection records = (Collection) recordsField.get(result) ;
+                Collection<Object> records = (Collection) recordsField.get(result) ;
                 recordsField.set(result,null);
-                collection2Lua(key, lua, keys, values, records, result);
+                collection2Lua(jedis, key, lua, keys, values, records, result);
                 recordsField.set(result,records);
             } else {
                 lua.append("redis.call('setex',KEYS[1],")
@@ -201,55 +200,82 @@ public class RedisCacheManager implements RemoteCacheManager {
         return null ;
     }
 
-    private void collection2Lua(String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records ,Object page) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException, InstantiationException {
+    private void collection2Lua(Jedis jedis, String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records , Object page) throws Exception {
         StringBuilder idsNum = new StringBuilder();
+        StringBuilder echo = new StringBuilder() ;
+        ArrayList<String> echoIds ;
         int count = 0;
+        int delCount = 0 ;
         Iterator<Object> iterator = records.iterator();
         if (iterator.hasNext()) {
-            Method methodGetId = iterator.next()
-                    .getClass().getMethod(METHOD_GET_ID, null);
+            //生成Echo脚本（返回Redis内不存在的单条数据，用于减少重复的数据，减少重复序列化和多余的IO占用）
+            Method methodGetId = records.iterator().next().getClass().getMethod(METHOD_GET_ID,null) ;
+            int count2Echo = 0 ;
+            echo.append("local result = {} ") ;
+            while(iterator.hasNext()) {
+                count2Echo ++ ;
+                Object next = iterator.next();
+                keys.add(methodGetId.invoke(next).toString());
+                echo.append("if(redis.call('EXISTS',KEYS[")
+                        .append(count2Echo)
+                        .append("]) == 0) ")
+                        .append("then ")
+                        .append("table.insert(result,KEYS[")
+                        .append(count2Echo)
+                        .append("]) ")
+                        .append("end ") ;
+            }
+            echo.append("return result ") ;
+            //脚本生成完毕并执行 ！
+            echoIds = (ArrayList<String>) jedis.eval(echo.toString(), keys.size()
+                    , keys.toArray(new String[keys.size()]));
             for (Object record : records) {
-                //单条数据缓存
-                lua.append("redis.call('setex',KEYS[")
-                        .append(++count)
-                        .append("],")
-                        .append(daoProperties.getCacheTime())
-                        .append(",ARGV[")
-                        .append(count)
-                        .append("]);");
-                keys.add(methodGetId.invoke(record).toString());
-                values.add(KryoUtil.writeToString(record)) ;
+                count ++ ;
+                if (echoIds.contains(keys.get(count - 1))) {
+                    //单条数据缓存
+                    lua.append("redis.call('setex',KEYS[")
+                            .append(count)
+                            .append("],")
+                            .append(daoProperties.getCacheTime())
+                            .append(",ARGV[")
+                            .append(count - delCount)
+                            .append("]);");
+                    values.add(KryoUtil.writeToString(record));
+                } else {
+                    delCount ++ ;
+                }
                 //拼接id聚合参数
                 idsNum.append(",ARGV[")
-                        .append(count + records.size())
+                        .append(count + echoIds.size())
                         .append("]");
             }
-        }
-        idsNum.append(",ARGV[")
-                .append(++count + records.size())
-                .append("]");
-        //聚合缓存
-        lua.append("redis.call('del',KEYS[")
-                .append(records.size() + 1)
-                .append("]);");
-        lua.append("redis.call('lpush',KEYS[")
-                .append(records.size() + 1)
-                .append("]")
-                .append(idsNum)
-                .append(");");
-        lua.append("return redis.call('expire',KEYS[")
-                .append(records.size() + 1)
-                .append("],")
-                .append(daoProperties.getCacheTime())
-                .append(");");
-        values.addAll(keys);
-        if (page != null) {
-            values.add(KryoUtil.writeToString(page)) ;
-//            values.add(jsonUtil.obj2Str(page));
+            idsNum.append(",ARGV[")
+                    .append(++count + echoIds.size())
+                    .append("]");
+            //聚合缓存
+            lua.append("redis.call('del',KEYS[")
+                    .append(records.size() + 1)
+                    .append("]);");
+            lua.append("redis.call('lpush',KEYS[")
+                    .append(records.size() + 1)
+                    .append("]")
+                    .append(idsNum)
+                    .append(");");
+            lua.append("return redis.call('expire',KEYS[")
+                    .append(records.size() + 1)
+                    .append("],")
+                    .append(daoProperties.getCacheTime())
+                    .append(");");
+            values.addAll(keys);
+            if (page != null) {
+                values.add(KryoUtil.writeToString(page)) ;
+            } else {
+                values.add("[]") ;
+            }
+            keys.add(key);
         } else {
-            values.add("[]") ;
+            throw new Exception("====Kache====\r\n数据集为空") ;
         }
-        keys.add(key);
     }
 
     /**
@@ -282,11 +308,11 @@ public class RedisCacheManager implements RemoteCacheManager {
             } else {
                 //为条件查询方法
                 List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
-                List<Object> records = new ArrayList();
+                List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
                     //判断返回结果是否为Collection或其子类
                     if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
-                        List<Object> result = new ArrayList();
+                        List<Object> result = new ArrayList<>();
                         //跳过第一位数据的填充
                         for (int i = 1; i < list.size(); i++) {
                             records.add(KryoUtil.readFromString(list.get(i)));
@@ -360,11 +386,11 @@ public class RedisCacheManager implements RemoteCacheManager {
             jedis = jedisPool.getResource();
             String s = jedis.get(id);
             if (s != null) {
-                Object targer = KryoUtil.readFromString(s) ;
-                BeanUtil.copyProperties(result, targer,
+                Object target = KryoUtil.readFromString(s) ;
+                BeanUtil.copyProperties(result, target,
                         true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-                jedis.setex(id, daoProperties.getCacheTime(), KryoUtil.writeToString(targer));
-                return (T) targer;
+                jedis.setex(id, daoProperties.getCacheTime(), KryoUtil.writeToString(target));
+                return (T) target;
             } else {
                 return null ;
             }

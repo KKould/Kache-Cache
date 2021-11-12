@@ -13,6 +13,8 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -30,6 +32,8 @@ import static com.kould.amqp.KacheQueue.*;
 @Component
 @Order(15)
 public class DaoCacheAop {
+
+    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
 
     private static final Map<String,Integer> exists = new ConcurrentHashMap<>();
 
@@ -77,11 +81,13 @@ public class DaoCacheAop {
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
             Method daoMethod = methodSignature.getMethod();
             String daoMethodName = daoMethod.getName() ;
-            String lockKey = beanClass.getTypeName();
             String daoArgs = cacheEncoder.argsEncode(point.getArgs());
+            //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
+            String poType = beanClass.getTypeName();
             String methodStatus = serviceMessage.getMethod()
                     .getAnnotation(ServiceCache.class).status().getValue();
             boolean access = false;
+            Object result = null ;
             try {
                 String key = null ;
                 //判断serviceMethod的是否为通过id获取数据
@@ -94,11 +100,9 @@ public class DaoCacheAop {
                     key = cacheEncoder.encode(serviceMessage.getArg(), methodStatus
                             , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
                 }
-
-                Object result = null ;
                 //使用循环和CAS对纵向的线程穿透进行线程执行限制，减少其重复获取写锁所带来的性能成本
                 while (result == null) {
-                    readLock = kacheLock.readLock(lockKey) ;
+                    readLock = kacheLock.readLock(poType) ;
                     //获取缓存
                     result = baseCacheManager.get(key, beanClass);
                     kacheLock.unLock(readLock);
@@ -107,15 +111,15 @@ public class DaoCacheAop {
                             break;
                         }
                         //用于错误发生处理，判断是否该线程成功CAS，成功时并发生错误则在错误处理中将exists设置回false，保证exists的事务性
-                        exists.putIfAbsent(lockKey, 0);
-                        access = exists.replace(lockKey,0,1) ;
+                        exists.putIfAbsent(poType, 0);
+                        access = exists.replace(poType,0,1) ;
                         if (access) {
                             //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                            writeLock = kacheLock.writeLock(lockKey);
+                            writeLock = kacheLock.writeLock(poType);
                             result = point.proceed();
                             baseCacheManager.put(key, result, beanClass);
                             kacheLock.unLock(writeLock);
-                            exists.put(lockKey, 0);
+                            exists.put(poType, 0);
                             break;
                         }
                     }
@@ -123,8 +127,9 @@ public class DaoCacheAop {
                 return result;
             }catch (Exception e) {
                 if (access) {
-                    exists.put(lockKey,0);
+                    exists.put(poType,0);
                 }
+                log.error(e.getMessage());
                 e.printStackTrace();
             } finally {
                 if (!kacheLock.isLock(readLock)) {
