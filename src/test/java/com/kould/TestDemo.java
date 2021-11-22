@@ -66,13 +66,9 @@ public class TestDemo {
             @Override
             public Object test() {
                 for (int i = 0; i < 10000; i++) {
-//                    byte[] bytes = KryoUtil.writeToByteArray(test);
-//                    Object o = KryoUtil.readFromByteArray(bytes);
                     String s = KryoUtil.writeToString(test);
                     Object o = KryoUtil.readFromString(s);
                 }
-//                byte[] bytes = KryoUtil.writeToByteArray(test);
-//                Object o = KryoUtil.readFromByteArray(bytes);
                 String s = KryoUtil.writeToString(test);
                 Object o = KryoUtil.readFromString(s);
                 return o;
@@ -89,6 +85,30 @@ public class TestDemo {
                 }
                 String s = gsonUtil.obj2Str(test);
                 Object o = gsonUtil.str2Obj(s,Test.class);
+                return o;
+            }
+        }).test();
+        Object test3 = new TimeTestAgent(new TimeTest() {
+            @Override
+            public Object test() {
+                for (int i = 0; i < 10000; i++) {
+                    byte[] bytes = KryoUtil.writeToByteArray(test);
+                    Object o = KryoUtil.readFromByteArray(bytes);
+                }
+                byte[] bytes = KryoUtil.writeToByteArray(test);
+                Object o = KryoUtil.readFromByteArray(bytes);
+                return o;
+            }
+        }).test();
+        Object test4 = new TimeTestAgent(new TimeTest() {
+            @Override
+            public Object test() {
+                for (int i = 0; i < 10000; i++) {
+                    byte[] bytes = KryoUtil.writeToByteArray(test);
+                    Object o = KryoUtil.readFromByteArray(bytes.toString().getBytes());
+                }
+                byte[] bytes = KryoUtil.writeToByteArray(test);
+                Object o = KryoUtil.readFromByteArray(bytes.toString().getBytes());
                 return o;
             }
         }).test();

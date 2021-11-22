@@ -1,8 +1,8 @@
-# Kache缓存分布式框架
+# Kache缓存代理框架
 
 #### 概要 | synopsis
 
-增强型 缓存框架
+基于注解 增强型 轻量级 缓存框架
 
 #### 架构 | framework
 
@@ -10,18 +10,21 @@ Java标准MVC架构如图：
 
 ![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
 
-接入Kache后的架构：
+Kache架构：
 
 ![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
 
+**（溢出方框外表示允许拓展）**
+
 #### 优势 | advantage
 
-- **降低响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为HashMap的进程间缓存实现与Redis的远程缓存实现
+- **降低响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现
 - **负载分发**：分布式架构时，不区分业务模块而完成对远程缓存的删除更新操作，并不集中于同一业务的同一主机上处理，降低单机峰值负载
 - **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可避免重复的数据库检索的IO消耗
+- **缓存控制基于Service**：通过Service方法进行缓存结果的控制，使不同Service能对同一持久化操作进行不同的缓存控制
 - **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用Lua脚本完成了一次网络io完成上述操作，且提高缓存命中率（详情见原理）
 - **支持主流AMQP协议的消息队列**：基于Spring-Amqp框架开发，仅提供对应协议的消息队列即可使用
-- **高兼容性、低代码侵入性**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；仅需在对应的方法及类上添加注释而不修改本身的业务代码，不会影响本身的业务流程稳定性
+- **基于注解**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；仅需在对应的方法及类上添加注释而不修改本身的业务代码，不会影响本身的业务流程稳定性
 - **并发同步读，并行异步写**：使用同步读写锁与消息队列，将读操作以：进程间缓存 -> 远程缓存 -> 数据库的次序同步读取，尽可能的减少对网络io的消耗并提高响应时间，而增删改操作则将三个数据源同时操作，并不会因为阻塞而较大地影响写入响应时间
 - **高拓展性**：提供进程间缓存、Json序列化、远程缓存与缓存调度器的接口，允许使用者通过实现对应的接口兼容所需的NoSQL、进程间缓存、Json序列化框架以更好的兼容使用者的项目
 - **对Redis、Guava、Gson项目支持程度高**：默认提供基于Redis、Guava、Gson的实现
@@ -56,13 +59,13 @@ Java标准MVC架构如图：
 
 然后在**需要缓存**的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
 
-其对应的@ServiceCache的status默认为KacheConfig.Status.IS：
+其对应的@ServiceCache的status默认为Status.ALL：
 
-- status = KacheConfig.Status.IS : 准确条件查询方法
-- status = KacheConfig.Status.LIKE : 模糊条件查询方法
-- status = KacheConfig.Status.NO_ARG : 无参查询方法
-- status = KacheConfig.Status.BY_ID : ID查询方法
-- status = KacheConfig.Status.ALL : 无条件查询方法
+- status = Status.IS : 准确条件查询方法
+- status = Status.LIKE : 模糊条件查询方法
+- status = Status.NO_ARG : 无参查询方法
+- status = Status.BY_ID : ID查询方法
+- status = Status.ALL : 无条件查询方法
 
 ```java
 //该标签用于声明Service对应持久类
@@ -156,11 +159,11 @@ kache:
        enable: true //进程间缓存是否开启，默认为true
        size: 50 //进程间缓存数量
    data-field:
-   	   name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
+       name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
        declare-type: java.util.List //上述属性名所对应的属性声明类型（全称），默认为java.util.List
 ```
 
-规范说明：
+**规范说明：**
 
 - 基于DTO概念，Service方法允许**无参**和**仅有一个参数**、即所需参数需要使用一个**DTO**进行封装
 - Dao方法**不允许**针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
@@ -235,5 +238,13 @@ Key的编码形式则为：
 ##### 缓存结构：
 
 ![Kache缓存结构](https://s3.bmp.ovh/imgs/2021/11/4ec53d620c952a95.jpg)
+
+**性能测试：**
+
+- 同一局域网环境下测试：
+  - Kache组
+  - 
+
+
 
 **欢迎一起讨论或是提供改善意见与测试结果~~~~**

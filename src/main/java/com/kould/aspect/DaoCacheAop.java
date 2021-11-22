@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.kould.amqp.KacheQueue.*;
 
@@ -75,8 +76,12 @@ public class DaoCacheAop {
         Message serviceMessage = localVar.get();
         if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                 && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
+            //局部变量初始化与局部引用声明
             Lock readLock = null ;
             Lock writeLock = null;
+            boolean access = false;
+            Object result = null ;
+            String key = null ;
             Class<?> beanClass = serviceMessage.getCacheClazz();
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
             Method daoMethod = methodSignature.getMethod();
@@ -86,11 +91,9 @@ public class DaoCacheAop {
             String poType = beanClass.getTypeName();
             String methodStatus = serviceMessage.getMethod()
                     .getAnnotation(ServiceCache.class).status().getValue();
-            boolean access = false;
-            Object result = null ;
+            //该PO领域的初始化
+            exists.putIfAbsent(poType, 0);
             try {
-                String key = null ;
-                exists.putIfAbsent(poType, 0);
                 //判断serviceMethod的是否为通过id获取数据
                 //  若是则直接使用id进行获取
                 //  若否则经过编码后进行获取
