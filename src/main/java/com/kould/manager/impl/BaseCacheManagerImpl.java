@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 
 public class BaseCacheManagerImpl implements IBaseCacheManager {
 
-    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
+    private static final Logger log = LoggerFactory.getLogger(IBaseCacheManager.class) ;
 
     @Autowired
     private InterprocessCacheManager interprocessCacheManager ;
@@ -22,6 +22,17 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
 
     @Autowired
     private InterprocessCacheProperties interprocessCacheProperties ;
+
+
+    @Override
+    public String getNullTag() {
+        return remoteCacheManager.getNullTag() ;
+    }
+
+    @Override
+    public String getNullValue() {
+        return remoteCacheManager.getNullValue() ;
+    }
 
     @Override
     public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {

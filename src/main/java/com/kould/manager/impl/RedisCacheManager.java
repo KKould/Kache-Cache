@@ -22,7 +22,7 @@ import java.util.*;
 @Component
 public class RedisCacheManager implements RemoteCacheManager {
 
-    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
+    private static final Logger log = LoggerFactory.getLogger(RedisCacheManager.class) ;
 
     @Autowired
     private JedisPool jedisPool;
@@ -34,9 +34,6 @@ public class RedisCacheManager implements RemoteCacheManager {
     private DataFieldProperties dataFieldProperties ;
 
     private static final String METHOD_GET_ID = "getId" ;
-
-    //用于标记空值的Tag，值为最喜欢的游戏名之一“To the moon”
-    private static final String NULL_TAG = "To The Moon" ;
 
     //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
     private static final  String SCRIPT_LUA_CACHE_GET =
@@ -82,6 +79,11 @@ public class RedisCacheManager implements RemoteCacheManager {
 
     private String scriptKeysSHA1 ;
 
+    private static final String NULL_TAG_VALUE = KryoUtil.writeToString(
+            "I never told anyone,but I've always thought they are lighthouses.\n" +
+            "\n" +
+            "Billions of lighthouses...stuck at the far end of the sky.");
+
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
      */
@@ -112,6 +114,16 @@ public class RedisCacheManager implements RemoteCacheManager {
         if (jedis != null) {
             jedis.close();
         }
+    }
+
+    @Override
+    public String getNullTag() {
+        return "To The Moon";
+    }
+
+    @Override
+    public String getNullValue() {
+        return NULL_TAG_VALUE;
     }
 
     @Override
@@ -175,10 +187,14 @@ public class RedisCacheManager implements RemoteCacheManager {
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
                     id = methodGetId.invoke(result).toString() ;
                 } else {
-                    id = NULL_TAG ;
+                    id = getNullTag() ;
+                }
+                if (id.equals(getNullTag()) || result == null) {
+                    values.add(getNullValue()) ;
+                } else {
+                    values.add(KryoUtil.writeToString(result)) ;
                 }
                 keys.add(id) ;
-                values.add(KryoUtil.writeToString(result)) ;
                 //判断此时是否为id获取的单结果或者为条件查询获取的单结果
                 if (!key.equals(id)) {
                     keys.add(key) ;
@@ -274,7 +290,13 @@ public class RedisCacheManager implements RemoteCacheManager {
             }
             keys.add(key);
         } else {
-            throw new Exception("====Kache====\r\n数据集为空") ;
+            lua.append("redis.call('del',KEYS[1]) ");
+            lua.append("redis.call('lpush',KEYS[1],ARGV[1]) ") ;
+            lua.append("return redis.call('expire',KEYS[1],")
+                    .append(daoProperties.getCacheTime())
+                    .append(");");
+            keys.add(key) ;
+            values.add(KryoUtil.writeToString(page)) ;
         }
     }
 

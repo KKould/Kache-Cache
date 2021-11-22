@@ -3,6 +3,9 @@ package com.kould.manager;
 import java.util.List;
 
 public interface RemoteCacheManager {
+    String getNullTag() ;
+    String getNullValue() ;
+
     boolean hasKey(String key) ;
     <T> T put(String key, T result) ;
     List<String> keys(String pattern) ;

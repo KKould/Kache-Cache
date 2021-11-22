@@ -33,7 +33,7 @@ import static com.kould.amqp.KacheQueue.*;
 @Order(15)
 public class DaoCacheAop {
 
-    private static final Logger log = LoggerFactory.getLogger(Object.class) ;
+    private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
     private static final Map<String,Integer> exists = new ConcurrentHashMap<>();
 
@@ -90,6 +90,7 @@ public class DaoCacheAop {
             Object result = null ;
             try {
                 String key = null ;
+                exists.putIfAbsent(poType, 0);
                 //判断serviceMethod的是否为通过id获取数据
                 //  若是则直接使用id进行获取
                 //  若否则经过编码后进行获取
@@ -107,11 +108,7 @@ public class DaoCacheAop {
                     result = baseCacheManager.get(key, beanClass);
                     kacheLock.unLock(readLock);
                     if (result == null) {
-                        if (baseCacheManager.hasKey(key)) {
-                            break;
-                        }
                         //用于错误发生处理，判断是否该线程成功CAS，成功时并发生错误则在错误处理中将exists设置回false，保证exists的事务性
-                        exists.putIfAbsent(poType, 0);
                         access = exists.replace(poType,0,1) ;
                         if (access) {
                             //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
@@ -123,6 +120,10 @@ public class DaoCacheAop {
                             break;
                         }
                     }
+                }
+                //空值替换
+                if (baseCacheManager.getNullValue().equals(result)) {
+                    result = null ;
                 }
                 return result;
             }catch (Exception e) {
