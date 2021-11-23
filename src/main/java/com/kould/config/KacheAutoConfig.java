@@ -5,7 +5,7 @@ import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.json.GsonUtil;
 import com.kould.json.JsonUtil;
 import com.kould.lock.KacheLock;
-import com.kould.lock.RedissonLock;
+import com.kould.lock.impl.LocalLock;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
@@ -83,6 +83,6 @@ public class KacheAutoConfig {
     @Bean
     @ConditionalOnMissingBean
     public KacheLock kacheLock() {
-        return new RedissonLock() ;
+        return new LocalLock() ;
     }
 }

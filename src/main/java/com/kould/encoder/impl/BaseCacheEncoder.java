@@ -1,13 +1,12 @@
 package com.kould.encoder.impl;
 
 import com.google.gson.reflect.TypeToken;
-import com.kould.utils.KryoUtil;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.json.JsonUtil;
+import com.kould.utils.KryoUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,12 +17,12 @@ public class BaseCacheEncoder implements CacheEncoder {
     private JsonUtil jsonUtil ;
 
     @Override
-    public String encode(Object dto,String serviceMethodStatus, Method serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
+    public String encode(Object dto,String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
         return KacheAutoConfig.NO_ID_TAG +
                 daoMethodName +
                 daoArgs +
                 serviceMethodStatus +
-                serviceMethod.getName() +
+                serviceMethod +
                 daoEnityName +
                 jsonUtil.obj2Str(dto) ;
 
@@ -34,15 +33,7 @@ public class BaseCacheEncoder implements CacheEncoder {
         //此处可以返回空但是空会导致同一Service方法内调用同一Dao方法且Dao方法的参数不一致时会导致缓存误差
         //需要寻找循环依赖序列化方案-》Mybaits-Plus的Wrapper
         //new:使用Kryo序列化
-        StringBuilder result = new StringBuilder() ;
-        try {
-            for (Object arg : args) {
-                result.append(KryoUtil.writeToString(arg)) ;
-            }
-        } catch (Exception e) {
-            throw e ;
-        }
-        return result.toString() ;
+        return KryoUtil.writeToString(args) ;
     }
 
     @Override

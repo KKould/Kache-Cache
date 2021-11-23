@@ -61,6 +61,7 @@ public class ServiceMessageAop {
                 .method(method)
                 .clazz(targetClass)
                 .cacheClazz(cacheClass)
+                .methodName(method.getName())
                 .build());
         return point.proceed() ;
     }

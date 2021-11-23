@@ -4,10 +4,10 @@ import com.kould.annotation.CacheBeanClass;
 import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
-import com.kould.message.Message;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
+import com.kould.message.Message;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -36,7 +36,8 @@ public class DaoCacheAop {
 
     private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
-    private static final Map<String,Integer> exists = new ConcurrentHashMap<>();
+    //直接使用ReentrantLock而不使用接口Lock是因为需要判断锁状态
+    private static final Map<String,ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
     protected static final ThreadLocal<Message> localVar = new ThreadLocal<>();
 
@@ -73,14 +74,13 @@ public class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        Object result = null ;
         Message serviceMessage = localVar.get();
         if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                 && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
             //局部变量初始化与局部引用声明
             Lock readLock = null ;
             Lock writeLock = null;
-            boolean access = false;
-            Object result = null ;
             String key = null ;
             Class<?> beanClass = serviceMessage.getCacheClazz();
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
@@ -91,8 +91,13 @@ public class DaoCacheAop {
             String poType = beanClass.getTypeName();
             String methodStatus = serviceMessage.getMethod()
                     .getAnnotation(ServiceCache.class).status().getValue();
+            String lockKey = poType + serviceMessage.getMethodName() ;
             //该PO领域的初始化
-            exists.putIfAbsent(poType, 0);
+            ReentrantLock typeLock = lockMap.get(lockKey);
+            if (typeLock == null) {
+                typeLock = new ReentrantLock();
+                lockMap.put(lockKey,typeLock) ;
+            }
             try {
                 //判断serviceMethod的是否为通过id获取数据
                 //  若是则直接使用id进行获取
@@ -102,51 +107,45 @@ public class DaoCacheAop {
                     key = methodGetId.invoke(serviceMessage.getArg()).toString() ;
                 }else {
                     key = cacheEncoder.encode(serviceMessage.getArg(), methodStatus
-                            , serviceMessage.getMethod(), beanClass.getName(), daoMethodName, daoArgs) ;
+                            ,serviceMessage.getMethodName() , beanClass.getName(), daoMethodName, daoArgs) ;
                 }
-                //使用循环和CAS对纵向的线程穿透进行线程执行限制，减少其重复获取写锁所带来的性能成本
-                while (result == null) {
-                    readLock = kacheLock.readLock(poType) ;
-                    //获取缓存
+                readLock = kacheLock.readLock(poType) ;
+                //获取缓存
+                result = baseCacheManager.get(key, beanClass);
+                kacheLock.unLock(readLock);
+                if (result == null) {
+                    //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
+                    //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
+                    typeLock.lock();
                     result = baseCacheManager.get(key, beanClass);
-                    kacheLock.unLock(readLock);
                     if (result == null) {
-                        //用于错误发生处理，判断是否该线程成功CAS，成功时并发生错误则在错误处理中将exists设置回false，保证exists的事务性
-                        access = exists.replace(poType,0,1) ;
-                        if (access) {
-                            //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                            writeLock = kacheLock.writeLock(poType);
-                            result = point.proceed();
-                            baseCacheManager.put(key, result, beanClass);
-                            kacheLock.unLock(writeLock);
-                            exists.put(poType, 0);
-                            break;
-                        }
+                        writeLock = kacheLock.writeLock(poType);
+                        result = point.proceed();
+                        baseCacheManager.put(key, result, beanClass);
+                        kacheLock.unLock(writeLock);
                     }
                 }
                 //空值替换
                 if (baseCacheManager.getNullValue().equals(result)) {
                     result = null ;
                 }
-                return result;
             }catch (Exception e) {
-                if (access) {
-                    exists.put(poType,0);
-                }
-                log.error(e.getMessage());
-                e.printStackTrace();
-            } finally {
-                if (!kacheLock.isLock(readLock)) {
+                if (kacheLock.isLock(readLock)) {
                     kacheLock.unLock(readLock);
                 }
-                if (!kacheLock.isLock(writeLock)) {
+                if (kacheLock.isLock(writeLock)) {
                     kacheLock.unLock(writeLock);
+                }
+                throw e ;
+            } finally {
+                if (typeLock.isLocked()) {
+                    typeLock.unlock();
                 }
             }
         } else {
             return point.proceed() ;
         }
-        return null ;
+        return result;
     }
 
     @Around("@annotation(com.kould.annotation.DaoInsert) || @annotation(com.kould.annotation.DaoDelete) || pointCutAdd() || pointCutRemove()")
