@@ -1,6 +1,6 @@
 package com.kould.handler;
 
-import com.kould.message.Message;
+import com.kould.message.KacheMessage;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
@@ -37,7 +37,7 @@ public class UpdateHandler {
     private InterprocessCacheManager interprocessCacheManager;
 
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
-    public void asyncUpdateHandler(Message msg) {
+    public void asyncUpdateHandler(KacheMessage msg) {
         if (msg.getArg() == null) {
             return;
         }
@@ -62,11 +62,11 @@ public class UpdateHandler {
             value = @Queue(), //注意这里不要定义队列名称,系统会随机产生
             exchange = @Exchange(value = INTERPROCESS_UPDATE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
     ))
-    public void asyncInterprocessUpdateHandler(Message msg) {
+    public void asyncInterprocessUpdateHandler(KacheMessage msg) {
         InterprocessCacheClear(msg, kacheLock, interprocessCacheManager);
     }
 
-    static void InterprocessCacheClear(Message msg, KacheLock kacheLock, InterprocessCacheManager interprocessCacheManager) {
+    static void InterprocessCacheClear(KacheMessage msg, KacheLock kacheLock, InterprocessCacheManager interprocessCacheManager) {
         if (msg.getArg() == null) {
             return;
         }

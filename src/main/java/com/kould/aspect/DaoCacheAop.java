@@ -7,7 +7,7 @@ import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
-import com.kould.message.Message;
+import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -39,7 +39,7 @@ public class DaoCacheAop {
     //直接使用ReentrantLock而不使用接口Lock是因为需要判断锁状态
     private static final Map<String,ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
-    protected static final ThreadLocal<Message> localVar = new ThreadLocal<>();
+    protected static final ThreadLocal<KacheMessage> localVar = new ThreadLocal<>();
 
     @Autowired
     private KacheLock kacheLock ;
@@ -75,7 +75,7 @@ public class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
     public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Object result = null ;
-        Message serviceMessage = localVar.get();
+        KacheMessage serviceMessage = localVar.get();
         if (serviceMessage != null && serviceMessage.getClazz().isAnnotationPresent(CacheBeanClass.class)
                 && serviceMessage.getMethod().isAnnotationPresent(ServiceCache.class)) {
             //局部变量初始化与局部引用声明
@@ -158,7 +158,7 @@ public class DaoCacheAop {
         return getObject(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,localVar.get()) ;
     }
 
-    private Object getObject(ProceedingJoinPoint point, String queue, String exchange, Message serviceMessage) throws Throwable {
+    private Object getObject(ProceedingJoinPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.proceed();
         if (serviceMessage != null && serviceMessage.getMethod().isAnnotationPresent(CacheChange.class)) {

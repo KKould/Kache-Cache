@@ -47,8 +47,8 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
 
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
-            result =interprocessCacheManager.get(key, beanClass) ;
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从进程间缓存获取数据中");
+            result =interprocessCacheManager.get(key, beanClass) ;
         }
         if (result == null) {
             log.info("----------------------------------\r\n ++++ KaChe ++++ 从Redis缓存获取数据中");

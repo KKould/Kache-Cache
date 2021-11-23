@@ -2,7 +2,7 @@ package com.kould.handler;
 
 import com.google.gson.reflect.TypeToken;
 import com.kould.config.KacheAutoConfig;
-import com.kould.message.Message;
+import com.kould.message.KacheMessage;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
@@ -43,7 +43,7 @@ public class DeleteHandler {
     private InterprocessCacheManager interprocessCacheManager ;
 
     @RabbitListener(queues = {QUEUE_DELETE_CACHE,QUEUE_UPDATE_CACHE})
-    public void asyncDeleteHandler(Message msg) {
+    public void asyncDeleteHandler(KacheMessage msg) {
         if (msg.getArg() == null) {
             return;
         }
@@ -99,7 +99,7 @@ public class DeleteHandler {
             value = @Queue(), //注意这里不要定义队列名称,系统会随机产生
             exchange = @Exchange(value = INTERPROCESS_DELETE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
     ))
-    public void asyncInterprocessDeleteHandler(Message msg) {
+    public void asyncInterprocessDeleteHandler(KacheMessage msg) {
         UpdateHandler.InterprocessCacheClear(msg, kacheLock, interprocessCacheManager);
     }
 }

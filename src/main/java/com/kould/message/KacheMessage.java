@@ -3,7 +3,7 @@ package com.kould.message;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
-public class Message implements Serializable {
+public class KacheMessage implements Serializable {
     private Method method ;
     //Method无法被序列化
     private String methodName ;
@@ -45,15 +45,15 @@ public class Message implements Serializable {
             return this ;
         }
 
-        public Message build() {
-            return new Message(this) ;
+        public KacheMessage build() {
+            return new KacheMessage(this) ;
         }
     }
 
-    public Message() {
+    public KacheMessage() {
     }
 
-    public Message(Method method, String methodName, Object arg, Class<?> clazz, Class<?> cacheClazz) {
+    public KacheMessage(Method method, String methodName, Object arg, Class<?> clazz, Class<?> cacheClazz) {
         this.method = method;
         this.methodName = methodName;
         this.arg = arg;
@@ -61,7 +61,7 @@ public class Message implements Serializable {
         this.cacheClazz = cacheClazz;
     }
 
-    public Message(Builder builder) {
+    public KacheMessage(Builder builder) {
         this.method = builder.method ;
         this.methodName = builder.methodName;
         this.arg = builder.arg;

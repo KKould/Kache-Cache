@@ -4,7 +4,7 @@ import com.kould.annotation.CacheBeanClass;
 import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
-import com.kould.message.Message;
+import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -56,7 +56,7 @@ public class ServiceMessageAop {
         if (point.getArgs() != null) {
             arg = point.getArgs()[0] ;
         }
-        DaoCacheAop.localVar.set(Message.builder()
+        DaoCacheAop.localVar.set(KacheMessage.builder()
                 .arg(arg)
                 .method(method)
                 .clazz(targetClass)
