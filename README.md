@@ -29,18 +29,19 @@ Kache架构：
 - **高拓展性**：提供进程间缓存、Json序列化、远程缓存与缓存调度器的接口，允许使用者通过实现对应的接口兼容所需的NoSQL、进程间缓存、Json序列化框架以更好的兼容使用者的项目
 - **对Redis、Guava、Gson项目支持程度高**：默认提供基于Redis、Guava、Gson的实现
 - **IO消耗降低**：使用Lua脚本并使用sha1进行脚本缓存，最大化减少对IO的无用消耗
+- **可读性强**：代码量大约为1700行（含注释和空换行）
 
 #### 使用 | Use
 
 使用流程：
 
-**1、Kache依赖引入（最新版为1.1.1）**
+**1、Kache依赖引入（最新版为1.3.0）**
 
 **2、Service层写入注解**
 
 **3、Dao层写入注解**
 
-**4、提供对应Redisson、RabbitMQ实例**
+**4、提供对应RabbitMQ实例**
 
 **5、配置文件参考**
 
@@ -131,22 +132,9 @@ public interface BaseMapper<T> {
 }
 ```
 
-**4**.提供RedissonClient与消息队列（此处略）
+**4**.提供消息队列源（此处略）
 
-```java
-@Configuration
-public class RedissonConfig {
-    @Bean
-    public RedissonClient redisson() throws IOException {
-        Config config = new Config();
-        //Redis地址
-        config.useSingleServer().setAddress("redis://123.123.123.123:6379");
-        return Redisson.create(config);
-    }
-}
-```
-
-可选配置（默认值）：
+**5**.可选配置（默认值）：
 
 ```yaml
 #Kache各属性可修改值
@@ -167,8 +155,8 @@ kache:
 
 - 基于DTO概念，Service方法允许**无参**和**仅有一个参数**、即所需参数需要使用一个**DTO**进行封装
 - Dao方法**不允许**针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
-
 - 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
+- 内部默认提供分布式读写锁**RessionLock实现**，用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全**
 - **若Dao类或接口无法加入注解则可以修改Dao的包名为mapper且方法名格式**(默认MyBatis-plus格式)：
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
@@ -238,12 +226,6 @@ Key的编码形式则为：
 ##### 缓存结构：
 
 ![Kache缓存结构](https://s3.bmp.ovh/imgs/2021/11/4ec53d620c952a95.jpg)
-
-**性能测试：**
-
-- 同一局域网环境下测试：
-  - Kache组
-  - 
 
 
 
