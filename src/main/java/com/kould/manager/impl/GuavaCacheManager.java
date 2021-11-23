@@ -73,7 +73,9 @@ public class GuavaCacheManager implements InterprocessCacheManager {
                     .build() ;
             guavaCacheMap.put(name, cache);
         }
-        cache.put(key,result);
+        if (result != null) {
+            cache.put(key,result);
+        }
         return result;
     }
 }
