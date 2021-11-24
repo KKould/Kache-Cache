@@ -36,7 +36,11 @@ public class LocalLock implements KacheLock {
         if (lock == null) {
             return false ;
         } else {
-            return !lock.tryLock();
+            boolean b = lock.tryLock();
+            if (b) {
+                lock.unlock();
+            }
+            return !b;
         }
     }
 

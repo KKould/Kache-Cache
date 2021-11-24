@@ -14,7 +14,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 import static com.kould.amqp.KacheQueue.INTERPROCESS_UPDATE_EXCHANGE_NAME;
@@ -37,7 +39,7 @@ public class UpdateHandler {
     private InterprocessCacheManager interprocessCacheManager;
 
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
-    public void asyncUpdateHandler(KacheMessage msg) {
+    public void asyncUpdateHandler(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         if (msg.getArg() == null) {
             return;
         }
@@ -50,11 +52,11 @@ public class UpdateHandler {
             remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
             kacheLock.unLock(writeLock);
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (!kacheLock.isLock(writeLock)) {
+            if (kacheLock.isLock(writeLock)) {
                 kacheLock.unLock(writeLock);
             }
+            e.printStackTrace();
+            throw e ;
         }
     }
 
@@ -62,11 +64,11 @@ public class UpdateHandler {
             value = @Queue(), //注意这里不要定义队列名称,系统会随机产生
             exchange = @Exchange(value = INTERPROCESS_UPDATE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
     ))
-    public void asyncInterprocessUpdateHandler(KacheMessage msg) {
+    public void asyncInterprocessUpdateHandler(KacheMessage msg) throws ExecutionException {
         InterprocessCacheClear(msg, kacheLock, interprocessCacheManager);
     }
 
-    static void InterprocessCacheClear(KacheMessage msg, KacheLock kacheLock, InterprocessCacheManager interprocessCacheManager) {
+    static void InterprocessCacheClear(KacheMessage msg, KacheLock kacheLock, InterprocessCacheManager interprocessCacheManager) throws ExecutionException {
         if (msg.getArg() == null) {
             return;
         }
@@ -77,11 +79,11 @@ public class UpdateHandler {
             interprocessCacheManager.clear(msg.getCacheClazz()); ;
             kacheLock.unLock(writeLock);
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (!kacheLock.isLock(writeLock)) {
+            if (kacheLock.isLock(writeLock)) {
                 kacheLock.unLock(writeLock);
             }
+            e.printStackTrace();
+            throw e ;
         }
     }
 }

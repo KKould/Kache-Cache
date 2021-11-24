@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 import static com.kould.amqp.KacheQueue.*;
@@ -88,10 +89,12 @@ public class DeleteHandler {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }
             kacheLock.unLock(writeLock);
-        } finally {
-            if (!kacheLock.isLock(writeLock)) {
+        } catch (Exception e){
+            if (kacheLock.isLock(writeLock)) {
                 kacheLock.unLock(writeLock);
             }
+            e.printStackTrace();
+            throw e ;
         }
     }
 
@@ -99,7 +102,7 @@ public class DeleteHandler {
             value = @Queue(), //注意这里不要定义队列名称,系统会随机产生
             exchange = @Exchange(value = INTERPROCESS_DELETE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
     ))
-    public void asyncInterprocessDeleteHandler(KacheMessage msg) {
+    public void asyncInterprocessDeleteHandler(KacheMessage msg) throws ExecutionException {
         UpdateHandler.InterprocessCacheClear(msg, kacheLock, interprocessCacheManager);
     }
 }
