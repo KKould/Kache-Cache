@@ -86,4 +86,8 @@ public class GuavaCacheManager implements InterprocessCacheManager {
         }
         return result;
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

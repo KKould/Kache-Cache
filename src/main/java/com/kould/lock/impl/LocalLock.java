@@ -60,4 +60,8 @@ public class LocalLock implements KacheLock {
         }
         return readWriteLock;
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

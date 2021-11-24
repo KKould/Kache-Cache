@@ -58,4 +58,8 @@ public class RedissonLock implements KacheLock {
         RLock rLock = (RLock) lock ;
         return rLock.isLocked() && rLock.isHeldByCurrentThread();
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

@@ -68,4 +68,8 @@ public class BaseCacheEncoder implements CacheEncoder {
     public String getPattern(String poName) {
         return "*" + poName + "*" ;
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

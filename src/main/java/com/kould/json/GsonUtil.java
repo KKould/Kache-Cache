@@ -25,4 +25,8 @@ public class GsonUtil implements JsonUtil{
     public <T> T str2Obj(String str, Type type) {
         return gson.fromJson(str, type);
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

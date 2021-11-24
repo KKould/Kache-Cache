@@ -74,4 +74,8 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
     public boolean hasKey(String key) {
         return remoteCacheManager.hasKey(key);
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }

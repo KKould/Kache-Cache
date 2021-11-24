@@ -446,4 +446,8 @@ public class RedisCacheManager implements RemoteCacheManager {
             return false ;
         }
     }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
 }
