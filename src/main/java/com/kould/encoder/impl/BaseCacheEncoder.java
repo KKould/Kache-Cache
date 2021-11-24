@@ -13,8 +13,16 @@ import java.util.Map;
 
 public class BaseCacheEncoder implements CacheEncoder {
 
+    private static final BaseCacheEncoder INSTANCE = new BaseCacheEncoder() ;
+
     @Autowired
     private JsonUtil jsonUtil ;
+
+    private BaseCacheEncoder() {}
+
+    public static BaseCacheEncoder getInstance() {
+        return INSTANCE ;
+    }
 
     @Override
     public String encode(Object dto,String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {

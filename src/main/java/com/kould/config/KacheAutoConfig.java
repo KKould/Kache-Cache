@@ -53,36 +53,36 @@ public class KacheAutoConfig {
     @Bean
     @ConditionalOnMissingBean
     public CacheEncoder cacheEncoder() {
-        return new BaseCacheEncoder() ;
+        return BaseCacheEncoder.getInstance() ;
     }
 
     @Bean
     @ConditionalOnMissingBean
     public IBaseCacheManager iBaseCacheManager() {
-        return new BaseCacheManagerImpl() ;
+        return BaseCacheManagerImpl.getInstance() ;
     }
 
     @Bean
     @ConditionalOnMissingBean
     public RemoteCacheManager remoteCacheManager() {
-        return new RedisCacheManager();
+        return RedisCacheManager.getInstance();
     }
 
     @Bean
     @ConditionalOnMissingBean
     public InterprocessCacheManager interprocessCacheManager() {
-        return new GuavaCacheManager() ;
+        return GuavaCacheManager.getInstance() ;
     }
 
     @Bean
     @ConditionalOnMissingBean
     public JsonUtil jsonUtil() {
-        return new GsonUtil() ;
+        return GsonUtil.getInstance() ;
     }
 
     @Bean
     @ConditionalOnMissingBean
     public KacheLock kacheLock() {
-        return new LocalLock() ;
+        return LocalLock.getInstance() ;
     }
 }

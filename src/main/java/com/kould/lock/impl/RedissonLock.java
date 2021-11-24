@@ -12,11 +12,19 @@ import java.util.concurrent.locks.Lock;
 
 public class RedissonLock implements KacheLock {
 
+    private static final RedissonLock INSTANCE = new RedissonLock() ;
+
     @Autowired
     private DaoProperties daoProperties ;
 
     @Autowired
     private RedissonClient redissonClient;
+
+    private RedissonLock() {}
+
+    public static RedissonLock getInstance() {
+        return INSTANCE ;
+    }
 
     @Override
     public Lock readLock(String lockKey) {

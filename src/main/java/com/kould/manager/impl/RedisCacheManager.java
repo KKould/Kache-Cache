@@ -22,6 +22,8 @@ import java.util.*;
 @Component
 public class RedisCacheManager implements RemoteCacheManager {
 
+    private static final RedisCacheManager INSTANCE = new RedisCacheManager() ;
+
     private static final Logger log = LoggerFactory.getLogger(RedisCacheManager.class) ;
 
     @Autowired
@@ -83,6 +85,12 @@ public class RedisCacheManager implements RemoteCacheManager {
             "I never told anyone,but I've always thought they are lighthouses.\n" +
             "\n" +
             "Billions of lighthouses...stuck at the far end of the sky.");
+
+    private RedisCacheManager() {}
+
+    public static RedisCacheManager getInstance() {
+        return INSTANCE ;
+    }
 
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量

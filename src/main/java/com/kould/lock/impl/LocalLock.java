@@ -10,7 +10,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class LocalLock implements KacheLock {
 
+    private static final LocalLock INSTANCE = new LocalLock() ;
+
     private static final Map<String,ReadWriteLock> readWriteLockMap = new ConcurrentHashMap<>();
+
+    private LocalLock() {}
+
+    public static LocalLock getInstance() {
+        return INSTANCE ;
+    }
 
     @Override
     public Lock readLock(String lockKey) {

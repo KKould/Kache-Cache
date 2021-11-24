@@ -6,10 +6,14 @@ import java.lang.reflect.Type;
 
 public class GsonUtil implements JsonUtil{
 
-    private static Gson gson ;
+    private static final Gson gson = new Gson() ;
 
-    public GsonUtil() {
-        gson = new Gson() ;
+    private static final GsonUtil INSTANCE = new GsonUtil() ;
+
+    private GsonUtil() {}
+
+    public static GsonUtil getInstance() {
+        return INSTANCE ;
     }
 
     @Override

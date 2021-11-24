@@ -12,6 +12,8 @@ import java.util.concurrent.ExecutionException;
 
 public class BaseCacheManagerImpl implements IBaseCacheManager {
 
+    private static final BaseCacheManagerImpl INSTANCE = new BaseCacheManagerImpl() ;
+
     private static final Logger log = LoggerFactory.getLogger(IBaseCacheManager.class) ;
 
     @Autowired
@@ -23,6 +25,12 @@ public class BaseCacheManagerImpl implements IBaseCacheManager {
     @Autowired
     private InterprocessCacheProperties interprocessCacheProperties ;
 
+
+    private BaseCacheManagerImpl() {} ;
+
+    public static BaseCacheManagerImpl getInstance() {
+        return INSTANCE ;
+    }
 
     @Override
     public String getNullTag() {

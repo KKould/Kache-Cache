@@ -1,5 +1,8 @@
 package com.kould.message;
 
+
+import com.kould.type.Builder;
+
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
@@ -11,7 +14,7 @@ public class KacheMessage implements Serializable {
     private Class<?> clazz ;
     private Class<?> cacheClazz ;
 
-    public static class Builder {
+    public static class Builder implements com.kould.type.Builder<KacheMessage> {
         private Method method ;
         private String methodName ;
         private Object arg ;
@@ -45,6 +48,7 @@ public class KacheMessage implements Serializable {
             return this ;
         }
 
+        @Override
         public KacheMessage build() {
             return new KacheMessage(this) ;
         }

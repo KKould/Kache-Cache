@@ -15,6 +15,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class GuavaCacheManager implements InterprocessCacheManager {
+    
+    private static final GuavaCacheManager INSTANCE = new GuavaCacheManager() ;
 
     @Autowired
     private DaoProperties daoProperties ;
@@ -24,8 +26,14 @@ public class GuavaCacheManager implements InterprocessCacheManager {
 
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
-    private final Map<String, Cache<String,Object>> guavaCacheMap = new ConcurrentHashMap<>();
+    private static final Map<String, Cache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();
 
+    private GuavaCacheManager() {}
+
+    public static GuavaCacheManager getInstance() {
+        return INSTANCE ;
+    }
+    
     @Override
     public <T> T update(String key, T result, Class<?> resultClass) {
 
@@ -35,7 +43,7 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public Object get(String key, Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name);
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
         if (cache == null) {
             return null ;
         } else {
@@ -55,7 +63,7 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public void clear(Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name);
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
         if (cache != null) {
             cache.cleanUp();
         }
@@ -64,14 +72,14 @@ public class GuavaCacheManager implements InterprocessCacheManager {
     @Override
     public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
         String name = beanClass.getName();
-        Cache<String,Object> cache = guavaCacheMap.get(name);
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
         if (cache == null) {
             cache = CacheBuilder.newBuilder()
                     .weakValues()
                     .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
                     .maximumSize(interprocessCacheProperties.getSize())
                     .build() ;
-            guavaCacheMap.put(name, cache);
+            GUAVA_CACHE_MAP.put(name, cache);
         }
         if (result != null) {
             cache.put(key,result);
