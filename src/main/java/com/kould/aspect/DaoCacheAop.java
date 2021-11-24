@@ -93,10 +93,10 @@ public class DaoCacheAop {
                     .getAnnotation(ServiceCache.class).status().getValue();
             String lockKey = poType + serviceMessage.getMethodName() ;
             //该PO领域的初始化
-            ReentrantLock typeLock = lockMap.get(lockKey);
-            if (typeLock == null) {
-                typeLock = new ReentrantLock();
-                lockMap.put(lockKey,typeLock) ;
+            ReentrantLock methodLock = lockMap.get(lockKey);
+            if (methodLock == null) {
+                methodLock = new ReentrantLock();
+                lockMap.put(lockKey,methodLock) ;
             }
             try {
                 //判断serviceMethod的是否为通过id获取数据
@@ -116,7 +116,7 @@ public class DaoCacheAop {
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                     //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
-                    typeLock.lock();
+                    methodLock.lock();
                     result = baseCacheManager.get(key, beanClass);
                     if (result == null) {
                         writeLock = kacheLock.writeLock(poType);
@@ -138,8 +138,8 @@ public class DaoCacheAop {
                 }
                 throw e ;
             } finally {
-                if (typeLock.isLocked()) {
-                    typeLock.unlock();
+                if (methodLock.isLocked() && methodLock.isHeldByCurrentThread()) {
+                    methodLock.unlock();
                 }
             }
         } else {
