@@ -78,7 +78,7 @@ public class TestDemo {
         Object test2 = new TimeTestAgent(new TimeTest() {
             @Override
             public Object test() {
-                GsonUtil gsonUtil = new GsonUtil();
+                GsonUtil gsonUtil = GsonUtil.getInstance();
                 for (int i = 0; i < 10000; i++) {
                     String s = gsonUtil.obj2Str(test);
                     Object o = gsonUtil.str2Obj(s,Test.class);
