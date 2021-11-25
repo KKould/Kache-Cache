@@ -138,7 +138,7 @@ public class DaoCacheAop {
                 }
                 throw e ;
             } finally {
-                if (methodLock.isLocked() && methodLock.isHeldByCurrentThread()) {
+                if (methodLock.isHeldByCurrentThread() && methodLock.isLocked()) {
                     methodLock.unlock();
                 }
             }
