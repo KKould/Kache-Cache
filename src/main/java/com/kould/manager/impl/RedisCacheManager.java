@@ -244,9 +244,13 @@ public class RedisCacheManager implements RemoteCacheManager {
                         .append(count2Echo)
                         .append("]) == 0) ")
                         .append("then ")
+                        //若不存在即加入result中被返回
                         .append("table.insert(result,KEYS[")
                         .append(count2Echo)
                         .append("]) ")
+                        .append("else ")
+                        //若存在则延长命中缓存的存活时间
+                        .append("redis.call('expire',KEYS[").append(count2Echo).append("],").append(daoProperties.getCacheTime()).append("); ")
                         .append("end ") ;
             }
             echo.append("return result ") ;
@@ -382,7 +386,6 @@ public class RedisCacheManager implements RemoteCacheManager {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
-//            return (ArrayList)jedis.eval(SCRIPT_LUA_CACHE_KEYS, 1, pattern);
             return (ArrayList<String>)jedis.evalsha(scriptKeysSHA1, 1, pattern);
         } catch (Exception e) {
             log.error(e.getMessage(), e);

@@ -47,22 +47,26 @@ public class ServiceMessageAop {
         Method method = null ;
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         method = methodSignature.getMethod() ;
-        if (!method.isAnnotationPresent(ServiceCache.class) && !method.isAnnotationPresent(CacheChange.class)) {
+        //注解检测
+        if (targetClass.isAnnotationPresent(CacheBeanClass.class) &&
+                (method.isAnnotationPresent(ServiceCache.class) || method.isAnnotationPresent(CacheChange.class))) {
+            Object arg = null;
+            CacheBeanClass cacheBeanClass = targetClass.getAnnotation(CacheBeanClass.class);
+            Class<?> cacheClass = cacheBeanClass.clazz();
+            if (point.getArgs() != null) {
+                arg = point.getArgs()[0];
+            }
+            //传递Service方法签名
+            DaoCacheAop.MESSAGE_THREAD_LOCAL_VAR.set(KacheMessage.builder()
+                    .arg(arg)
+                    .method(method)
+                    .clazz(targetClass)
+                    .cacheClazz(cacheClass)
+                    .methodName(method.getName())
+                    .build());
             return point.proceed();
+        } else {
+            return point.proceed() ;
         }
-        Object arg = null;
-        CacheBeanClass cacheBeanClass = (CacheBeanClass)targetClass.getAnnotation(CacheBeanClass.class);
-        Class<?> cacheClass = cacheBeanClass.clazz();
-        if (point.getArgs() != null) {
-            arg = point.getArgs()[0] ;
-        }
-        DaoCacheAop.localVar.set(KacheMessage.builder()
-                .arg(arg)
-                .method(method)
-                .clazz(targetClass)
-                .cacheClazz(cacheClass)
-                .methodName(method.getName())
-                .build());
-        return point.proceed() ;
     }
 }
