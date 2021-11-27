@@ -1,10 +1,11 @@
 package com.kould.handler.impl;
 
+import com.kould.handler.StrategyHandler;
 import com.kould.handler.SyncHandler;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 
-public class DBFirstHandler extends SyncHandler {
+public class DBFirstHandler extends StrategyHandler implements SyncHandler {
 
     @Override
     public Object delete(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {

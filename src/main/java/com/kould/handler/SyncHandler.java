@@ -1,4 +1,4 @@
 package com.kould.handler;
 
-public abstract class SyncHandler extends StrategyHandler {
+public interface SyncHandler {
 }
