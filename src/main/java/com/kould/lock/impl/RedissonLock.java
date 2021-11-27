@@ -1,6 +1,5 @@
 package com.kould.lock.impl;
 
-import com.kould.config.DaoProperties;
 import com.kould.lock.KacheLock;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
@@ -10,12 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-public class RedissonLock implements KacheLock {
+public class RedissonLock extends KacheLock {
 
     private static final RedissonLock INSTANCE = new RedissonLock() ;
-
-    @Autowired
-    private DaoProperties daoProperties ;
 
     @Autowired
     private RedissonClient redissonClient;
@@ -51,7 +47,7 @@ public class RedissonLock implements KacheLock {
     }
 
     @Override
-    public Boolean isLock(Lock lock) {
+    public Boolean isLockedByThisThread(Lock lock) {
         if (lock == null) {
             return false ;
         }

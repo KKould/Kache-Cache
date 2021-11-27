@@ -8,7 +8,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class LocalLock implements KacheLock {
+public class LocalLock extends KacheLock {
 
     private static final LocalLock INSTANCE = new LocalLock() ;
 
@@ -40,7 +40,7 @@ public class LocalLock implements KacheLock {
     }
 
     @Override
-    public Boolean isLock(Lock lock) {
+    public Boolean isLockedByThisThread(Lock lock) {
         if (lock == null) {
             return false ;
         } else {

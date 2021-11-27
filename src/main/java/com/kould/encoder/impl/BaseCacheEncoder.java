@@ -3,20 +3,15 @@ package com.kould.encoder.impl;
 import com.google.gson.reflect.TypeToken;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
-import com.kould.json.JsonUtil;
 import com.kould.utils.KryoUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BaseCacheEncoder implements CacheEncoder {
+public class BaseCacheEncoder extends CacheEncoder {
 
     private static final BaseCacheEncoder INSTANCE = new BaseCacheEncoder() ;
-
-    @Autowired
-    private JsonUtil jsonUtil ;
 
     private BaseCacheEncoder() {}
 

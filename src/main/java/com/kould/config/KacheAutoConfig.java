@@ -2,10 +2,14 @@ package com.kould.config;
 
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
+import com.kould.handler.StrategyHandler;
+import com.kould.handler.impl.AmqpAsyncHandler;
 import com.kould.json.GsonUtil;
 import com.kould.json.JsonUtil;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
+import com.kould.logic.CacheLogic;
+import com.kould.logic.impl.BaseCacheLogic;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
@@ -86,5 +90,17 @@ public class KacheAutoConfig {
     @ConditionalOnMissingBean
     public KacheLock kacheLock() {
         return LocalLock.getInstance() ;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public StrategyHandler strategyHandler() {
+        return AmqpAsyncHandler.getInstance();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CacheLogic cacheLogic() {
+        return BaseCacheLogic.getInstance();
     }
 }

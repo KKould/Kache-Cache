@@ -10,10 +10,6 @@ public class DaoProperties {
 
     private int randomTime = 120;
 
-    public int getCacheTime() {
-        return (int)(baseTime + Math.random() * randomTime) ;
-    }
-
     public int getLockTime() {
         return lockTime;
     }

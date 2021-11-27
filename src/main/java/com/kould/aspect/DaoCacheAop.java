@@ -3,6 +3,7 @@ package com.kould.aspect;
 import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
+import com.kould.handler.StrategyHandler;
 import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.message.KacheMessage;
@@ -13,7 +14,6 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.kould.amqp.KacheQueue.*;
 
 
 @Aspect
@@ -50,7 +48,7 @@ public class DaoCacheAop {
     private CacheEncoder cacheEncoder;
 
     @Autowired
-    private AmqpTemplate amqpTemplate;
+    private StrategyHandler strategyHandler;
 
     private static final String METHOD_GET_ID = "getId" ;
 
@@ -72,7 +70,7 @@ public class DaoCacheAop {
 
 
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
-    public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
+    public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Object result = null ;
         KacheMessage serviceMessage = MESSAGE_THREAD_LOCAL_VAR.get();
         if (serviceMessage != null) {
@@ -115,10 +113,10 @@ public class DaoCacheAop {
                     result = null ;
                 }
             }catch (Exception e) {
-                if (kacheLock.isLock(readLock)) {
+                if (kacheLock.isLockedByThisThread(readLock)) {
                     kacheLock.unLock(readLock);
                 }
-                if (kacheLock.isLock(writeLock)) {
+                if (kacheLock.isLockedByThisThread(writeLock)) {
                     kacheLock.unLock(writeLock);
                 }
                 throw e ;
@@ -158,25 +156,19 @@ public class DaoCacheAop {
         }
     }
 
-    @Around("@annotation(com.kould.annotation.DaoInsert) || @annotation(com.kould.annotation.DaoDelete) || pointCutAdd() || pointCutRemove()")
-    public Object removeArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        return asyncChange(point,QUEUE_DELETE_CACHE,INTERPROCESS_DELETE_EXCHANGE_NAME,MESSAGE_THREAD_LOCAL_VAR.get()) ;
+    @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutRemove()")
+    public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        return strategyHandler.delete(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
+    }
+
+    @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutAdd()")
+    public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        return strategyHandler.insert(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutEdit()")
-    public Object editArroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        return asyncChange(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,MESSAGE_THREAD_LOCAL_VAR.get()) ;
-    }
-
-    private Object asyncChange(ProceedingJoinPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {
-        //先通过植入点的方法执行后查看是否会发生错误，以免误操作
-        Object proceed = point.proceed();
-        if (serviceMessage != null) {
-            serviceMessage.setMethod(null);
-            this.amqpTemplate.convertAndSend(queue, serviceMessage);
-            this.amqpTemplate.convertAndSend(exchange, "", serviceMessage);
-        }
-        return proceed ;
+    public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        return strategyHandler.update(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
 }

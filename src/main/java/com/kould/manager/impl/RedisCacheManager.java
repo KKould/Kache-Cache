@@ -2,15 +2,12 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.kould.config.DaoProperties;
-import com.kould.config.DataFieldProperties;
 import com.kould.config.KacheAutoConfig;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.utils.KryoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -19,8 +16,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
-@Component
-public class RedisCacheManager implements RemoteCacheManager {
+/*
+使用Redis进行缓存存取的CacheManager
+通过Lua脚本进行主要的存取实现
+实现散列化的形式进行缓存存储
+ */
+public class RedisCacheManager extends RemoteCacheManager {
 
     private static final RedisCacheManager INSTANCE = new RedisCacheManager() ;
 
@@ -28,12 +29,6 @@ public class RedisCacheManager implements RemoteCacheManager {
 
     @Autowired
     private JedisPool jedisPool;
-
-    @Autowired
-    private DaoProperties daoProperties ;
-
-    @Autowired
-    private DataFieldProperties dataFieldProperties ;
 
     private static final String METHOD_GET_ID = "getId" ;
 
@@ -184,7 +179,7 @@ public class RedisCacheManager implements RemoteCacheManager {
                 recordsField.set(result,records);
             } else {
                 lua.append("redis.call('setex',KEYS[1],")
-                        .append(daoProperties.getCacheTime())
+                        .append(strategyHandler.getCacheTime())
                         .append(",ARGV[1]);");
                 String id = null ;
                 if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
@@ -210,7 +205,7 @@ public class RedisCacheManager implements RemoteCacheManager {
                     lua.append("redis.call('del',KEYS[2]);");
                     lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
                     lua.append("return redis.call('expire',KEYS[2],")
-                            .append(daoProperties.getCacheTime())
+                            .append(strategyHandler.getCacheTime())
                             .append(");");
                 }
             }
@@ -250,7 +245,7 @@ public class RedisCacheManager implements RemoteCacheManager {
                         .append("]) ")
                         .append("else ")
                         //若存在则延长命中缓存的存活时间
-                        .append("redis.call('expire',KEYS[").append(count2Echo).append("],").append(daoProperties.getCacheTime()).append("); ")
+                        .append("redis.call('expire',KEYS[").append(count2Echo).append("],").append(strategyHandler.getCacheTime()).append("); ")
                         .append("end ") ;
             }
             echo.append("return result ") ;
@@ -264,7 +259,7 @@ public class RedisCacheManager implements RemoteCacheManager {
                     lua.append("redis.call('setex',KEYS[")
                             .append(count)
                             .append("],")
-                            .append(daoProperties.getCacheTime())
+                            .append(strategyHandler.getCacheTime())
                             .append(",ARGV[")
                             .append(count - delCount)
                             .append("]);");
@@ -292,7 +287,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             lua.append("return redis.call('expire',KEYS[")
                     .append(records.size() + 1)
                     .append("],")
-                    .append(daoProperties.getCacheTime())
+                    .append(strategyHandler.getCacheTime())
                     .append(");");
             values.addAll(keys);
             if (page != null) {
@@ -305,7 +300,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             lua.append("redis.call('del',KEYS[1]) ");
             lua.append("redis.call('lpush',KEYS[1],ARGV[1]) ") ;
             lua.append("return redis.call('expire',KEYS[1],")
-                    .append(daoProperties.getCacheTime())
+                    .append(strategyHandler.getCacheTime())
                     .append(");");
             keys.add(key) ;
             values.add(KryoUtil.writeToString(page)) ;
@@ -422,7 +417,7 @@ public class RedisCacheManager implements RemoteCacheManager {
                 Object target = KryoUtil.readFromString(s) ;
                 BeanUtil.copyProperties(result, target,
                         true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-                jedis.setex(id, daoProperties.getCacheTime(), KryoUtil.writeToString(target));
+                jedis.setex(id, strategyHandler.getCacheTime(), KryoUtil.writeToString(target));
                 return (T) target;
             } else {
                 return null ;

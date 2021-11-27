@@ -1,30 +1,15 @@
 package com.kould.manager.impl;
-
-import com.kould.config.InterprocessCacheProperties;
 import com.kould.manager.IBaseCacheManager;
-import com.kould.manager.InterprocessCacheManager;
-import com.kould.manager.RemoteCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.ExecutionException;
 
-public class BaseCacheManagerImpl implements IBaseCacheManager {
+public class BaseCacheManagerImpl extends IBaseCacheManager {
 
     private static final BaseCacheManagerImpl INSTANCE = new BaseCacheManagerImpl() ;
 
     private static final Logger log = LoggerFactory.getLogger(IBaseCacheManager.class) ;
-
-    @Autowired
-    private InterprocessCacheManager interprocessCacheManager ;
-
-    @Autowired
-    private RemoteCacheManager remoteCacheManager ;
-
-    @Autowired
-    private InterprocessCacheProperties interprocessCacheProperties ;
-
 
     private BaseCacheManagerImpl() {} ;
 
