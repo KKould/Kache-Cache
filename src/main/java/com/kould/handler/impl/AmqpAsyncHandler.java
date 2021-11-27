@@ -70,7 +70,7 @@ public class AmqpAsyncHandler extends StrategyHandler implements AsyncHandler {
 
     @Override
     public Object insert(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
-        return asyncChange(point,QUEUE_DELETE_CACHE,INTERPROCESS_DELETE_EXCHANGE_NAME,serviceMessage) ;
+        return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
     }
 
     @Override
