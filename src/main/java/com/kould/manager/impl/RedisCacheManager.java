@@ -191,18 +191,18 @@ public class RedisCacheManager implements RemoteCacheManager {
                     //若为ID方法，则直接将key赋值给id
                     id = key ;
                 } else if (result != null) {
-                    //
+                    //获取条件方法单结果
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
                     id = methodGetId.invoke(result).toString() ;
                 } else {
                     id = getNullTag() ;
                 }
-                if (id.equals(getNullTag()) || result == null) {
+                if (result == null) {
                     values.add(getNullValue()) ;
                 } else {
                     values.add(KryoUtil.writeToString(result)) ;
                 }
-                keys.add(id) ;
+                keys.add(KacheAutoConfig.CACHE_PREFIX + id) ;
                 //判断此时是否为id获取的单结果或者为条件查询获取的单结果
                 if (!key.equals(id)) {
                     keys.add(key) ;
@@ -239,7 +239,7 @@ public class RedisCacheManager implements RemoteCacheManager {
             while(iterator.hasNext()) {
                 count2Echo ++ ;
                 Object next = iterator.next();
-                keys.add(methodGetId.invoke(next).toString());
+                keys.add(KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(next).toString());
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")

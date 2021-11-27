@@ -1,7 +1,5 @@
 package com.kould.aspect;
 
-import com.kould.annotation.CacheBeanClass;
-import com.kould.annotation.CacheChange;
 import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
@@ -94,7 +92,8 @@ public class DaoCacheAop {
                 REENTRANT_LOCK_MAP.put(lockKey,methodLock) ;
             }
             try {
-                key = getKey(point, serviceMessage, beanClass, methodStatus);
+                //key拼接命名空间前缀
+                key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass, methodStatus);
                 readLock = kacheLock.readLock(poType) ;
                 //获取缓存
                 result = baseCacheManager.get(key, beanClass);

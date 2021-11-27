@@ -38,17 +38,19 @@ public class KacheAutoConfig {
 
     public static final String POINTCUT_EXPRESSION_SERVICE = "execution(* *.*.service..*.*(..))";
 
-    public static final String SERVICE_LIKE = "KACHE_SERVICE_LIKE" ;
+    public static final String SERVICE_LIKE = "METHOD_SERVICE_LIKE" ;
 
-    public static final String SERVICE_IS = "KACHE_SERVICE_IS" ;
+    public static final String SERVICE_IS = "METHOD_SERVICE_IS" ;
 
-    public static final String SERVICE_BY_ID = "KACHE_SERVICE_BY_ID" ;
+    public static final String SERVICE_BY_ID = "METHOD_SERVICE_BY_ID" ;
 
-    public static final String SERVICE_NO_ARG = "KACHE_SERVICE_NOARG" ;
+    public static final String SERVICE_NO_ARG = "METHOD_SERVICE_NO_ARG" ;
 
-    public static final String SERVICE_ALL = "KACHE_SERVICE_ALL" ;
+    public static final String SERVICE_ALL = "METHOD_SERVICE_ALL" ;
 
     public static final String NO_ID_TAG = "NO_ID_" ;
+
+    public static final String CACHE_PREFIX = "KACHE:" ;
 
     @Bean
     @ConditionalOnMissingBean
