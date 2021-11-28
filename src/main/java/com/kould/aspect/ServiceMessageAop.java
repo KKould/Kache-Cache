@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 @Order(15)
 
 //Service数据采集AOP
-public class ServiceMessageAop {
+public final class ServiceMessageAop {
 
     @Autowired
     private KacheAutoConfig kacheAutoConfig;

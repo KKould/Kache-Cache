@@ -1,7 +1,6 @@
 package com.kould.handler.impl;
 
 import com.kould.handler.AsyncHandler;
-import com.kould.handler.StrategyHandler;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.slf4j.Logger;
@@ -20,7 +19,7 @@ import org.springframework.context.annotation.Bean;
 删除/更新策略为：先通过数据库删除，随后发送消息异步进行缓存删除
 缓存存活时间为：基本时间+随机区间时间
  */
-public class AmqpAsyncHandler extends StrategyHandler implements AsyncHandler {
+public class AmqpAsyncHandler extends AsyncHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AmqpAsyncHandler.class) ;
 

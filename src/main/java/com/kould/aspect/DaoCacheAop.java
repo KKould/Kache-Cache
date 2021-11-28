@@ -4,6 +4,7 @@ import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.handler.StrategyHandler;
+import com.kould.listener.ListenerHandler;
 import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.message.KacheMessage;
@@ -29,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Aspect
 @Component
 @Order(15)
-public class DaoCacheAop {
+public final class DaoCacheAop {
 
     private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
@@ -84,11 +85,8 @@ public class DaoCacheAop {
                     .getAnnotation(ServiceCache.class).status().getValue();
             String lockKey = poType + serviceMessage.getMethodName() ;
             //该PO领域的初始化
-            ReentrantLock methodLock = REENTRANT_LOCK_MAP.get(lockKey);
-            if (methodLock == null) {
-                methodLock = new ReentrantLock();
-                REENTRANT_LOCK_MAP.put(lockKey,methodLock) ;
-            }
+            //通过lambda表达式延迟加载锁并获取
+            ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
             try {
                 //key拼接命名空间前缀
                 key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass, methodStatus);
@@ -102,11 +100,18 @@ public class DaoCacheAop {
                     methodLock.lock();
                     result = baseCacheManager.get(key, beanClass);
                     if (result == null) {
+                        //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
+                        ListenerHandler.notHit(key,serviceMessage);
                         writeLock = kacheLock.writeLock(poType);
                         result = point.proceed();
                         baseCacheManager.put(key, result, beanClass);
                         kacheLock.unLock(writeLock);
+                    } else {
+                        //将同步后获取缓存的线程的命中也计数
+                        ListenerHandler.hit(key,serviceMessage);
                     }
+                } else {
+                    ListenerHandler.hit(key,serviceMessage);
                 }
                 //空值替换
                 if (baseCacheManager.getNullValue().equals(result)) {
