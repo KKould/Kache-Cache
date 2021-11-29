@@ -14,18 +14,6 @@
 
 **支持分布式**
 
-#### 架构 | framework
-
-Java标准MVC架构如图：
-
-![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
-
-Kache架构：
-
-![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
-
-**（溢出方框外表示允许拓展）**
-
 #### 优势 | advantage
 
 - **降低响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现
@@ -224,7 +212,17 @@ Web端点：/kache/details：下为例子，参数为：
 }
 ```
 
+#### 架构 | framework
 
+Java标准MVC架构如图：
+
+![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
+
+Kache架构：
+
+![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
+
+**（溢出方框外表示允许拓展）**
 
 #### 原理 | principle
 
