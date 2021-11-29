@@ -11,5 +11,5 @@ import java.lang.annotation.*;
 public @interface ServiceCache {
 
     //默认使用全删策略
-    Status status() default Status.ALL;
+    Status status() default Status.NO_ARG;
 }

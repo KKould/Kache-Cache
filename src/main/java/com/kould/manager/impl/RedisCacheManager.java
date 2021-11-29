@@ -188,16 +188,16 @@ public class RedisCacheManager extends RemoteCacheManager {
                 } else if (result != null) {
                     //获取条件方法单结果
                     Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
-                    id = methodGetId.invoke(result).toString() ;
+                    id = KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(result).toString() ;
                 } else {
-                    id = getNullTag() ;
+                    id = KacheAutoConfig.CACHE_PREFIX + getNullTag() ;
                 }
                 if (result == null) {
                     values.add(getNullValue()) ;
                 } else {
                     values.add(KryoUtil.writeToString(result)) ;
                 }
-                keys.add(KacheAutoConfig.CACHE_PREFIX + id) ;
+                keys.add(id) ;
                 //判断此时是否为id获取的单结果或者为条件查询获取的单结果
                 if (!key.equals(id)) {
                     keys.add(key) ;
@@ -339,8 +339,12 @@ public class RedisCacheManager extends RemoteCacheManager {
                 List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
                 List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
-                    //判断返回结果是否为Collection或其子类
-                    if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
+
+                    //判断结果是否为单个POBean
+                    if (list.size() == 1) {
+                        return KryoUtil.readFromString(list.get(0));
+                        //判断返回结果是否为Collection或其子类
+                    } else if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
                         List<Object> result = new ArrayList<>();
                         //跳过第一位数据的填充
                         for (int i = 1; i < list.size(); i++) {
@@ -349,9 +353,6 @@ public class RedisCacheManager extends RemoteCacheManager {
                         //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                         Collections.reverse(records);
                         return result;
-                        //判断结果是否为单个POBean
-                    } else if (list.size() == 1) {
-                        return KryoUtil.readFromString(list.get(0));
                     } else {
                         //此时为包装类的情况
                         Object result = KryoUtil.readFromString(list.get(0));

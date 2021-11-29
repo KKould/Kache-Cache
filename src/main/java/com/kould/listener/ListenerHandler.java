@@ -24,25 +24,19 @@ public final class ListenerHandler {
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void hit(String key,KacheMessage msg) {
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
-                    cacheListener.hit(key, msg) ;
-                }
+    public static void hit(String key, KacheMessage msg) {
+        executorService.execute(() -> {
+            for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
+                cacheListener.hit(key, msg) ;
             }
         });
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void notHit(String key,KacheMessage msg) {
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
-                    cacheListener.notHit(key, msg); ;
-                }
+    public static void notHit(String key, KacheMessage msg) {
+        executorService.execute(() -> {
+            for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
+                cacheListener.notHit(key, msg);
             }
         });
     }
@@ -60,5 +54,6 @@ public final class ListenerHandler {
 
     public static void register(CacheListener cacheListener) {
         CACHE_LISTENER_LIST.add(cacheListener) ;
+        System.out.println(CACHE_LISTENER_LIST);
     }
 }

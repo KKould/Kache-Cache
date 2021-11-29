@@ -6,6 +6,8 @@ import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.AmqpAsyncHandler;
 import com.kould.json.GsonUtil;
 import com.kould.json.JsonUtil;
+import com.kould.listener.CacheListener;
+import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
 import com.kould.logic.CacheLogic;
@@ -102,5 +104,10 @@ public class KacheAutoConfig {
     @ConditionalOnMissingBean
     public CacheLogic cacheLogic() {
         return BaseCacheLogic.getInstance();
+    }
+
+    @Bean
+    public CacheListener cacheListener() {
+        return StatisticsListener.newInstance() ;
     }
 }

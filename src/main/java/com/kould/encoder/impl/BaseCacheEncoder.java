@@ -6,6 +6,8 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.utils.KryoUtil;
 
 import java.lang.reflect.Type;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,9 +36,10 @@ public class BaseCacheEncoder extends CacheEncoder {
     @Override
     public String argsEncode(Object... args) {
         //此处可以返回空但是空会导致同一Service方法内调用同一Dao方法且Dao方法的参数不一致时会导致缓存误差
-        //需要寻找循环依赖序列化方案-》Mybaits-Plus的Wrapper
+        //需要寻找循环依赖序列化方案-》Mybatis-Plus的Wrapper
         //new:使用Kryo序列化
-        return KryoUtil.writeToString(args) ;
+        byte[] shas = getDigest("SHA").digest(KryoUtil.writeToByteArray(args));
+        return new String(shas) ;
     }
 
     @Override
@@ -66,5 +69,16 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private Object readResolve() {
         return INSTANCE;
+    }
+
+    /*
+    取自org.springframework.data.redis.core.script.DigestUtils
+     */
+    private static MessageDigest getDigest(String algorithm) {
+        try {
+            return MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException var2) {
+            throw new IllegalStateException("Could not find MessageDigest with algorithm \"" + algorithm + "\"", var2);
+        }
     }
 }

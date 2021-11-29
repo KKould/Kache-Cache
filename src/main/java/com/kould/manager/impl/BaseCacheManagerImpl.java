@@ -9,9 +9,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
 
     private static final BaseCacheManagerImpl INSTANCE = new BaseCacheManagerImpl() ;
 
-    private static final Logger log = LoggerFactory.getLogger(IBaseCacheManager.class) ;
-
-    private BaseCacheManagerImpl() {} ;
+    private BaseCacheManagerImpl() {}
 
     public static BaseCacheManagerImpl getInstance() {
         return INSTANCE ;
@@ -40,11 +38,9 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
 
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
-            log.info("----------------------------------\r\n ++++ KaChe ++++ 从进程间缓存获取数据中");
             result =interprocessCacheManager.get(key, beanClass) ;
         }
         if (result == null) {
-            log.info("----------------------------------\r\n ++++ KaChe ++++ 从Redis缓存获取数据中");
             result = remoteCacheManager.get(key, beanClass) ;
             if (interprocessCacheProperties.isEnable()) {
                 if (result != null) {

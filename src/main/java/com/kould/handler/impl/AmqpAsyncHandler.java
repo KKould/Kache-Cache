@@ -7,12 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 
 /*
 基于AMQP协议的异步处理器
@@ -45,17 +43,6 @@ public class AmqpAsyncHandler extends AsyncHandler {
     public static final String INTERPROCESS_UPDATE_EXCHANGE_NAME = "KACHE_INTERPROCESS_UPDATE_EXCHANGE" ;
 
     public static final String INTERPROCESS_INSERT_EXCHANGE_NAME = "KACHE_INTERPROCESS_INSERT_EXCHANGE" ;
-
-    @Bean
-    public Queue asyncDeleteCacheQueue() {
-        return new Queue(QUEUE_DELETE_CACHE);
-    }
-
-    @Bean
-    public Queue asyncUpdateCacheQueue() {
-        return new Queue(QUEUE_UPDATE_CACHE);
-    }
-
 
     @Override
     public Object delete(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {

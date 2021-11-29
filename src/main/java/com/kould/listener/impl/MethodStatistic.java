@@ -7,21 +7,43 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class MethodStatistic implements Serializable {
 
-    private static final Set<String> KEY_SET = new CopyOnWriteArraySet<>();
+    private Set<String> key_set = new CopyOnWriteArraySet<>();
 
-    private static final LongAdder HIT = new LongAdder();
+    private LongAdder hit = new LongAdder();
 
-    private static final LongAdder NOT_HIT = new LongAdder();
-
-    public MethodStatistic(String key) {
-        KEY_SET.add(key) ;
-    }
+    private LongAdder notHit = new LongAdder();
 
     public void hitIncrement() {
-        HIT.increment(); ;
+        hit.increment();
     }
 
     public void noHitIncrement() {
-        NOT_HIT.increment(); ;
+        notHit.increment();
     }
+
+    public Set<String> getKey_set() {
+        return key_set;
+    }
+
+    public void setKey_set(Set<String> key_set) {
+        this.key_set = key_set;
+    }
+
+    public LongAdder getHit() {
+        return hit;
+    }
+
+    public void setHit(LongAdder hit) {
+        this.hit = hit;
+    }
+
+    public LongAdder getNotHit() {
+        return notHit;
+    }
+
+    public void setNotHit(LongAdder notHit) {
+        this.notHit = notHit;
+    }
+
+
 }

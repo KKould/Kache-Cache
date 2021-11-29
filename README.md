@@ -34,6 +34,8 @@ Kache架构：
 - **领域并行**：操作进行领域区分化，不同的PO类类型是并行处理，避免冗余的同步处理而提高性能
 - **高速读取**：类似HashMap，时间复杂度为O(1)，读取脚本皆为静态，仅写入脚本为动态拼接
 - **使用简易**：仅通过在Service层和Dao层写入对应注解即可开始工作
+- **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，默认提供StatisticsListener统计监听器
+- **内置Web信息端点**：允许通过Resutful路径动态观测缓存命中情况，详情在示例中
 
 #### 使用 | Use
 
@@ -166,6 +168,53 @@ kache:
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
+
+Web端点：/kache/details：下为例子，参数为：
+
+- 命中次数：hit
+- 未命中次数：notHit
+- 命中service方法：
+  - 命中的key名：
+
+```json
+{
+    "com.kould.listener.impl.StatisticsListener": {
+        "statisticMap": {
+            "com.kould.service.impl.FounderTeamServiceImpl.findAll": {
+                "key_set": [
+                    "KACHE:NO_ID_selectPage�޺��,\tbXQC\\<�&��uw�METHOD_SERVICE_ALLfindAllcom.kould.po.FounderTeamPO{\"index\":1,\"step\":10}"
+                ],
+                "hit": 1889,
+                "notHit": 3
+            },
+            "com.kould.service.impl.FounderTeamServiceImpl.findByFieldIs": {
+                "key_set": ["KACHE:NO_ID_selectPage��BK)���7i�4�3���UMETHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"kkkk\",\"index\":1,\"step\":10}","KACHE:NO_ID_selectPage�p�Aq��xlA���W9>�=METHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"ioiio\",\"index\":1,\"step\":10}"
+                ],
+                "hit": 3780,
+                "notHit": 4
+            },
+            "com.kould.service.impl.FounderTeamServiceImpl.findByFieldLike": {
+                "key_set": ["KACHE:NO_ID_selectPageH��?�(��\\�����ҤR�METHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kk\",\"index\":1,\"step\":9}"
+                ],
+                "hit": 3778,
+                "notHit": 5
+            },
+            "com.kould.service.impl.FounderTeamServiceImpl.findById": {
+                "key_set": [
+                    "KACHE:1427152189974417410",
+                    "KACHE:1456098452778844161"
+                ],
+                "hit": 3786,
+                "notHit": 2
+            }
+        },
+        "sumHit": 13233,
+        "sumNotHit": 14
+    }
+}
+```
+
+
 
 #### 原理 | principle
 

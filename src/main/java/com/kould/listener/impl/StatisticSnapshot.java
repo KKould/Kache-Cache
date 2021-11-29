@@ -4,15 +4,42 @@ import java.io.Serializable;
 import java.util.Map;
 
 public class StatisticSnapshot implements Serializable {
-    public StatisticSnapshot(Map<String, MethodStatistic> STATISTIC_MAP, long SUM_HIT, long SUM_NOT_HIT) {
-        this.STATISTIC_MAP = STATISTIC_MAP;
-        this.SUM_HIT = SUM_HIT;
-        this.SUM_NOT_HIT = SUM_NOT_HIT;
+    public StatisticSnapshot() {
     }
 
-    private final Map<String, MethodStatistic> STATISTIC_MAP;
+    public StatisticSnapshot(Map<String, MethodStatistic> statisticMap, long sumHit, long sumNotHit) {
+        this.statisticMap = statisticMap;
+        this.sumHit = sumHit;
+        this.sumNotHit = sumNotHit;
+    }
 
-    private final long SUM_HIT;
+    private Map<String, MethodStatistic> statisticMap;
 
-    private final long SUM_NOT_HIT;
+    private long sumHit;
+
+    private long sumNotHit;
+
+    public Map<String, MethodStatistic> getStatisticMap() {
+        return statisticMap;
+    }
+
+    public void setStatisticMap(Map<String, MethodStatistic> statisticMap) {
+        this.statisticMap = statisticMap;
+    }
+
+    public long getSumHit() {
+        return sumHit;
+    }
+
+    public void setSumHit(long sumHit) {
+        this.sumHit = sumHit;
+    }
+
+    public long getSumNotHit() {
+        return sumNotHit;
+    }
+
+    public void setSumNotHit(long sumNotHit) {
+        this.sumNotHit = sumNotHit;
+    }
 }
