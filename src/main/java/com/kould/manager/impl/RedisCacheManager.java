@@ -142,7 +142,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 if (result == null) {
                     values.add(getNullValue()) ;
                 } else {
-                    values.add(result) ;
+                    values.add(KryoUtil.writeToString(result)) ;
                 }
                 keys.add(id) ;
                 //判断此时是否为id获取的单结果或者为条件查询获取的单结果
