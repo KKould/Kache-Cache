@@ -26,7 +26,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
+    public <T> T put(String key, T result, Class<?> beanClass) throws Exception {
         if (interprocessCacheProperties.isEnable()) {
             interprocessCacheManager.put(key, result, beanClass) ;
         }
@@ -34,7 +34,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object get(String key, Class<?> beanClass) throws ExecutionException {
+    public Object get(String key, Class<?> beanClass) throws Exception {
 
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {

@@ -18,10 +18,14 @@ import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
+import com.kould.serializer.KryoSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @EnableConfigurationProperties({
@@ -109,5 +113,15 @@ public class KacheAutoConfig {
     @Bean
     public CacheListener cacheListener() {
         return StatisticsListener.newInstance() ;
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> getRedisTemplate(RedisConnectionFactory connectionFactory)
+    {
+        RedisTemplate<String, Object> rt = new RedisTemplate<>();
+        rt.setConnectionFactory(connectionFactory);
+        rt.setKeySerializer(new StringRedisSerializer());
+        rt.setValueSerializer(new KryoSerializer());
+        return rt;
     }
 }
