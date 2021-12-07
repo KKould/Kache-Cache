@@ -2,19 +2,17 @@
 
 #### 概要 | synopsis
 
-基于注解 增强型 轻量级 缓存框架
+**仅通过注解即可完成缓存操作！**
 
-#### 架构 | framework
+**基于注解 增强型 轻量级 缓存框架**
 
-Java标准MVC架构如图：
+**缓存与业务逻辑分离**
 
-![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
+**开箱即用**
 
-Kache架构：
+**极致优化响应速度与网络IO**
 
-![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
-
-**（溢出方框外表示允许拓展）**
+**支持分布式**
 
 #### 优势 | advantage
 
@@ -214,7 +212,17 @@ Web端点：/kache/details：下为例子，参数为：
 }
 ```
 
+#### 架构 | framework
 
+Java标准MVC架构如图：
+
+![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
+
+Kache架构：
+
+![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
+
+**（溢出方框外表示允许拓展）**
 
 #### 原理 | principle
 
