@@ -27,7 +27,7 @@
     <redisson.ver>3.16.1</redisson.ver>
     <spring.ver>2.1.18.RELEASE</spring.ver>
     <apche.commons.ver>2.7.0</apche.commons.ver>
-    <lettuce.ver>5.1.8.RELEASE</lettuce.ver>
+    <jedis.ver>3.1.0</jedis.ver>
     <hutool.ver>4.1.14</hutool.ver>
     <google.gson.ver>2.8.6</google.gson.ver>
     <google.guava.ver>22.0</google.guava.ver>
@@ -72,9 +72,9 @@
       <version>${apche.commons.ver}</version>
     </dependency>
     <dependency>
-      <groupId>io.lettuce</groupId>
-      <artifactId>lettuce-core</artifactId>
-      <version>${lettuce.ver}</version>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>${jedis.ver}</version>
     </dependency>
     <dependency>
       <groupId>cn.hutool</groupId>

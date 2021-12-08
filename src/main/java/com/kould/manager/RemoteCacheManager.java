@@ -18,9 +18,9 @@ public abstract class RemoteCacheManager {
     public abstract String getNullValue() ;
 
     public abstract boolean hasKey(String key) ;
-    public abstract <T> T put(String key, T result) throws Exception;
+    public abstract <T> T put(String key, T result) ;
     public abstract List<String> keys(String pattern) ;
     public abstract Long del(String... keys) ;
     public abstract <T> T updateById(String id,T result) ;
-    public abstract Object get(String key, Class<?> beanClass) throws NoSuchFieldException, IllegalAccessException;
+    public abstract Object get(String key, Class<?> beanClass) ;
 }
