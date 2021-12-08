@@ -27,7 +27,8 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties({
         DaoProperties.class,
         DataFieldProperties.class,
-        InterprocessCacheProperties.class
+        InterprocessCacheProperties.class,
+        ListenerProperties.class
 })
 public class KacheAutoConfig {
 

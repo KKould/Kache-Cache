@@ -2,6 +2,7 @@ package com.kould.aspect;
 
 import com.kould.annotation.ServiceCache;
 import com.kould.config.KacheAutoConfig;
+import com.kould.config.ListenerProperties;
 import com.kould.encoder.CacheEncoder;
 import com.kould.handler.StrategyHandler;
 import com.kould.listener.ListenerHandler;
@@ -51,6 +52,9 @@ public final class DaoCacheAop {
     @Autowired
     private StrategyHandler strategyHandler;
 
+    @Autowired
+    private ListenerProperties listenerProperties ;
+
     private static final String METHOD_GET_ID = "getId" ;
 
     @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND)
@@ -77,6 +81,7 @@ public final class DaoCacheAop {
         if (serviceMessage != null) {
             Lock readLock = null ;
             Lock writeLock = null;
+            boolean listenerEnable = listenerProperties.isEnable();
             String key = null ;
             Class<?> beanClass = serviceMessage.getCacheClazz();
             //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
@@ -101,17 +106,17 @@ public final class DaoCacheAop {
                     result = baseCacheManager.get(key, beanClass);
                     if (result == null) {
                         //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
-                        ListenerHandler.notHit(key,serviceMessage);
+                        ListenerHandler.notHit(key,serviceMessage,listenerEnable);
                         writeLock = kacheLock.writeLock(poType);
                         result = point.proceed();
                         baseCacheManager.put(key, result, beanClass);
                         kacheLock.unLock(writeLock);
                     } else {
                         //将同步后获取缓存的线程的命中也计数
-                        ListenerHandler.hit(key,serviceMessage);
+                        ListenerHandler.hit(key,serviceMessage,listenerEnable);
                     }
                 } else {
-                    ListenerHandler.hit(key,serviceMessage);
+                    ListenerHandler.hit(key,serviceMessage,listenerEnable);
                 }
                 //空值替换
                 if (baseCacheManager.getNullValue().equals(result)) {

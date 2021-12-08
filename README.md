@@ -153,6 +153,8 @@ kache:
    data-field:
        name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
        declare-type: java.util.List //上述属性名所对应的属性声明类型（全称），默认为java.util.List
+   listener:
+   	   enable: true //监听器是否开启，默认为true
 ```
 
 **规范说明：**
@@ -167,12 +169,14 @@ kache:
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
 
-Web端点：/kache/details：下为例子，参数为：
+**Web端点**：/kache/details：下为例子，参数为：
 
-- 命中次数：hit
-- 未命中次数：notHit
+- 总命中次数：sumHit
+- 总未命中次数：sumNotHit
 - 命中service方法：
   - 命中的key名：
+    - 命中次数：hit
+    - 未命中次数：notHit
 
 ```json
 {
@@ -180,34 +184,38 @@ Web端点：/kache/details：下为例子，参数为：
         "statisticMap": {
             "com.kould.service.impl.FounderTeamServiceImpl.findAll": {
                 "key_set": [
-                    "KACHE:NO_ID_selectPage�޺��,\tbXQC\\<�&��uw�METHOD_SERVICE_ALLfindAllcom.kould.po.FounderTeamPO{\"index\":1,\"step\":10}"
+                    "KACHE:NO_ID_selectPage0ea7fc92813cc86a3570METHOD_SERVICE_ALLfindAllcom.kould.po.FounderTeamPO{\"index\":1,\"step\":10}"
                 ],
-                "hit": 1889,
+                "hit": 750,
                 "notHit": 3
             },
             "com.kould.service.impl.FounderTeamServiceImpl.findByFieldIs": {
-                "key_set": ["KACHE:NO_ID_selectPage��BK)���7i�4�3���UMETHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"kkkk\",\"index\":1,\"step\":10}","KACHE:NO_ID_selectPage�p�Aq��xlA���W9>�=METHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"ioiio\",\"index\":1,\"step\":10}"
+                "key_set": [
+                    "KACHE:NO_ID_selectPage8746ff41c783cfbce378METHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"kkkk\",\"index\":1,\"step\":10}",
+                    "KACHE:NO_ID_selectPage489b9df70a656e82d82dMETHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"ioiio\",\"index\":1,\"step\":10}"
                 ],
-                "hit": 3780,
+                "hit": 1502,
                 "notHit": 4
             },
             "com.kould.service.impl.FounderTeamServiceImpl.findByFieldLike": {
-                "key_set": ["KACHE:NO_ID_selectPageH��?�(��\\�����ҤR�METHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kk\",\"index\":1,\"step\":9}"
+                "key_set": [
+                    "KACHE:NO_ID_selectPage5d787be5fe9d7ff0f7cbMETHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kk\",\"index\":1,\"step\":10}",
+                    "KACHE:NO_ID_selectPage851dcf517cefd476483fMETHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kjl\",\"index\":1,\"step\":10}"
                 ],
-                "hit": 3778,
-                "notHit": 5
+                "hit": 1500,
+                "notHit": 4
             },
             "com.kould.service.impl.FounderTeamServiceImpl.findById": {
                 "key_set": [
                     "KACHE:1427152189974417410",
                     "KACHE:1456098452778844161"
                 ],
-                "hit": 3786,
+                "hit": 1511,
                 "notHit": 2
             }
         },
-        "sumHit": 13233,
-        "sumNotHit": 14
+        "sumHit": 5263,
+        "sumNotHit": 13
     }
 }
 ```
