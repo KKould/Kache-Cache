@@ -29,7 +29,6 @@
     <apche.commons.ver>2.7.0</apche.commons.ver>
     <jedis.ver>3.1.0</jedis.ver>
     <hutool.ver>4.1.14</hutool.ver>
-    <google.gson.ver>2.8.6</google.gson.ver>
     <google.guava.ver>22.0</google.guava.ver>
     <kryo-shaded.ver>4.0.0</kryo-shaded.ver>
     <kryo-serializers.ver>0.41</kryo-serializers.ver>
@@ -80,11 +79,6 @@
       <groupId>cn.hutool</groupId>
       <artifactId>hutool-all</artifactId>
       <version>${hutool.ver}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>${google.gson.ver}</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
