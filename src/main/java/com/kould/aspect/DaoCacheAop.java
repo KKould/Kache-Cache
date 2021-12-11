@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -80,7 +79,7 @@ public final class DaoCacheAop {
             Lock readLock = null ;
             Lock writeLock = null;
             boolean listenerEnable = listenerProperties.isEnable();
-            String key = null ;
+            String key = null;
             Class<?> beanClass = serviceMessage.getCacheClazz();
             //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
             String poType = beanClass.getTypeName();
@@ -147,7 +146,8 @@ public final class DaoCacheAop {
         //  若否则经过编码后进行获取
         if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
             //使Key为ID
-            return (String) point.getArgs()[0];
+            Object[] args = point.getArgs();
+            return args[0].toString();
         }else {
             //信息摘要收集
             //获取DAO方法签名
