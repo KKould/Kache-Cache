@@ -4,8 +4,6 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.AmqpAsyncHandler;
-import com.kould.json.GsonUtil;
-import com.kould.json.JsonUtil;
 import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
@@ -45,15 +43,9 @@ public class KacheAutoConfig {
 
     public static final String POINTCUT_EXPRESSION_SERVICE = "execution(* *.*.service..*.*(..))";
 
-    public static final String SERVICE_LIKE = "METHOD_SERVICE_LIKE" ;
-
-    public static final String SERVICE_IS = "METHOD_SERVICE_IS" ;
-
     public static final String SERVICE_BY_ID = "METHOD_SERVICE_BY_ID" ;
 
-    public static final String SERVICE_NO_ARG = "METHOD_SERVICE_NO_ARG" ;
-
-    public static final String SERVICE_ALL = "METHOD_SERVICE_ALL" ;
+    public static final String SERVICE_BY_FIELD = "METHOD_SERVICE_BY_FIELD" ;
 
     public static final String NO_ID_TAG = "NO_ID_" ;
 
@@ -81,12 +73,6 @@ public class KacheAutoConfig {
     @ConditionalOnMissingBean
     public InterprocessCacheManager interprocessCacheManager() {
         return GuavaCacheManager.getInstance() ;
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public JsonUtil jsonUtil() {
-        return GsonUtil.getInstance() ;
     }
 
     @Bean

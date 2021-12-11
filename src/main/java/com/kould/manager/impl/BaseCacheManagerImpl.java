@@ -16,12 +16,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public String getNullTag() {
-        return remoteCacheManager.getNullTag() ;
-    }
-
-    @Override
-    public String getNullValue() {
+    public Object getNullValue() {
         return remoteCacheManager.getNullValue() ;
     }
 
@@ -51,10 +46,6 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         return result ;
     }
 
-    @Override
-    public boolean hasKey(String key) {
-        return remoteCacheManager.hasKey(key);
-    }
 
     private Object readResolve() {
         return INSTANCE;

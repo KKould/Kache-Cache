@@ -55,8 +55,6 @@ public final class DaoCacheAop {
     @Autowired
     private ListenerProperties listenerProperties ;
 
-    private static final String METHOD_GET_ID = "getId" ;
-
     @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND)
     public void pointCutFind() {
     }
@@ -143,16 +141,13 @@ public final class DaoCacheAop {
 
 
     //Key获取方法
-    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass, String methodStatus)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass, String methodStatus) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
         if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
-            //获取Service的DTO的ID
-            Method methodGetId = serviceMessage.getArg().getClass().getMethod(METHOD_GET_ID, null);
             //使Key为ID
-            return methodGetId.invoke(serviceMessage.getArg()).toString() ;
+            return (String) point.getArgs()[0];
         }else {
             //信息摘要收集
             //获取DAO方法签名
@@ -161,7 +156,7 @@ public final class DaoCacheAop {
             String daoMethodName = daoMethod.getName() ;
             String daoArgs = cacheEncoder.argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
-            return cacheEncoder.encode(serviceMessage.getArg(), methodStatus
+            return cacheEncoder.encode(methodStatus
                     ,serviceMessage.getMethodName() , beanClass.getName(), daoMethodName, daoArgs) ;
         }
     }

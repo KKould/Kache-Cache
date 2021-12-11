@@ -1,15 +1,11 @@
 package com.kould.encoder.impl;
 
-import com.google.gson.reflect.TypeToken;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
 import com.kould.utils.KryoUtil;
 
-import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class BaseCacheEncoder extends CacheEncoder {
 
@@ -24,14 +20,13 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String encode(Object dto,String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
+    public String encode(String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
         return KacheAutoConfig.NO_ID_TAG +
                 daoMethodName +
                 daoArgs +
                 serviceMethodStatus +
                 serviceMethod +
-                daoEnityName +
-                jsonUtil.obj2Str(dto) ;
+                daoEnityName ;
 
     }
 
@@ -42,26 +37,6 @@ public class BaseCacheEncoder extends CacheEncoder {
         //new:使用Kryo序列化
         byte[] shas = getDigest("SHA").digest(KryoUtil.writeToByteArray(args));
         return encodeByte(shas).toString();
-    }
-
-    @Override
-    public <T> T decode(String key, Type type, String poName) {
-        StringBuilder sb = new StringBuilder(key) ;
-        int i = sb.indexOf(poName + "{");
-        if ( i > 0) {
-            sb.delete(0,i) ;
-            int j = sb.indexOf("{");
-            if (j > 0){
-                sb.delete(0,j) ;
-                return jsonUtil.str2Obj(sb.toString(), type) ;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Map<String, String> section2Field(Object key, String method) {
-        return jsonUtil.str2Obj(jsonUtil.obj2Str(key), new TypeToken<HashMap<String, String>>() {}.getType());
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.kould.logic.impl;
 
-import com.google.gson.reflect.TypeToken;
 import com.kould.config.KacheAutoConfig;
 import com.kould.lock.KacheLock;
 import com.kould.logic.CacheLogic;
@@ -12,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
@@ -80,39 +77,15 @@ public class BaseCacheLogic extends CacheLogic {
         String lockKey = resultClass.getSimpleName();
         Lock writeLock = null;
         try {
-            writeLock = kacheLock.writeLock(lockKey);
             log.info("\r\nKache:+++++++++Redis缓存删除检测....");
-            Map<String, String> args = cacheEncoder.section2Field(msg.getArg(), msg.getMethodName());
             List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
             allKey.parallelStream().forEach(key -> {
-                Map<String, String> keySection = cacheEncoder.decode(key, new TypeToken<HashMap<String, String>>() {}.getType(), resultClass.getName());
-                if (key.contains(KacheAutoConfig.SERVICE_NO_ARG) || key.contains(KacheAutoConfig.SERVICE_ALL)) {
+                if (key.contains(KacheAutoConfig.SERVICE_BY_FIELD)) {
                     delKeys.add(key);
-                } else if (key.contains(KacheAutoConfig.SERVICE_LIKE)) {
-                    keySection.keySet().parallelStream().forEach(field -> {
-                        String KeyField = keySection.get(field);
-                        String argField = args.get(field);
-                        if (KeyField != null && argField != null) {
-                            if (argField.contains(KeyField)) {
-                                delKeys.add(key);
-                                return;
-                            }
-                        }
-                    });
-                } else {
-                    keySection.keySet().parallelStream().forEach(field -> {
-                        String KeyField = keySection.get(field);
-                        String argField = args.get(field);
-                        if (KeyField != null && argField != null) {
-                            if (argField.equals(KeyField)) {
-                                delKeys.add(key);
-                                return;
-                            }
-                        }
-                    });
                 }
             });
+            writeLock = kacheLock.writeLock(lockKey);
             if (delKeys.size() > 0) {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }

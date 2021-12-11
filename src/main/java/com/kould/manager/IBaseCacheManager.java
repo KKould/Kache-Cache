@@ -15,9 +15,7 @@ public abstract class IBaseCacheManager {
     @Autowired
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
-    public abstract String getNullTag() ;
-    public abstract String getNullValue() ;
+    public abstract Object getNullValue() ;
     public abstract <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException;
     public abstract Object get(String key, Class<?> beanClass) throws ExecutionException;
-    public abstract boolean hasKey(String key) ;
 }

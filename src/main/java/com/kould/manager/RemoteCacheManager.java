@@ -15,9 +15,8 @@ public abstract class RemoteCacheManager {
     protected DataFieldProperties dataFieldProperties ;
 
     public abstract String getNullTag() ;
-    public abstract String getNullValue() ;
+    public abstract Object getNullValue() ;
 
-    public abstract boolean hasKey(String key) ;
     public abstract <T> T put(String key, T result) ;
     public abstract List<String> keys(String pattern) ;
     public abstract Long del(String... keys) ;
