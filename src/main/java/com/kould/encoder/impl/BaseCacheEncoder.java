@@ -3,7 +3,13 @@ package com.kould.encoder.impl;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
+import com.kould.manager.RemoteCacheManager;
 import com.kould.utils.KryoUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.annotation.PostConstruct;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class BaseCacheEncoder extends CacheEncoder {
 
@@ -16,6 +22,10 @@ public class BaseCacheEncoder extends CacheEncoder {
     public static BaseCacheEncoder getInstance() {
         return INSTANCE ;
     }
+
+    @Autowired
+    private RemoteCacheManager remoteCacheManager ;
+
 
     @Override
     public String encode(String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
@@ -33,8 +43,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         //此处可以返回空但是空会导致同一Service方法内调用同一Dao方法且Dao方法的参数不一致时会导致缓存误差
         //需要寻找循环依赖序列化方案-》Mybatis-Plus的Wrapper
         //new:使用Kryo序列化
-        byte[] bytes = KryoUtil.writeToByteArray(args);
-        return encodeByte(DigestUtil.md5(bytes));
+        return KryoUtil.writeToString(args);
     }
 
     @Override
@@ -44,14 +53,5 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private Object readResolve() {
         return INSTANCE;
-    }
-
-    private static String encodeByte(byte[] data) {
-        StringBuilder stringBuilder = new StringBuilder() ;
-        for (byte datum : data) {
-            //二进制编码转换
-            stringBuilder.append(BYTE_CHARS[15 & datum]);
-        }
-        return stringBuilder.toString();
     }
 }

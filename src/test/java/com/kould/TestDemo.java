@@ -1,6 +1,6 @@
 package com.kould;
 
-import com.kould.json.GsonUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import com.kould.utils.KryoUtil;
 
 public class TestDemo {
@@ -74,20 +74,6 @@ public class TestDemo {
                 return o;
             }
         }).test();
-
-        Object test2 = new TimeTestAgent(new TimeTest() {
-            @Override
-            public Object test() {
-                GsonUtil gsonUtil = GsonUtil.getInstance();
-                for (int i = 0; i < 10000; i++) {
-                    String s = gsonUtil.obj2Str(test);
-                    Object o = gsonUtil.str2Obj(s,Test.class);
-                }
-                String s = gsonUtil.obj2Str(test);
-                Object o = gsonUtil.str2Obj(s,Test.class);
-                return o;
-            }
-        }).test();
         Object test3 = new TimeTestAgent(new TimeTest() {
             @Override
             public Object test() {
@@ -100,20 +86,12 @@ public class TestDemo {
                 return o;
             }
         }).test();
-        Object test4 = new TimeTestAgent(new TimeTest() {
-            @Override
-            public Object test() {
-                for (int i = 0; i < 10000; i++) {
-                    byte[] bytes = KryoUtil.writeToByteArray(test);
-                    Object o = KryoUtil.readFromByteArray(bytes.toString().getBytes());
-                }
-                byte[] bytes = KryoUtil.writeToByteArray(test);
-                Object o = KryoUtil.readFromByteArray(bytes.toString().getBytes());
-                return o;
-            }
-        }).test();
         System.out.println(test);
         System.out.println(test1);
-        System.out.println(test2);
+
+        String s = KryoUtil.writeToString(test);
+        byte[] bytes = DigestUtil.md5(KryoUtil.writeToByteArray(test));
+        System.out.println(s);
+        System.out.println(test.hashCode());
     }
 }
