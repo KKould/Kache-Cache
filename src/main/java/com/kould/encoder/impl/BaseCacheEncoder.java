@@ -1,19 +1,10 @@
 package com.kould.encoder.impl;
 
-import cn.hutool.crypto.digest.DigestUtil;
 import com.kould.config.KacheAutoConfig;
 import com.kould.encoder.CacheEncoder;
-import com.kould.manager.RemoteCacheManager;
 import com.kould.utils.KryoUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.annotation.PostConstruct;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class BaseCacheEncoder extends CacheEncoder {
-
-    private static final char[] BYTE_CHARS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     private static final BaseCacheEncoder INSTANCE = new BaseCacheEncoder() ;
 
@@ -22,9 +13,6 @@ public class BaseCacheEncoder extends CacheEncoder {
     public static BaseCacheEncoder getInstance() {
         return INSTANCE ;
     }
-
-    @Autowired
-    private RemoteCacheManager remoteCacheManager ;
 
 
     @Override
