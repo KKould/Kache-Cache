@@ -1,6 +1,6 @@
 # Kache - 将持久化操作推向极致
 
-<p align="center">
+<p align="left">
   <a href="https://search.maven.org/artifact/io.gitee.kould/Kache/1.6.0/jar">
     <img alt="maven" src="https://img.shields.io/maven-central/v/io.gitee.kould/Kache.svg?style=flat-square">
   </a><a href="https://www.apache.org/licenses/LICENSE-2.0">
