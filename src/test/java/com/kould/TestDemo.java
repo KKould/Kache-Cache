@@ -1,9 +1,12 @@
 package com.kould;
 
-import cn.hutool.crypto.digest.DigestUtil;
 import com.kould.utils.KryoUtil;
 
 public class TestDemo {
+
+    private static final int P = 16777619;
+
+    private static final int HASH = (int)2166136261L ;
 
     static class Test {
         public Test(String wqe, int qwe, long qwee, String qwed, String wqe1, int qwe1, long qwee1, String qwed1, String wqe2, int qwe2, long qwee2, String qwed2, String wqe3, int qwe3, long qwee3, String qwed3, String wqe13, int qwe13, long qwee13, String qwed13, String wqe23, int qwe23, long qwee23, String qwed23) {
@@ -61,6 +64,7 @@ public class TestDemo {
 
     public static void main(String[] args) {
         Test test = new Test("wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw");
+        Test test12 = new Test("wqeqe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw","wqeqwe",123,1230L,"qioweyhoqwehoqwheoiqw");
 
         Object test1 = new TimeTestAgent(new TimeTest() {
             @Override
@@ -86,12 +90,54 @@ public class TestDemo {
                 return o;
             }
         }).test();
+        Object testHash1 = new TimeTestAgent(new TimeTest() {
+            @Override
+            public Object test() {
+                for (int i = 0; i < 10000; i++) {
+                    byte[] bytes = KryoUtil.writeToByteArray(test12);
+                    getHash2(bytes) ;
+                }
+                byte[] bytes = KryoUtil.writeToByteArray(test12);
+                return getHash2(bytes);
+            }
+        }).test();
+        Object testHash2 = new TimeTestAgent(new TimeTest() {
+            @Override
+            public Object test() {
+                for (int i = 0; i < 10000; i++) {
+                    byte[] bytes = KryoUtil.writeToByteArray(test);
+                    getHash2(bytes) ;
+                }
+                byte[] bytes = KryoUtil.writeToByteArray(test);
+                return getHash2(bytes);
+            }
+        }).test();
         System.out.println(test);
         System.out.println(test1);
+        System.out.println(test3);
+        System.out.println(testHash1);
+        System.out.println(testHash2);
 
-        String s = KryoUtil.writeToString(test);
-        byte[] bytes = DigestUtil.md5(KryoUtil.writeToByteArray(test));
-        System.out.println(s);
-        System.out.println(test.hashCode());
+
+    }
+
+    private static int getHash1(byte[] bytes){
+        int hash = HASH;
+        for (byte datum : bytes) {
+            hash = (hash ^ datum * P);
+        }
+        // 如果算出来的值为负数则取其绝对值
+        if (hash < 0) {
+            hash = Math.abs(hash);
+        }
+        return hash;
+    }
+
+    private static long getHash2(byte[] bytes){
+        long hash = 0;
+        for (byte datum : bytes) {
+            hash = 31 * hash + datum ;
+        }
+        return hash;
     }
 }

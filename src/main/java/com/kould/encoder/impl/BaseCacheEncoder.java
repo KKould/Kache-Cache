@@ -14,9 +14,9 @@ public class BaseCacheEncoder extends CacheEncoder {
         return INSTANCE ;
     }
 
-    private static final int P = 16777619;
+    private static final long P = 31L;
 
-    private static final int HASH = (int)2166136261L ;
+    private static final long HASH = 0L ;
 
 
     @Override
@@ -47,20 +47,11 @@ public class BaseCacheEncoder extends CacheEncoder {
         return INSTANCE;
     }
 
-    private static int getHash(byte[] bytes){
-        int hash = HASH;
+    private static long getHash(byte[] bytes){
+        long hash = HASH;
         for (byte datum : bytes) {
-            hash = (hash ^ datum * P);
-            hash += hash << 13;
-            hash ^= hash >> 7;
-            hash += hash << 3;
-            hash ^= hash >> 17;
-            hash += hash << 5;
+            hash = P * hash + datum ;
         }
-        // 如果算出来的值为负数则取其绝对值
-        if (hash < 0) {
-            hash = Math.abs(hash);
-        }
-        return hash;
+        return hash + bytes.length;
     }
 }
