@@ -1,10 +1,16 @@
-# Kache缓存代理框架
+# Kache - 将持久化操作推向极致
+
+<p align="left">
+  <a href="https://search.maven.org/artifact/io.gitee.kould/Kache/1.6.0/jar">
+    <img alt="maven" src="https://img.shields.io/maven-central/v/io.gitee.kould/Kache.svg?style=flat-square">
+  </a><a href="https://www.apache.org/licenses/LICENSE-2.0">
+    <img alt="code style" src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg?style=flat-square">
+  </a>
+</p>
 
 #### 概要 | synopsis
 
-**仅通过注解即可完成缓存操作！**
-
-**基于注解 增强型 轻量级 缓存框架**
+**仅通过注解即可完成缓存操作**
 
 **缓存与业务逻辑分离**
 
@@ -16,38 +22,47 @@
 
 #### 优势 | advantage
 
-- **降低响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现
-- **负载分发**：分布式架构时，不区分业务模块而完成对远程缓存的删除更新操作，并不集中于同一业务的同一主机上处理，降低单机峰值负载
-- **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可避免重复的数据库检索的IO消耗
+- **0.3毫秒响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现；在默认的配置下，id搜索平均为0.2毫秒，条件搜索平均为0.4毫秒的单次响应速度
+
+- **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可避免重复的数据库检索的冗余消耗
+
 - **缓存控制基于Service**：通过Service方法进行缓存结果的控制，使不同Service能对同一持久化操作进行不同的缓存控制
+
 - **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用Lua脚本完成了一次网络io完成上述操作，且提高缓存命中率（详情见原理）
-- **支持主流AMQP协议的消息队列**：基于Spring-Amqp框架开发，仅提供对应协议的消息队列即可使用
-- **基于注解**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；仅需在对应的方法及类上添加注释而不修改本身的业务代码，不会影响本身的业务流程稳定性
+
+- **基于注解**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；
+
+  仅需在对应的方法及类上添加注释而不修改本身的业务代码，不会影响本身的业务流程稳定性
+
 - **并发同步读，并行异步写**：使用同步读写锁与消息队列，将读操作以：进程间缓存 -> 远程缓存 -> 数据库的次序同步读取，尽可能的减少对网络io的消耗并提高响应时间，而增删改操作则将三个数据源同时操作，并不会因为阻塞而较大地影响写入响应时间（默认提供该策略）
+
 - **支持策略拓展**：针对不同应用场景，可以自己通过策略实现延时双删、Write Back、Read/Write Through等策略（默认提供异步基于AMQP的异步处理（即上条）与同步的数据库优先处理）
-- **高拓展性**：提供进程间缓存、Json序列化、远程缓存与缓存调度器的接口，允许使用者通过实现对应的接口兼容所需的NoSQL、进程间缓存、Json序列化框架以更好的兼容使用者的项目
-- **对Redis、Guava、Gson项目支持程度高**：默认提供基于Redis、Guava、Gson的实现，允许提供对应接口实现进行替换
+
+- **高拓展性**：提供进程间缓存、远程缓存与缓存调度器的接口，允许使用者通过实现对应的抽象类兼容所需的NoSQL、进程间缓存框架以更好的兼容使用者的项目
+
 - **IO消耗低**：积极使用Lua脚本进行IO优化并用GuavaCache辅助缓存，最大化减少网络IO带来的性能影响
-- **可读性强**：代码量大约为1700行（含注释和空换行）
-- **领域并行**：操作进行领域区分化，不同的PO类类型是并行处理，避免冗余的同步处理而提高性能
-- **高速读取**：类似HashMap，时间复杂度为O(1)，读取脚本皆为静态，仅写入脚本为动态拼接
-- **使用简易**：仅通过在Service层和Dao层写入对应注解即可开始工作
+
+- **可读性强**：代码量大约为2400行（含注释和空换行）
+
+- **高速读取**：通过类似HashMap的编码形式进行对应数据的去除，读取Lua脚本为静态常量，仅写入Lua脚本为动态拼接
+
 - **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，默认提供StatisticsListener统计监听器
+
 - **内置Web信息端点**：允许通过Resutful路径动态观测缓存命中情况，详情在示例中
 
 #### 使用 | Use
 
 使用流程：
 
-**1、Kache依赖引入（最新版为1.3.2）**
+**1、Kache依赖引入**
 
 **2、Service层写入注解**
 
-**3、Dao层写入注解**
+**3、Dao层写入注解(MyBatis/MyBatis-Plus的默认Mapper可跳过)**
 
-**4、根据策略提供所需组件（默认异步删除需要提供对应RabbitMQ实例）**
+**4、根据策略提供所需组件（默认为异步删除需要提供对应RabbitMQ实例）**
 
-**5、配置文件参考**
+**5、配置文件参考(默认，可跳过)**
 
 ##### 示例：
 
@@ -64,13 +79,10 @@
 
 然后在**需要缓存**的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
 
-其对应的@ServiceCache的status默认为Status.ALL：
+其对应的@ServiceCache的status默认为Status.BY_Field：
 
-- status = Status.IS : 准确条件查询方法
-- status = Status.LIKE : 模糊条件查询方法
-- status = Status.NO_ARG : 无参查询方法
+- status = Status.BY_Field : 业务查询方法
 - status = Status.BY_ID : ID查询方法
-- status = Status.ALL : 无条件查询方法
 
 ```java
 //该标签用于声明Service对应持久类
@@ -79,33 +91,25 @@
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
     //该标签用于声明该方法需要缓存
-    @ServiceCache(status = Status.NO_ARG)
+    @ServiceCache(status = Status.BY_Field)
     @Override
-    public BaseConfigIndexDTO findAllConfigIndexOrderByCreateTime() {
-        QueryWrapper<ConfigIndexPO> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("create_time") ;
-        wrapper.last("limit 1") ;
-        BaseConfigIndexDTO dto = new BaseConfigIndexDTO() ;
-        TransUtil.po2dto(mapper.selectOne(wrapper), dto) ;
-        return dto;
+    public List<BlogPO> findByBlogTitle(BlogBaseDTO blogBaseDTO) {
+        Page<BlogPO> page = new Page<>(blogBaseDTO.getIndex(), blogBaseDTO.getStepSize()) ;
+        QueryWrapper<BlogPO> wrapper = new QueryWrapper<>() ;
+        wrapper.eq("title",blogBaseDTO.getTitle()) ;
+        return this.blogMapper.selectPage(page, wrapper).getRecords() ;
     }
     
     //该标签用于声明此方法会导致缓存状态改变
     @CacheChange
     @Override
-    public <T extends BaseDTO> int edit(T t) {
-        ConfigIndexPO configIndexPO = new ConfigIndexPO();
-        TransUtil.dto2po(t,configIndexPO) ;
-        ConfigIndexPO result = this.mapper.selectById(configIndexPO.getId());
-        BeanUtil.copyProperties(configIndexPO, result,
-                true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-        result.setId(null) ;
-        return this.mapper.insert(result);
+    public int edit(BlogPO blogPO) {
+        return this.blogMapper.updateById(blogPO);
     }
 }
 ```
 
-**3**.其对应的**Dao层**的Dao方法添加注释：
+**3**.其对应的**Dao层**的Dao方法添加注释**（MyBatis-Plus的默认Mapper不需要加入注解，默认使用方法名进行处理）**：
 
 - 搜索方法：@DaoSelect
 - 插入方法：@DaoInsert
@@ -159,17 +163,16 @@ kache:
 
 **规范说明：**
 
-- 基于DTO概念，Service方法允许**无参**和**仅有一个参数**、即所需参数需要使用一个**DTO**进行封装
-- Dao方法**不允许**针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
+- **Dao方法**不允许针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
+- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全**
 - 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
-- 内部默认提供分布式读写锁**RessionLock实现**，用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全**
-- **若Dao类或接口无法加入注解则可以修改Dao的包名为mapper且方法名格式**(默认MyBatis-plus格式)：
+- 若Dao类或接口无法加入注解则可以修改Dao的包名为**mapper**且方法名格式(默认MyBatis-plus格式)：
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
 
-**Web端点**：/kache/details：下为例子，参数为：
+**Web端点**：**/kache/details**：下为例子，参数为：
 
 - 总命中次数：sumHit
 - 总未命中次数：sumNotHit
@@ -182,25 +185,10 @@ kache:
 {
     "com.kould.listener.impl.StatisticsListener": {
         "statisticMap": {
-            "com.kould.service.impl.FounderTeamServiceImpl.findAll": {
-                "key_set": [
-                    "KACHE:NO_ID_selectPage0ea7fc92813cc86a3570METHOD_SERVICE_ALLfindAllcom.kould.po.FounderTeamPO{\"index\":1,\"step\":10}"
-                ],
-                "hit": 750,
-                "notHit": 3
-            },
-            "com.kould.service.impl.FounderTeamServiceImpl.findByFieldIs": {
-                "key_set": [
-                    "KACHE:NO_ID_selectPage8746ff41c783cfbce378METHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"kkkk\",\"index\":1,\"step\":10}",
-                    "KACHE:NO_ID_selectPage489b9df70a656e82d82dMETHOD_SERVICE_ISfindByFieldIscom.kould.po.FounderTeamPO{\"name\":\"ioiio\",\"index\":1,\"step\":10}"
-                ],
-                "hit": 1502,
-                "notHit": 4
-            },
             "com.kould.service.impl.FounderTeamServiceImpl.findByFieldLike": {
                 "key_set": [
-                    "KACHE:NO_ID_selectPage5d787be5fe9d7ff0f7cbMETHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kk\",\"index\":1,\"step\":10}",
-                    "KACHE:NO_ID_selectPage851dcf517cefd476483fMETHOD_SERVICE_LIKEfindByFieldLikecom.kould.po.FounderTeamPO{\"name\":\"kjl\",\"index\":1,\"step\":10}"
+                    "KACHE:NO_ID_selectPage7242089337059975123METHOD_SERVICE_BY_FIELDfindByFieldLikecom.kould.po.FounderTeamPO",
+                    "KACHE:NO_ID_selectPage4902055363543254289METHOD_SERVICE_BY_FIELDfindByFieldLikecom.kould.po.FounderTeamPO"
                 ],
                 "hit": 1500,
                 "notHit": 4
@@ -214,8 +202,8 @@ kache:
                 "notHit": 2
             }
         },
-        "sumHit": 5263,
-        "sumNotHit": 13
+        "sumHit": 3011,
+        "sumNotHit": 6
     }
 }
 ```
