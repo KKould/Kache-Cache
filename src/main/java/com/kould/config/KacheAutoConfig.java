@@ -46,13 +46,19 @@ public class KacheAutoConfig {
 
     public static final String POINTCUT_EXPRESSION_DAO_EDIT = "execution(* *.*.mapper..*.update*(..))";
 
-    public static final String POINTCUT_EXPRESSION_SERVICE = "execution(* *.*.service..*.*(..))";
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.select*(..))";
+
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.insert*(..))";
+
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.delete*(..))";
+
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
 
     public static final String SERVICE_BY_ID = "METHOD_SERVICE_BY_ID" ;
 
     public static final String SERVICE_BY_FIELD = "METHOD_SERVICE_BY_FIELD" ;
 
-    public static final String NO_ID_TAG = "NO_ID_" ;
+    public static final String NO_ID_TAG = "NO_ID-" ;
 
     public static final String CACHE_PREFIX = "KACHE:" ;
 

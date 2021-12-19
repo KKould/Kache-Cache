@@ -167,7 +167,7 @@ kache:
 - 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全**
 - 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
 - 若Dao类或接口无法加入注解则可以修改Dao的包名为**mapper**且方法名格式(默认MyBatis-plus格式)：
-- src/resource/other目录下有一份原MyBatis-Plus的BaseMapper复制文件（加入注解后）的文件可供直接使用
+- src/resource/other目录下有一份原MyBatis-Plus的BaseMapper复制文件（加入注解后）的文件可供参考
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
   - 更新方法：update*(..)

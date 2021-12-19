@@ -2,10 +2,10 @@ package com.kould.listener;
 
 import com.kould.message.KacheMessage;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,7 +17,7 @@ public final class ListenerHandler {
 
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    private static final List<CacheListener> CACHE_LISTENER_LIST  = new ArrayList<>() ;
+    private static final List<CacheListener> CACHE_LISTENER_LIST  = new CopyOnWriteArrayList<>() ;
 
     private ListenerHandler() {
 

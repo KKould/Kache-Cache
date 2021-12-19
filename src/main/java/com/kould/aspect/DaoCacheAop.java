@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -38,6 +37,7 @@ public final class DaoCacheAop {
 
     protected static final ThreadLocal<KacheMessage> MESSAGE_THREAD_LOCAL_VAR = new ThreadLocal<>();
 
+    private static final String AND = "||" ;
     @Autowired
     private KacheLock kacheLock ;
 
@@ -53,19 +53,33 @@ public final class DaoCacheAop {
     @Autowired
     private ListenerProperties listenerProperties ;
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND)
+    @Pointcut(
+            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND
+                    + AND
+                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND
+    )
     public void pointCutFind() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_ADD)
+    @Pointcut(
+            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_ADD
+                    + AND
+                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD
+    )
     public void pointCutAdd() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_REMOVE)
+    @Pointcut(
+            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_REMOVE
+                    + AND
+                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE)
     public void pointCutRemove() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_EDIT)
+    @Pointcut(
+            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_EDIT
+                    + AND
+                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT)
     public void pointCutEdit() {
     }
 
@@ -162,16 +176,19 @@ public final class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
         return strategyHandler.delete(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
     @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
         return strategyHandler.insert(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
+        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
         return strategyHandler.update(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
