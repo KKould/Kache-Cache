@@ -16,10 +16,13 @@ import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
+import org.springframework.amqp.core.Queue;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import static com.kould.handler.impl.AmqpAsyncHandler.*;
 
 @Configuration
 @EnableConfigurationProperties({
@@ -96,5 +99,20 @@ public class KacheAutoConfig {
     @Bean
     public CacheListener cacheListener() {
         return StatisticsListener.newInstance() ;
+    }
+
+    @Bean
+    public Queue asyncDeleteCacheQueue() {
+        return new Queue(QUEUE_DELETE_CACHE);
+    }
+
+    @Bean
+    public Queue asyncUpdateCacheQueue() {
+        return new Queue(QUEUE_UPDATE_CACHE);
+    }
+
+    @Bean
+    public Queue asyncInsertCacheQueue() {
+        return new Queue(QUEUE_INSERT_CACHE);
     }
 }
