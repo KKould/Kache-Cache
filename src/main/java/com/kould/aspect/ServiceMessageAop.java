@@ -6,10 +6,10 @@ import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 
@@ -20,6 +20,10 @@ public final class ServiceMessageAop {
 
     @Autowired
     private KacheAutoConfig kacheAutoConfig;
+
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_SERVICE_MYBATIS_PLUS_ISERVICE)
+    public void pointCutIService() {
+    }
 
     /**
      * 为DAO层缓存AOP提供以下数据
@@ -33,7 +37,7 @@ public final class ServiceMessageAop {
      * @throws Throwable
      */
     @Around("@annotation(com.kould.annotation.ServiceCache) || @annotation(com.kould.annotation.CacheChange)")
-    public Object findArroundInvoke(ProceedingJoinPoint point) throws Throwable {
+    public Object AroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> targetClass = point.getTarget().getClass() ;
         Method method = null ;
         MethodSignature methodSignature = (MethodSignature) point.getSignature();

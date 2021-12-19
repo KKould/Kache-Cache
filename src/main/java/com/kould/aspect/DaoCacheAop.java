@@ -53,33 +53,19 @@ public final class DaoCacheAop {
     @Autowired
     private ListenerProperties listenerProperties ;
 
-    @Pointcut(
-            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_FIND
-                    + AND
-                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND
-    )
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND)
     public void pointCutFind() {
     }
 
-    @Pointcut(
-            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_ADD
-                    + AND
-                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD
-    )
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD)
     public void pointCutAdd() {
     }
 
-    @Pointcut(
-            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_REMOVE
-                    + AND
-                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE)
     public void pointCutRemove() {
     }
 
-    @Pointcut(
-            KacheAutoConfig.POINTCUT_EXPRESSION_DAO_EDIT
-                    + AND
-                    + KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT)
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT)
     public void pointCutEdit() {
     }
 
