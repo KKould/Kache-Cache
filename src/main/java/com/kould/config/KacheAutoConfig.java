@@ -1,5 +1,7 @@
 package com.kould.config;
 
+import com.kould.aspect.DaoCacheAop;
+import com.kould.aspect.ServiceMessageAop;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.handler.StrategyHandler;
@@ -114,5 +116,15 @@ public class KacheAutoConfig {
     @Bean
     public Queue asyncInsertCacheQueue() {
         return new Queue(QUEUE_INSERT_CACHE);
+    }
+
+    @Bean
+    public ServiceMessageAop serviceMessageAop() {
+        return new ServiceMessageAop() ;
+    }
+
+    @Bean
+    public DaoCacheAop daoCacheAop() {
+        return new DaoCacheAop() ;
     }
 }

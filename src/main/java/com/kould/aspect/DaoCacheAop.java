@@ -28,7 +28,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 @Aspect
-@Component
 @Order(15)
 public final class DaoCacheAop {
 

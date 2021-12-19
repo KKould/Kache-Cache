@@ -14,9 +14,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 @Aspect
-@Component
 @Order(15)
-
 //Service数据采集AOP
 public final class ServiceMessageAop {
 
@@ -42,7 +40,7 @@ public final class ServiceMessageAop {
         method = methodSignature.getMethod() ;
         CacheBeanClass cacheBeanClass = targetClass.getAnnotation(CacheBeanClass.class);
         if (cacheBeanClass == null) {
-            throw new Exception("未标注CacheBeanClass") ;
+            throw new Exception("未标注CacheBeanClass或注解失效") ;
         }
         Class<?> cacheClass = cacheBeanClass.clazz();
         //传递Service方法签名
