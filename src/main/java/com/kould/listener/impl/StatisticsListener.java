@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class StatisticsListener extends CacheListener {
 
+    private StatisticsListener() {}
 
     public static StatisticsListener newInstance() {
         StatisticsListener statisticsListener = new StatisticsListener();
