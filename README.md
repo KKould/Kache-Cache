@@ -24,9 +24,11 @@
 
 - **0.3毫秒响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现；在默认的配置下，id搜索平均为0.2毫秒，条件搜索平均为0.4毫秒的单次响应速度
 
+- **极低侵入**：若使用MyBatis-Plus的IService和BaseServiceImpl，**则仅需要一个注解即可完成缓存操作**
+
 - **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可避免重复的数据库检索的冗余消耗
 
-- **缓存控制基于Service**：通过Service方法进行缓存结果的控制，使不同Service能对同一持久化操作进行不同的缓存控制
+- **溅射查询**：条件查询会被解析为多个元数据，提高缓存命中率
 
 - **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用Lua脚本完成了一次网络io完成上述操作，且提高缓存命中率（详情见原理）
 
@@ -58,7 +60,7 @@
 
 **2、Service层写入注解**
 
-**3、Dao层写入注解(MyBatis/MyBatis-Plus的默认Mapper可跳过)**
+**3、Dao层写入注解**
 
 **4、根据策略提供所需组件（默认为异步删除需要提供对应RabbitMQ实例）**
 
@@ -77,21 +79,17 @@
 
 **2**.**Service**的实现类或接口上添加@CachebeanClass(clazz = PO.class)注解并填入对应的PO类类型
 
-然后在**需要缓存**的**读取**方法上添加@ServiceCache注解、**增删改**方法上添加@CacheChange注解
+**若使用IService类似的模板ServiceImpl，则在对应的ServiceImpl上添加@CacheImpl即可**
 
-其对应的@ServiceCache的status默认为Status.BY_Field：
-
-- status = Status.BY_Field : 业务查询方法
-- status = Status.BY_ID : ID查询方法
+**（若使用MyBatis-Plus的默认ServiceImpl可跳过）**
 
 ```java
 //该标签用于声明Service对应持久类
-@CacheBeanClass(clazz = ConfigIndexPO.class)
+@CacheBean(clazz = ConfigIndexPO.class)
 @Service
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
     //该标签用于声明该方法需要缓存
-    @ServiceCache(status = Status.BY_Field)
     @Override
     public List<BlogPO> findByBlogTitle(BlogBaseDTO blogBaseDTO) {
         Page<BlogPO> page = new Page<>(blogBaseDTO.getIndex(), blogBaseDTO.getStepSize()) ;
@@ -101,7 +99,6 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
     }
     
     //该标签用于声明此方法会导致缓存状态改变
-    @CacheChange
     @Override
     public int edit(BlogPO blogPO) {
         return this.blogMapper.updateById(blogPO);
@@ -109,12 +106,17 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
 }
 ```
 
-**3**.其对应的**Dao层**的Dao方法添加注释**（MyBatis-Plus的默认Mapper不需要加入注解，默认使用方法名进行处理）**：
+**3**.其对应的**Dao层**的Dao方法添加注释：
 
 - 搜索方法：@DaoSelect
+- 其对应的@DaoSelect的status默认为Status.BY_Field：
+
+  - status = Status.BY_FIELD : 业务查询方法
+  - status = Status.BY_ID : ID查询方法
 - 插入方法：@DaoInsert
 - 更新方法：@DaoUpdate
 - 删除方法：@DaoDelete
+- **(若使用MyBatis-Plus的默认Mapper可跳过)**
 
 ```java
 public interface BaseMapper<T> {
@@ -131,11 +133,11 @@ public interface BaseMapper<T> {
     int update(@Param("et") T entity, @Param("ew") Wrapper<T> updateWrapper);
 
     //该标签声明该方法为持久类数据查找
-    @DaoSelect
+    @DaoSelect(Status.BY_ID)
     T selectById(Serializable id);
 
     //该标签声明该方法为持久类数据查找
-    @DaoSelect
+    @DaoSelect(Status.BY_FIELD)
     IPage<T> selectPage(IPage<T> page, @Param("ew") Wrapper<T> queryWrapper);
 }
 ```
@@ -164,9 +166,7 @@ kache:
 **其他说明：**
 
 - **Dao方法**不允许针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
-- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全**
-- 若Service类或接口无法添加添加注解则可以修改该含有Service类的包名为**service**
-- 若Dao类或接口无法加入注解则可以修改Dao的包名为**mapper**且方法名格式(默认MyBatis-plus格式)：
+- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全
 - src/resource/other目录下有一份原MyBatis-Plus的BaseMapper复制文件（加入注解后）的文件可供参考
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
