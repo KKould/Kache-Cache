@@ -64,7 +64,7 @@
 
 **4、根据策略提供所需组件（默认为异步删除需要提供对应RabbitMQ实例）**
 
-**5、配置文件参考(默认，可跳过)**
+**5、配置文件参考(详情见说明，可跳过)**
 
 ##### 示例：
 
@@ -89,7 +89,6 @@
 @Service
 public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
 
-    //该标签用于声明该方法需要缓存
     @Override
     public List<BlogPO> findByBlogTitle(BlogBaseDTO blogBaseDTO) {
         Page<BlogPO> page = new Page<>(blogBaseDTO.getIndex(), blogBaseDTO.getStepSize()) ;
@@ -98,7 +97,6 @@ public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, Confi
         return this.blogMapper.selectPage(page, wrapper).getRecords() ;
     }
     
-    //该标签用于声明此方法会导致缓存状态改变
     @Override
     public int edit(BlogPO blogPO) {
         return this.blogMapper.updateById(blogPO);
@@ -166,8 +164,8 @@ kache:
 **其他说明：**
 
 - **Dao方法**不允许针对某一业务而**业务化**、否则与Service并无本质上的区分可能导致缓存出现问题
-- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的**缓存读写安全
-- src/resource/other目录下有一份原MyBatis-Plus的BaseMapper复制文件（加入注解后）的文件可供参考
+- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的缓存读写安全
+- src/resource/other目录下有一份JedisPool配置的文件可供参考
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
