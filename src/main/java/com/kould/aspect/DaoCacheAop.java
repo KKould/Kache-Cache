@@ -80,19 +80,15 @@ public final class DaoCacheAop {
             boolean listenerEnable = listenerProperties.isEnable();
             String key = null;
             Class<?> beanClass = serviceMessage.getCacheClazz();
-            MethodSignature methodSignature = (MethodSignature) point.getSignature();
-            Method daoMethod = methodSignature.getMethod();
             //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
             String poType = beanClass.getTypeName();
-            String methodStatus = daoMethod
-                    .getAnnotation(DaoSelect.class).status().getValue();
             String lockKey = poType + serviceMessage.getMethodName() ;
             //该PO领域的初始化
             //通过lambda表达式延迟加载锁并获取
             ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
             try {
                 //key拼接命名空间前缀
-                key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass, methodStatus, daoMethod);
+                key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass);
                 readLock = kacheLock.readLock(poType) ;
                 //获取缓存
                 result = baseCacheManager.get(key, beanClass);
@@ -141,23 +137,38 @@ public final class DaoCacheAop {
 
 
     //Key获取方法
-    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass, String methodStatus,Method method) {
+    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
         //信息摘要收集
         //获取DAO方法签名
-        String daoMethodName = method.getName() ;
-        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID) || daoMethodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
+        MethodSignature methodSignature = (MethodSignature) point.getSignature();
+        Method daoMethod = methodSignature.getMethod();
+        String daoMethodName = daoMethod.getName() ;
+        if (daoMethodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
+            return setKey2Id(point);
+        }
+        DaoSelect daoSelect = daoMethod.getAnnotation(DaoSelect.class);
+        String methodStatus = null ;
+        if (daoSelect != null) {
+            methodStatus = daoSelect.status().getValue();
+        }
+        if (methodStatus != null && methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
             //使Key为ID
-            Object[] args = point.getArgs();
-            return args[0].toString();
+            return setKey2Id(point);
         }else {
             String daoArgs = cacheEncoder.argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
             return cacheEncoder.encode(methodStatus
                     ,serviceMessage.getMethodName() , beanClass.getName(), daoMethodName, daoArgs) ;
         }
+    }
+
+    private String setKey2Id(ProceedingJoinPoint point) {
+        //使Key为ID
+        Object[] args = point.getArgs();
+        return args[0].toString();
     }
 
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
