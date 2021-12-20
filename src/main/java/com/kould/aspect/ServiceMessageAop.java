@@ -1,6 +1,6 @@
 package com.kould.aspect;
 
-import com.kould.annotation.CacheBeanClass;
+import com.kould.annotation.CacheBean;
 import com.kould.config.KacheAutoConfig;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -36,17 +36,17 @@ public final class ServiceMessageAop {
      * @return point执行，不影响其正常工作
      * @throws Throwable
      */
-    @Around("@within(com.kould.annotation.CacheBeanClass) || @within(com.kould.annotation.CacheImpl) || pointCutIService()")
+    @Around("@within(com.kould.annotation.CacheBean) || @within(com.kould.annotation.CacheImpl) || pointCutIService()")
     public Object AroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> targetClass = point.getTarget().getClass() ;
         Method method = null ;
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         method = methodSignature.getMethod() ;
-        CacheBeanClass cacheBeanClass = targetClass.getAnnotation(CacheBeanClass.class);
-        if (cacheBeanClass == null) {
+        CacheBean cacheBean = targetClass.getAnnotation(CacheBean.class);
+        if (cacheBean == null) {
             throw new Exception("未标注CacheBeanClass或注解失效") ;
         }
-        Class<?> cacheClass = cacheBeanClass.clazz();
+        Class<?> cacheClass = cacheBean.clazz();
         //传递Service方法签名
         DaoCacheAop.MESSAGE_THREAD_LOCAL_VAR.set(KacheMessage.builder()
                 .clazz(targetClass)
