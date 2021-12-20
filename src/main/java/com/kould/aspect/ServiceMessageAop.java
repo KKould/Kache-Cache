@@ -36,7 +36,7 @@ public final class ServiceMessageAop {
      * @return point执行，不影响其正常工作
      * @throws Throwable
      */
-    @Around("@annotation(com.kould.annotation.ServiceCache) || @annotation(com.kould.annotation.CacheChange)")
+    @Around("@within(com.kould.annotation.CacheBeanClass) || @within(com.kould.annotation.CacheImpl) || pointCutIService()")
     public Object AroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> targetClass = point.getTarget().getClass() ;
         Method method = null ;
@@ -49,7 +49,6 @@ public final class ServiceMessageAop {
         Class<?> cacheClass = cacheBeanClass.clazz();
         //传递Service方法签名
         DaoCacheAop.MESSAGE_THREAD_LOCAL_VAR.set(KacheMessage.builder()
-                .method(method)
                 .clazz(targetClass)
                 .cacheClazz(cacheClass)
                 .methodName(method.getName())

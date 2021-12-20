@@ -4,7 +4,7 @@ import java.lang.annotation.*;
 
 @Inherited
 @Documented
-@Target(ElementType.METHOD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CacheChange {
+public @interface CacheImpl {
 }

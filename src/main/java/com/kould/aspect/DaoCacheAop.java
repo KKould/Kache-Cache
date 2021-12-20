@@ -1,6 +1,6 @@
 package com.kould.aspect;
 
-import com.kould.annotation.ServiceCache;
+import com.kould.annotation.DaoSelect;
 import com.kould.config.KacheAutoConfig;
 import com.kould.config.ListenerProperties;
 import com.kould.encoder.CacheEncoder;
@@ -53,24 +53,24 @@ public final class DaoCacheAop {
     @Autowired
     private ListenerProperties listenerProperties ;
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND)
-    public void pointCutFind() {
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT)
+    public void pointCutMyBatisPlusFind() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD)
-    public void pointCutAdd() {
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_INSERT)
+    public void pointCutMyBatisPlusAdd() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE)
-    public void pointCutRemove() {
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE)
+    public void pointCutMyBatisPlusRemove() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT)
-    public void pointCutEdit() {
+    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE)
+    public void pointCutMyBatisPlusEdit() {
     }
 
 
-    @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutFind()")
+    @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutMyBatisPlusFind()")
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Object result = null ;
         KacheMessage serviceMessage = MESSAGE_THREAD_LOCAL_VAR.get();
@@ -80,17 +80,19 @@ public final class DaoCacheAop {
             boolean listenerEnable = listenerProperties.isEnable();
             String key = null;
             Class<?> beanClass = serviceMessage.getCacheClazz();
+            MethodSignature methodSignature = (MethodSignature) point.getSignature();
+            Method daoMethod = methodSignature.getMethod();
             //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
             String poType = beanClass.getTypeName();
-            String methodStatus = serviceMessage.getMethod()
-                    .getAnnotation(ServiceCache.class).status().getValue();
+            String methodStatus = daoMethod
+                    .getAnnotation(DaoSelect.class).status().getValue();
             String lockKey = poType + serviceMessage.getMethodName() ;
             //该PO领域的初始化
             //通过lambda表达式延迟加载锁并获取
             ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
             try {
                 //key拼接命名空间前缀
-                key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass, methodStatus);
+                key = KacheAutoConfig.CACHE_PREFIX + getKey(point, serviceMessage, beanClass, methodStatus, daoMethod);
                 readLock = kacheLock.readLock(poType) ;
                 //获取缓存
                 result = baseCacheManager.get(key, beanClass);
@@ -139,20 +141,18 @@ public final class DaoCacheAop {
 
 
     //Key获取方法
-    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass, String methodStatus) {
+    private String getKey(ProceedingJoinPoint point, KacheMessage serviceMessage, Class<?> beanClass, String methodStatus,Method method) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
-        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
+        //信息摘要收集
+        //获取DAO方法签名
+        String daoMethodName = method.getName() ;
+        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID) || daoMethodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
             //使Key为ID
             Object[] args = point.getArgs();
             return args[0].toString();
         }else {
-            //信息摘要收集
-            //获取DAO方法签名
-            MethodSignature methodSignature = (MethodSignature) point.getSignature();
-            Method daoMethod = methodSignature.getMethod();
-            String daoMethodName = daoMethod.getName() ;
             String daoArgs = cacheEncoder.argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
             return cacheEncoder.encode(methodStatus
@@ -160,19 +160,19 @@ public final class DaoCacheAop {
         }
     }
 
-    @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutRemove()")
+    @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
         return strategyHandler.delete(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
-    @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutAdd()")
+    @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutMyBatisPlusAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
         return strategyHandler.insert(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
     }
 
-    @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutEdit()")
+    @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutMyBatisPlusEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
         return strategyHandler.update(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;

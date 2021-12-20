@@ -38,15 +38,17 @@ public class KacheAutoConfig {
     public KacheAutoConfig() {
     }
 
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_FIND = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.select*(..))";
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.select*(..))";
 
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_ADD = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.insert*(..))";
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_INSERT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.insert*(..))";
 
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_REMOVE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.delete*(..))";
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.delete*(..))";
 
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_EDIT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
+    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
 
     public static final String POINTCUT_EXPRESSION_SERVICE_MYBATIS_PLUS_ISERVICE = "execution(* com.baomidou.mybatisplus.extension.service.impl.ServiceImpl.*(..))" ;
+
+    public static final String MYBATIS_PLUS_MAPPER_SELECT_BY_ID = "selectById" ;
 
     public static final String SERVICE_BY_ID = "METHOD_SERVICE_BY_ID" ;
 

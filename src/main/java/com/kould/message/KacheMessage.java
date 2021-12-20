@@ -1,13 +1,9 @@
 package com.kould.message;
 
-
-import com.kould.type.Builder;
-
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
 public class KacheMessage implements Serializable {
-    private Method method ;
     //Method无法被序列化
     private String methodName ;
     private Object arg ;
@@ -15,18 +11,12 @@ public class KacheMessage implements Serializable {
     private Class<?> cacheClazz ;
 
     public static class Builder implements com.kould.type.Builder<KacheMessage> {
-        private Method method ;
         private String methodName ;
         private Object arg ;
         private Class<?> clazz ;
         private Class<?> cacheClazz ;
 
         public Builder() { }
-
-        public Builder method(Method method) {
-            this.method = method;
-            return this ;
-        }
 
         public Builder methodName(String methodName) {
             this.methodName = methodName;
@@ -58,7 +48,6 @@ public class KacheMessage implements Serializable {
     }
 
     public KacheMessage(Method method, String methodName, Object arg, Class<?> clazz, Class<?> cacheClazz) {
-        this.method = method;
         this.methodName = methodName;
         this.arg = arg;
         this.clazz = clazz;
@@ -66,7 +55,6 @@ public class KacheMessage implements Serializable {
     }
 
     public KacheMessage(Builder builder) {
-        this.method = builder.method ;
         this.methodName = builder.methodName;
         this.arg = builder.arg;
         this.clazz = builder.clazz;
@@ -75,14 +63,6 @@ public class KacheMessage implements Serializable {
 
     public static Builder builder() {
         return new Builder() ;
-    }
-
-    public Method getMethod() {
-        return method;
-    }
-
-    public void setMethod(Method method) {
-        this.method = method;
     }
 
     public String getMethodName() {

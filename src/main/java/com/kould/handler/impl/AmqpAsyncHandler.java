@@ -68,7 +68,6 @@ public class AmqpAsyncHandler extends AsyncHandler {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.proceed();
         if (serviceMessage != null) {
-            serviceMessage.setMethod(null);
             amqpTemplate.convertAndSend(queue, serviceMessage);
             amqpTemplate.convertAndSend(exchange, "", serviceMessage);
         }
