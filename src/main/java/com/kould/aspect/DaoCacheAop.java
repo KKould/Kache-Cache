@@ -3,6 +3,7 @@ package com.kould.aspect;
 import com.kould.annotation.DaoSelect;
 import com.kould.config.KacheAutoConfig;
 import com.kould.config.ListenerProperties;
+import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.handler.StrategyHandler;
 import com.kould.listener.ListenerHandler;
@@ -153,8 +154,10 @@ public final class DaoCacheAop {
         String methodStatus = null ;
         if (daoSelect != null) {
             methodStatus = daoSelect.status().getValue();
+        } else {
+            methodStatus = Status.BY_FIELD.getValue() ;
         }
-        if (methodStatus != null && methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
+        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
             //使Key为ID
             return setKey2Id(point);
         }else {
@@ -174,19 +177,25 @@ public final class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
-        return strategyHandler.delete(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
+        KacheMessage kacheMessage = MESSAGE_THREAD_LOCAL_VAR.get();
+        kacheMessage.setArg(point.getArgs()[0]);
+        return strategyHandler.delete(point,kacheMessage) ;
     }
 
     @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutMyBatisPlusAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
-        return strategyHandler.insert(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
+        KacheMessage kacheMessage = MESSAGE_THREAD_LOCAL_VAR.get();
+        kacheMessage.setArg(point.getArgs()[0]);
+        return strategyHandler.insert(point,kacheMessage) ;
     }
 
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutMyBatisPlusEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
-        return strategyHandler.update(point,MESSAGE_THREAD_LOCAL_VAR.get()) ;
+        KacheMessage kacheMessage = MESSAGE_THREAD_LOCAL_VAR.get();
+        kacheMessage.setArg(point.getArgs()[0]);
+        return strategyHandler.update(point,kacheMessage) ;
     }
 
 }

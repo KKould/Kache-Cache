@@ -61,7 +61,7 @@ public class GuavaCacheManager extends InterprocessCacheManager {
         String name = beanClass.getName();
         Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
         if (cache != null) {
-            cache.cleanUp();
+            cache.invalidateAll();
         }
     }
 

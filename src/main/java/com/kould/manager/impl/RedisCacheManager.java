@@ -399,12 +399,13 @@ public class RedisCacheManager extends RemoteCacheManager {
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
-            String s = jedis.get(id);
+            String key = KacheAutoConfig.CACHE_PREFIX + id ;
+            String s = jedis.get(key);
             if (s != null) {
                 Object target = KryoUtil.readFromString(s) ;
                 BeanUtil.copyProperties(result, target,
                         true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-                jedis.setex(id, strategyHandler.getCacheTime(), KryoUtil.writeToString(target));
+                jedis.setex(key, strategyHandler.getCacheTime(), KryoUtil.writeToString(target));
                 return (T) target;
             } else {
                 return null ;

@@ -75,7 +75,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
     }
 
     @Override
-    @RabbitListener(queues = {QUEUE_DELETE_CACHE,QUEUE_UPDATE_CACHE})
+    @RabbitListener(queues = {QUEUE_DELETE_CACHE})
     public void listen2DeleteRemote(KacheMessage msg) throws Exception {
         cacheLogic.deleteRemoteCache(msg);
     }

@@ -32,7 +32,7 @@ public class BaseCacheLogic extends CacheLogic {
         return INSTANCE ;
     }
 
-    public void deleteRemoteCache(KacheMessage msg) {
+    public void deleteRemoteCache(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         deleteCacheByKey(msg);
     }
 
@@ -41,15 +41,26 @@ public class BaseCacheLogic extends CacheLogic {
     }
 
     public void updateRemoteCache(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        String lockKey = msg.getCacheClazz().getSimpleName();
-        Lock writeLock = null ;
+        Class<?> resultClass = msg.getCacheClazz();
+        String lockKey = resultClass.getSimpleName();
+        Lock writeLock = null;
         try {
+            List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
+            List<String> delKeys = new ArrayList<>();
+            allKey.parallelStream().forEach(key -> {
+                if (key.contains(KacheAutoConfig.SERVICE_BY_FIELD)) {
+                    delKeys.add(key);
+                }
+            });
             writeLock = kacheLock.writeLock(lockKey);
             Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
             log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
             remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
+            if (delKeys.size() > 0) {
+                remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
+            }
             kacheLock.unLock(writeLock);
-        } catch (Exception e) {
+        } catch (Exception e){
             if (kacheLock.isLockedByThisThread(writeLock)) {
                 kacheLock.unLock(writeLock);
             }
@@ -72,7 +83,7 @@ public class BaseCacheLogic extends CacheLogic {
         interprocessCacheClear(msg,kacheLock,interprocessCacheManager);
     }
 
-    private void deleteCacheByKey(KacheMessage msg) {
+    private void deleteCacheByKey(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = resultClass.getSimpleName();
         Lock writeLock = null;
@@ -86,6 +97,12 @@ public class BaseCacheLogic extends CacheLogic {
                 }
             });
             writeLock = kacheLock.writeLock(lockKey);
+            if (msg.getArg() instanceof String) {
+                delKeys.add(msg.getArg().toString()) ;
+            } else {
+                Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
+                delKeys.add(methodGetId.invoke(msg.getArg()).toString()) ;
+            }
             if (delKeys.size() > 0) {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }
