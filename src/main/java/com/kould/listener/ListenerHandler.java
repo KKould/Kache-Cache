@@ -24,22 +24,30 @@ public final class ListenerHandler {
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void hit(String key, KacheMessage msg, boolean enable) {
+    public static void hit(String key, Class<?> clazz, String methodName, Object arg, boolean enable) {
         if (enable) {
             executorService.execute(() -> {
                 for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
-                    cacheListener.hit(key, msg) ;
+                    cacheListener.hit(key, KacheMessage.builder()
+                            .cacheClazz(clazz)
+                            .methodName(methodName)
+                            .arg(arg)
+                            .build()) ;
                 }
             });
         }
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void notHit(String key, KacheMessage msg, boolean enable) {
+    public static void notHit(String key, Class<?> clazz, String methodName, Object arg, boolean enable) {
         if (enable) {
             executorService.execute(() -> {
                 for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
-                    cacheListener.notHit(key, msg);
+                    cacheListener.notHit(key, KacheMessage.builder()
+                            .cacheClazz(clazz)
+                            .methodName(methodName)
+                            .arg(arg)
+                            .build()); ;
                 }
             });
         }

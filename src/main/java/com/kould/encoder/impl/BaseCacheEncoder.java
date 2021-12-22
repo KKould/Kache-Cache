@@ -20,13 +20,12 @@ public class BaseCacheEncoder extends CacheEncoder {
 
 
     @Override
-    public String encode(String serviceMethodStatus, String serviceMethod, String daoEnityName, String daoMethodName, String daoArgs) {
+    public String encode(String MethodStatus, String daoEnityName, String daoMethodName, String daoArgs) {
         return KacheAutoConfig.NO_ID_TAG +
+                MethodStatus +
+                daoEnityName +
                 daoMethodName +
-                daoArgs +
-                serviceMethodStatus +
-                serviceMethod +
-                daoEnityName ;
+                daoArgs ;
 
     }
 

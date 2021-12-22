@@ -45,17 +45,22 @@ public class BaseCacheLogic extends CacheLogic {
         String lockKey = resultClass.getSimpleName();
         Lock writeLock = null;
         try {
-            List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
+            List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             allKey.parallelStream().forEach(key -> {
                 if (key.contains(KacheAutoConfig.SERVICE_BY_FIELD)) {
                     delKeys.add(key);
                 }
             });
             writeLock = kacheLock.writeLock(lockKey);
-            Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
-            log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
-            remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
+            //==========上为重复代码
+            //无法进行抽取的原因是因为lambda表达式无法抛出异常
+            if (resultClass.isAssignableFrom(msg.getArg().getClass())){
+                Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
+                log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
+                remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
+            }
+            //==========下为重复代码
             if (delKeys.size() > 0) {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }
@@ -88,21 +93,24 @@ public class BaseCacheLogic extends CacheLogic {
         String lockKey = resultClass.getSimpleName();
         Lock writeLock = null;
         try {
-            log.info("\r\nKache:+++++++++Redis缓存删除检测....");
-            List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             List<String> delKeys = new ArrayList<>();
+            List<String> allKey = remoteCacheManager.keys(cacheEncoder.getPattern(resultClass.getName()));
             allKey.parallelStream().forEach(key -> {
                 if (key.contains(KacheAutoConfig.SERVICE_BY_FIELD)) {
                     delKeys.add(key);
                 }
             });
             writeLock = kacheLock.writeLock(lockKey);
+            //==========上为重复代码
+            //无法进行抽取的原因是因为lambda表达式无法抛出异常
+            log.info("\r\nKache:+++++++++Redis缓存删除检测....");
             if (msg.getArg() instanceof String) {
                 delKeys.add(msg.getArg().toString()) ;
-            } else {
+            } else if (resultClass.isAssignableFrom(msg.getArg().getClass())){
                 Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
                 delKeys.add(methodGetId.invoke(msg.getArg()).toString()) ;
             }
+            //==========下为重复代码
             if (delKeys.size() > 0) {
                 remoteCacheManager.del(delKeys.toArray(new String[delKeys.size()]));
             }

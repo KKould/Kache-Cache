@@ -1,7 +1,6 @@
 package com.kould.config;
 
 import com.kould.aspect.DaoCacheAop;
-import com.kould.aspect.ServiceMessageAop;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.handler.StrategyHandler;
@@ -45,8 +44,6 @@ public class KacheAutoConfig {
     public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.delete*(..))";
 
     public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
-
-    public static final String POINTCUT_EXPRESSION_SERVICE_MYBATIS_PLUS_ISERVICE = "execution(* com.baomidou.mybatisplus.extension.service.impl.ServiceImpl.*(..))" ;
 
     public static final String MYBATIS_PLUS_MAPPER_SELECT_BY_ID = "selectById" ;
 
@@ -121,11 +118,6 @@ public class KacheAutoConfig {
     @ConditionalOnMissingBean
     public Queue asyncInsertCacheQueue() {
         return new Queue(QUEUE_INSERT_CACHE);
-    }
-
-    @Bean
-    public ServiceMessageAop serviceMessageAop() {
-        return new ServiceMessageAop() ;
     }
 
     @Bean
