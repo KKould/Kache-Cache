@@ -34,7 +34,11 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
     private static final  String SCRIPT_LUA_CACHE_GET =
-                    "local keys = redis.call('lrange',KEYS[1],0,redis.call('llen',KEYS[1])) "+
+                    "local keys = redis.call('lrange',KEYS[1],0,redis.call('llen',KEYS[1])) " +
+                    "if(next(keys) == nil) " +
+                    "then " +
+                    "   return nil " +
+                    "end " +
                     "local result = {} " +
                     "table.insert(result,keys[1]) " +
                     "table.remove(keys,1) " +
