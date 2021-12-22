@@ -37,7 +37,8 @@ public final class DaoCacheAop {
     //直接使用ReentrantLock而不使用接口Lock是因为需要判断锁状态
     private static final Map<String,ReentrantLock> REENTRANT_LOCK_MAP = new ConcurrentHashMap<>();
 
-    private static final String AND = "||" ;
+    protected static final ThreadLocal<Class<?>> CLASS_THREAD_LOCAL  = new ThreadLocal<>();
+
     @Autowired
     private KacheLock kacheLock ;
 
