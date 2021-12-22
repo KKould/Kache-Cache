@@ -73,70 +73,69 @@ public final class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutMyBatisPlusFind()")
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        Object result;
-        Lock readLock = null ;
-        Lock writeLock = null;
-        boolean listenerEnable = listenerProperties.isEnable();
-        CacheBean cacheBean = point.getTarget()
-                .getClass().getAnnotation(CacheBean.class);
-        if (cacheBean == null) {
-            throw new Exception("未标注CacheBeanClass或注解失效") ;
-        }
-        Class<?> beanClass = cacheBean.clazz();
-        MethodSignature methodSignature = (MethodSignature) point.getSignature();
-        Method daoMethod = methodSignature.getMethod();
-        String daoMethodName = daoMethod.getName() ;
-        //以PO类型进行不同持久类领域的划分，以此减少不必要的干涉开销并统一DTO的持久化操作
-        String poType = beanClass.getTypeName();
-        String lockKey = poType + daoMethodName ;
-        //该PO领域的初始化
-        //通过lambda表达式延迟加载锁并获取
-        ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
-        try {
-            //key拼接命名空间前缀
-            Object daoArgs = point.getArgs();
-            String key = KacheAutoConfig.CACHE_PREFIX + getKey(point, beanClass, daoMethodName, daoMethod, daoArgs);
-            readLock = kacheLock.readLock(poType) ;
-            //获取缓存
-            result = baseCacheManager.get(key, beanClass);
-            kacheLock.unLock(readLock);
-            if (result == null) {
-                //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
-                methodLock.lock();
+        Class<?> beanClass = CLASS_THREAD_LOCAL.get() ;
+        if (beanClass != null) {
+            Object result;
+            Lock readLock = null ;
+            Lock writeLock = null;
+            boolean listenerEnable = listenerProperties.isEnable();
+            MethodSignature methodSignature = (MethodSignature) point.getSignature();
+            Method daoMethod = methodSignature.getMethod();
+            String daoMethodName = daoMethod.getName() ;
+            //以PO类型进行不同持久类领域的划分
+            String poType = beanClass.getTypeName();
+            String lockKey = poType + daoMethodName ;
+            //该PO领域的初始化
+            //通过lambda表达式延迟加载锁并获取
+            ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
+            try {
+                //key拼接命名空间前缀
+                Object daoArgs = point.getArgs();
+                String key = KacheAutoConfig.CACHE_PREFIX + getKey(point, beanClass, daoMethodName, daoMethod, daoArgs);
+                readLock = kacheLock.readLock(poType) ;
+                //获取缓存
                 result = baseCacheManager.get(key, beanClass);
+                kacheLock.unLock(readLock);
                 if (result == null) {
-                    //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
-                    ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs,listenerEnable);
-                    writeLock = kacheLock.writeLock(poType);
-                    result = point.proceed();
-                    baseCacheManager.put(key, result, beanClass);
-                    kacheLock.unLock(writeLock);
+                    //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
+                    //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
+                    methodLock.lock();
+                    result = baseCacheManager.get(key, beanClass);
+                    if (result == null) {
+                        //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
+                        ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs,listenerEnable);
+                        writeLock = kacheLock.writeLock(poType);
+                        result = point.proceed();
+                        baseCacheManager.put(key, result, beanClass);
+                        kacheLock.unLock(writeLock);
+                    } else {
+                        //将同步后获取缓存的线程的命中也计数
+                        ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
+                    }
                 } else {
-                    //将同步后获取缓存的线程的命中也计数
                     ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
                 }
-            } else {
-                ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
+                //空值替换
+                if (baseCacheManager.getNullValue().equals(result)) {
+                    result = null ;
+                }
+            }catch (Exception e) {
+                if (kacheLock.isLockedByThisThread(readLock)) {
+                    kacheLock.unLock(readLock);
+                }
+                if (kacheLock.isLockedByThisThread(writeLock)) {
+                    kacheLock.unLock(writeLock);
+                }
+                throw e ;
+            } finally {
+                if (methodLock.isHeldByCurrentThread() && methodLock.isLocked()) {
+                    methodLock.unlock();
+                }
             }
-            //空值替换
-            if (baseCacheManager.getNullValue().equals(result)) {
-                result = null ;
-            }
-        }catch (Exception e) {
-            if (kacheLock.isLockedByThisThread(readLock)) {
-                kacheLock.unLock(readLock);
-            }
-            if (kacheLock.isLockedByThisThread(writeLock)) {
-                kacheLock.unLock(writeLock);
-            }
-            throw e ;
-        } finally {
-            if (methodLock.isHeldByCurrentThread() && methodLock.isLocked()) {
-                methodLock.unlock();
-            }
+            return result;
+        } else {
+            return point.proceed() ;
         }
-        return result;
     }
 
 
