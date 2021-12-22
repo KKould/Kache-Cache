@@ -36,22 +36,15 @@ public class RedisCacheManager extends RemoteCacheManager {
     private static final  String SCRIPT_LUA_CACHE_GET =
                     "local keys = redis.call('lrange',KEYS[1],0,redis.call('llen',KEYS[1])) "+
                     "local result = {} " +
-                    "for key,value in pairs(keys) do " +
-                    "    local data = redis.call('get',value) " +
-                    "    if(data) " +
-                    "    then " +
-                    "        table.insert(result,data) " +
-                    "    else" +
-                    //若get不到值则说明为包装类的序列化，所有默认当作第一位，方便后继处理
-                    "        if(key == 1) " +
-                            "then " +
-                                "table.insert(result,1,value) " +
-                            "else " +
-                                "return nil " +
-                            "end " +
-                    "    end " +
-                    "end " +
-                    "return result " ;
+                    "table.insert(result,keys[1]) " +
+                    "table.remove(keys,1) " +
+                    "table.insert(result,redis.call('mget',unpack(keys))) " +
+                    "if(table.getn(keys) == (table.getn(result) - 1)) " +
+                    "then " +
+                    "   return result " +
+                    "else " +
+                    "   return nil " +
+                    "end " ;
 
     //Lua脚本，用于在Reids中获取符合表达式的索引
     private static final  String SCRIPT_LUA_CACHE_KEYS =
@@ -325,7 +318,6 @@ public class RedisCacheManager extends RemoteCacheManager {
                 List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
                 List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
-
                     //判断结果是否为单个POBean
                     if (list.size() == 1) {
                         return KryoUtil.readFromString(list.get(0));
