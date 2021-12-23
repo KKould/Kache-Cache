@@ -7,10 +7,11 @@
     <img alt="code style" src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg?style=flat-square">
   </a>
 </p>
-
 ### 概要 | synopsis
 
-**仅通过注解即可完成缓存操作**
+**持久化缓存**
+
+**仅一个注解即可完成缓存操作（基于MyBatis-Plus的情况）**
 
 **缓存与业务逻辑分离**
 
@@ -211,13 +212,61 @@ kache:
 
 Java标准MVC架构如图：
 
-![](https://www.hualigs.cn/image/6127d7294d06c.jpg)
-
-Kache架构：
+![Kache架构](https://www.hualigs.cn/image/61c46745cfd99.jpg)
 
 ![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
 
 **（溢出方框外表示允许拓展）**
+
+### 对比 | contrast
+
+#### Spring Cache
+
+- **应用层面**：
+  - Spring Cache往往是基于Service进行缓存
+  - Kache是基于Dao进行缓存；
+  - 也就是说其实两者是允许共同使用的
+- **应用架构**：
+  - Spring Cache与Kache同样都可以通过内置拓展类的形式完成单机与分布式的应用架构
+- **代码侵入与学习成本**：
+  - 都基于Aop+注解完成，代码侵入性极低
+  - Spring Cache的注解为：
+    - @CacheConfig：主要用于配置该类中会用到的一些共用的缓存配置
+    - @Cacheable：主要方法返回值加入缓存。同时在查询时，会先从缓存中取，若不存在才再发起对数据库的访问
+    - @CachePut:配置于函数上，能够根据参数定义条件进行缓存，与@Cacheable不同的是，每次回真实调用函数
+    - @CacheEvict:配置于函数上，通常用在删除方法上，用来从缓存中移除对应数据
+    - @Caching:配置于函数上，组合多个Cache注解使用
+  - Kache的注解为：
+    - @CacheBean：标记Service对应Mapper的Po类类型（即缓存类型）
+    - @CacheImpl：标记Service的实现类
+    - @DaoSelect：标记为数据搜索的方法
+    - @DaoInsert：标记为数据插入的方法
+    - @DaoUpdate：标记为数据更新的方法
+    - @DaoDelete：标记为数据删除的方法
+    - 在应用基于MyBatis-Plus的IService与BaseMapper的情况下，仅需要@CacheBean注解即可完成缓存操作
+- **缓存结构**：
+  - Spring Cache在基于Redis的情况下，缓存是基于简单的Key—Value对应实现的
+  - Kache同样在使用二级缓存（默认为Redis）的情况下，会将缓存分为
+    - **索引缓存**
+    - **元数据缓存**
+  - 并将搜索分为
+    - **通过Id进行单个数据搜索**：直接搜索元数据缓存
+    - **通过某条件或者无条件等进行数据搜索**：通过解析dao方法以及参数进行特制Hash编码生成一个特殊的key，再通过lua脚本让key获取到索引缓存的同时对索引缓存中的元数据id替换为元数据缓存value
+- **缓存增删改逻辑**
+  - Spring Cache
+    - 增，即@CachePut：通过新增或替换对应key缓存实现，但往往会与@CacheEvict混合使用（因为可能会影响条件搜索）
+    - 删改，即@CacheEvict：通过删除单条或多条数据（往往都是将同一Po类型下的所有缓存删除）
+  - Kache
+    - 增删为同一策略：通过删除该Po类型的所有索引缓存进行条件缓存的清除，若为单条数据删除则会再删除掉对应的Id元数据缓存
+    - 改：在删除索引的同时，对对应Id的元数据缓存进行修改
+  - 最大差异点：Kache与SpringCache会清空条件搜索的缓存，但Id搜索的缓存基本不会删除，缓存利用率较高
+- **缓存命中率**：
+  - Spring Cache在简单的Key—Value缓存结构下，缓存的命中基本为同样的参数下返回同样的值，结合**“缓存增删改来看”**命中率适中偏低
+  - Kache则会分为两种情况的命中率
+    - **通过Id进行单个数据搜索**：在重复的Id搜索情况下，命中率仍然与Spring Cache保持一致，但是若该应用的缓存被多个不同的方法进行查询（如有条件、无条件、通过id等）交叉进行使用时，在**“缓存更新”**处所述的**“通过某条件或者无条件进行数据搜索”**会在单次的条件查询时带来多个元缓存（笔者称为**溅射查询**），这意味着在网页中搜索某一条件时，若之后继续点击其结果的数据时，则第二次是必定命中的；
+      - 在**”缓存成本“**处，也会体现到其中Kache的缓存利用率更高，不会因为数据增删改而类似Spring Cache一样删除所有元数据缓存
+      - 故实际情况**id搜索**的缓存命中率会**大大高于**Spring Cache
+    - **通过某条件或者无条件等进行数据搜索**：索引缓存的Key是由参数决定的，所以结构和SpringCache的命中率是基本保持一致的，但由于Kache所在的Dao层次相较于SpringCache的Service层次更底层，所以这导致了Dao的方法使用大多数情况下会更加密集，使实际使用的缓存的命中率相较Spring Cache的相较起来更高（或是称为缓存复用率）
 
 ### 原理 | principle
 
@@ -247,10 +296,6 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 
 - ServiceAop获取Service方法信息摘要、通过ThreadLocal传递给DaoAop
 - DaoAop获取Service层方法进行编码为Key，使用Key获取缓存的结果
-
-Key的编码形式则为：
-
-- （是否为单一持久类判断符）+Dao层方法+Dao层方法参数（二进制序列化）+Service注解对应的枚举值+Service层方法+Service层方法参数+PO类名的形式
 
 以此避免同一Service方法下调用同一Dao方法但不同参数而引起的缓存冲突问题
 
