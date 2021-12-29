@@ -100,7 +100,9 @@ public final class DaoCacheAop {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                     //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
                     methodLock.lock();
+                    readLock = kacheLock.readLock(poType) ;
                     result = baseCacheManager.get(key, beanClass);
+                    kacheLock.unLock(readLock);
                     if (result == null) {
                         //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
                         ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs,listenerEnable);
