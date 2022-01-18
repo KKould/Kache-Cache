@@ -3,8 +3,10 @@ package com.kould.manager.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.KacheAutoConfig;
+import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.utils.KryoUtil;
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
 
 /*
 使用Redis进行缓存存取的CacheManager
@@ -29,6 +32,9 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     @Autowired
     private JedisPool jedisPool;
+
+    @Autowired
+    private KacheLock kacheLock ;
 
     private static final String METHOD_GET_ID = "getId" ;
 
@@ -139,18 +145,21 @@ public class RedisCacheManager extends RemoteCacheManager {
      *          则将直接获取result的id并与result作为单条PO存入；
      *          再将key和id作为键值对，存入作为索引
      * @param key 索引值
-     * @param result 返回结果
-     * @param <T>
+     * @param lockKey 锁值
+     * @param point 切入点
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public <T> T put(String key, T result) {
+    public Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable {
         Jedis jedis = null;
+        Lock writeLock = null;
         try {
             jedis = jedisPool.getResource();
             StringBuilder lua = new StringBuilder();
             List<String> keys = new ArrayList<>() ;
             List<String> values = new ArrayList<>() ;
+            writeLock = kacheLock.writeLock(lockKey);
+            Object result = point.proceed();
             if (result instanceof Collection) {
                 collection2Lua(jedis, key, lua, keys, values, (Collection) result,null);
             } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
@@ -193,13 +202,16 @@ public class RedisCacheManager extends RemoteCacheManager {
                 }
             }
             jedis.eval(lua.toString(),keys,values) ;
+            kacheLock.unLock(writeLock);
             return result ;
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            if (writeLock != null && kacheLock.isLockedByThisThread(writeLock)) {
+                kacheLock.unLock(writeLock);
+            }
+            throw e ;
         } finally {
             close(jedis);
         }
-        return null ;
     }
 
     private void collection2Lua(Jedis jedis, String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records , Object page) throws Exception {
@@ -216,8 +228,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             echo.append("local result = {} ") ;
             while(iterator.hasNext()) {
                 count2Echo ++ ;
-                Object next = iterator.next();
-                keys.add(KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(next).toString());
+                keys.add(KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(iterator.next()).toString());
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -305,13 +316,16 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, Class<?> beanClass) {
+    public Object get(String key, Class<?> beanClass, String lockKey) throws NoSuchFieldException, IllegalAccessException {
         Jedis jedis = null;
+        Lock readLock = null ;
         try {
             jedis = jedisPool.getResource();
             //判断是否为直接通过ID获取单条方法
             if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                readLock = kacheLock.readLock(lockKey);
                 String result = jedis.get(key);
+                kacheLock.unLock(readLock);
                 if (result != null) {
                     return KryoUtil.readFromString(result);
                 } else {
@@ -319,7 +333,9 @@ public class RedisCacheManager extends RemoteCacheManager {
                 }
             } else {
                 //为条件查询方法
+                readLock = kacheLock.readLock(lockKey);
                 List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
+                kacheLock.unLock(readLock);
                 List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
                     //判断结果是否为单个POBean
@@ -352,11 +368,13 @@ public class RedisCacheManager extends RemoteCacheManager {
                 } else return null;
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            if (readLock != null && kacheLock.isLockedByThisThread(readLock)) {
+                kacheLock.unLock(readLock);
+            }
+            throw e ;
         } finally {
             close(jedis);
         }
-        return null ;
     }
 
     @Override

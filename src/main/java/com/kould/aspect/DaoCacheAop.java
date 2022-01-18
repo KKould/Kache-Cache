@@ -24,7 +24,6 @@ import org.springframework.core.annotation.Order;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -38,9 +37,6 @@ public final class DaoCacheAop {
     private static final Map<String,ReentrantLock> REENTRANT_LOCK_MAP = new ConcurrentHashMap<>();
 
     protected static final ThreadLocal<Class<?>> CLASS_THREAD_LOCAL  = new ThreadLocal<>();
-
-    @Autowired
-    private KacheLock kacheLock ;
 
     @Autowired
     private IBaseCacheManager baseCacheManager;
@@ -70,14 +66,18 @@ public final class DaoCacheAop {
     public void pointCutMyBatisPlusEdit() {
     }
 
-
+    /**
+     * 数据查询最上层中的缓存操作抽象逻辑切片处理
+     * 用于主体上对缓存操作进行调控
+     * @param point
+     * @return 缓存具体数据
+     * @throws Throwable
+     */
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutMyBatisPlusFind()")
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> beanClass = CLASS_THREAD_LOCAL.get() ;
         if (beanClass != null) {
             Object result;
-            Lock readLock = null ;
-            Lock writeLock = null;
             boolean listenerEnable = listenerProperties.isEnable();
             MethodSignature methodSignature = (MethodSignature) point.getSignature();
             Method daoMethod = methodSignature.getMethod();
@@ -92,24 +92,17 @@ public final class DaoCacheAop {
                 //key拼接命名空间前缀
                 Object daoArgs = point.getArgs();
                 String key = KacheAutoConfig.CACHE_PREFIX + getKey(point, beanClass, daoMethodName, daoMethod, daoArgs);
-                readLock = kacheLock.readLock(poType) ;
                 //获取缓存
-                result = baseCacheManager.get(key, beanClass);
-                kacheLock.unLock(readLock);
+                result = baseCacheManager.get(key, beanClass ,lockKey);
                 if (result == null) {
                     //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                     //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
                     methodLock.lock();
-                    readLock = kacheLock.readLock(poType) ;
-                    result = baseCacheManager.get(key, beanClass);
-                    kacheLock.unLock(readLock);
+                    result = baseCacheManager.get(key, beanClass ,lockKey);
                     if (result == null) {
                         //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
-                        ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs,listenerEnable);
-                        writeLock = kacheLock.writeLock(poType);
-                        result = point.proceed();
-                        baseCacheManager.put(key, result, beanClass);
-                        kacheLock.unLock(writeLock);
+                        ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs, listenerEnable);
+                        result = baseCacheManager.put(key, beanClass ,lockKey, point);
                     } else {
                         //将同步后获取缓存的线程的命中也计数
                         ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
@@ -122,12 +115,7 @@ public final class DaoCacheAop {
                     result = null ;
                 }
             }catch (Exception e) {
-                if (kacheLock.isLockedByThisThread(readLock)) {
-                    kacheLock.unLock(readLock);
-                }
-                if (kacheLock.isLockedByThisThread(writeLock)) {
-                    kacheLock.unLock(writeLock);
-                }
+                log.error(e.getMessage(),e);
                 throw e ;
             } finally {
                 if (methodLock.isHeldByCurrentThread() && methodLock.isLocked()) {
