@@ -87,9 +87,9 @@
 
 ```java
 //该标签用于声明Service对应持久类
-@CacheBean(clazz = ConfigIndexPO.class)
+@CacheBean(clazz = BlogPO.class)
 @Service
-public class ConfigIndexServiceImpl extends BaseServiceImpl<ConfigIndexPO, ConfigIndexMapper> implements IConfigIndexService {
+public class BlogServiceImpl extends BaseServiceImpl<BlogPO, BlogMapper> implements IBlogService {
 
     @Override
     public List<BlogPO> findByBlogTitle(BlogBaseDTO blogBaseDTO) {
