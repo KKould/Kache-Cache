@@ -8,7 +8,7 @@
   </a>
 </p>
 
-### 概要 | synopsis
+### 概要 | Synopsis
 
 **持久化缓存**
 
@@ -22,7 +22,7 @@
 
 **支持分布式**
 
-### 优势 | advantage
+### 优势 | Advantage
 
 - **0.3毫秒响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现；在默认的配置下，id搜索平均为0.2毫秒，条件搜索平均为0.4毫秒的单次响应速度
 
@@ -209,7 +209,7 @@ kache:
 }
 ```
 
-### 架构 | framework
+### 架构 | Framework
 
 Java标准MVC架构如图：
 
@@ -219,7 +219,7 @@ Java标准MVC架构如图：
 
 **（溢出方框外表示允许拓展）**
 
-### 对比 | contrast
+### 对比 | Contrast
 
 #### Spring Cache
 
@@ -269,7 +269,7 @@ Java标准MVC架构如图：
       - 故实际情况**id搜索**的缓存命中率会**大大高于**Spring Cache
     - **通过某条件或者无条件等进行数据搜索**：索引缓存的Key是由参数决定的，所以结构和SpringCache的命中率是基本保持一致的，但由于Kache所在的Dao层次相较于SpringCache的Service层次更底层，所以这导致了Dao的方法使用大多数情况下会更加密集，使实际使用的缓存的命中率相较Spring Cache的相较起来更高（或是称为缓存复用率）
 
-### 原理 | principle
+### 原理 | Principle
 
 Kache的原型的描述文章：
 
