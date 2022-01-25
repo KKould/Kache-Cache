@@ -1,4 +1,4 @@
-# Kache - 将持久化操作推向极致
+# Kache - 散列式缓存
 
 <p align="left">
   <a href="https://search.maven.org/artifact/io.gitee.kould/Kache/1.6.0/jar">
@@ -7,6 +7,7 @@
     <img alt="code style" src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg?style=flat-square">
   </a>
 </p>
+![](https://s3.bmp.ovh/imgs/2022/01/2f5f01726cfef8fb.png)
 
 ### 概要 | Synopsis
 
