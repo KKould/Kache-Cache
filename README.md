@@ -14,11 +14,13 @@
 
 ![Logo](https://s3.bmp.ovh/imgs/2022/01/2f5f01726cfef8fb.png)
 
-<center>
-    <h1>
+<p align="center">
+    <strong>
     Kache - 散列式缓存
-    </h1>
-</center>
+    </strong>
+</p>
+
+----
 
 ### 概要 | Synopsis
 
