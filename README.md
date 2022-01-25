@@ -1,10 +1,13 @@
-# Kache - 散列式缓存
+# <center>Kache - 散列式缓存</center>
 
-<p align="left">
+<p align="middle">
   <a href="https://search.maven.org/artifact/io.gitee.kould/Kache/1.6.0/jar">
     <img alt="maven" src="https://img.shields.io/maven-central/v/io.gitee.kould/Kache.svg?style=flat-square">
   </a><a href="https://www.apache.org/licenses/LICENSE-2.0">
     <img alt="code style" src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg?style=flat-square">
+  </a>
+  <a target="_blank" href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">
+      <img src="https://img.shields.io/badge/JDK-1.8+-blue.svg" />
   </a>
 </p>
 
