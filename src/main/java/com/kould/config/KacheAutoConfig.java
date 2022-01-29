@@ -2,6 +2,8 @@ package com.kould.config;
 
 import com.kould.aspect.DaoCacheAop;
 import com.kould.aspect.ServiceClassAop;
+import com.kould.core.CacheHandler;
+import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.handler.StrategyHandler;
@@ -131,5 +133,11 @@ public class KacheAutoConfig {
     @Bean
     public ServiceClassAop serviceClassAop() {
         return new ServiceClassAop() ;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CacheHandler cacheHandler() {
+        return new BaseCacheHandler() ;
     }
 }

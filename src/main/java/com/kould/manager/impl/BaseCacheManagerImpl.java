@@ -24,7 +24,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object put(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable {
+    public Object daoWrite(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable {
         Object result = remoteCacheManager.put(key, lockKey, point);
         if (interprocessCacheProperties.isEnable()) {
             interprocessCacheManager.put(key, result, beanClass) ;
@@ -33,7 +33,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object get(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException {
+    public Object daoRead(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException {
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
             result =interprocessCacheManager.get(key, beanClass) ;

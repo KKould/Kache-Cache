@@ -1,8 +1,13 @@
 package com.kould.encoder.impl;
 
+import com.kould.annotation.DaoSelect;
 import com.kould.config.KacheAutoConfig;
+import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.utils.KryoUtil;
+import org.aspectj.lang.ProceedingJoinPoint;
+
+import java.lang.reflect.Method;
 
 public class BaseCacheEncoder extends CacheEncoder {
 
@@ -40,6 +45,45 @@ public class BaseCacheEncoder extends CacheEncoder {
     @Override
     public String getPattern(String poName) {
         return "*" + poName + "*" ;
+    }
+
+    @Override
+    public String getDaoKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method, Object args, String types) {
+        //判断serviceMethod的是否为通过id获取数据
+        //  若是则直接使用id进行获取
+        //  若否则经过编码后进行获取
+        //信息摘要收集
+        //获取DAO方法签名
+        if (methodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
+            return setKey2Id(point);
+        }
+        DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
+        String methodStatus = null ;
+        if (daoSelect != null) {
+            methodStatus = daoSelect.status().getValue();
+        } else {
+            methodStatus = Status.BY_FIELD.getValue() ;
+        }
+        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
+            //使Key为ID
+            return setKey2Id(point);
+        }else {
+            String argsCode = argsEncode(args);
+            //使Key为各个参数编码后的一个特殊值
+            return encode(methodStatus, types, methodName, argsCode) ;
+        }
+    }
+
+    @Override
+    public String getServiceKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method, Object args, String types) {
+        String argsCode = argsEncode(point.getArgs());
+        return encode(Status.BY_FIELD.getValue(), types, methodName, argsCode) ;
+    }
+
+    private String setKey2Id(ProceedingJoinPoint point) {
+        //使Key为ID
+        Object[] args = point.getArgs();
+        return args[0].toString();
     }
 
     private Object readResolve() {

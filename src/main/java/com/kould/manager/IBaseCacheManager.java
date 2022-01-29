@@ -28,7 +28,7 @@ public abstract class IBaseCacheManager {
      * @return 缓存具体数据
      * @throws Throwable
      */
-    public abstract Object put(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable;
+    public abstract Object daoWrite(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
@@ -41,5 +41,5 @@ public abstract class IBaseCacheManager {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public abstract Object get(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
+    public abstract Object daoRead(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
 }

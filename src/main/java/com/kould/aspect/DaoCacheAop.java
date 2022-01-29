@@ -1,14 +1,11 @@
 package com.kould.aspect;
 
 import com.kould.annotation.CacheBean;
-import com.kould.annotation.DaoSelect;
 import com.kould.config.KacheAutoConfig;
 import com.kould.config.ListenerProperties;
-import com.kould.config.Status;
+import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.handler.StrategyHandler;
-import com.kould.listener.ListenerHandler;
-import com.kould.lock.KacheLock;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -22,10 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-
 
 @Aspect
 @Order(15)
@@ -33,22 +26,22 @@ public final class DaoCacheAop {
 
     private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
-    //直接使用ReentrantLock而不使用接口Lock是因为需要判断锁状态
-    private static final Map<String,ReentrantLock> REENTRANT_LOCK_MAP = new ConcurrentHashMap<>();
-
     protected static final ThreadLocal<Class<?>> CLASS_THREAD_LOCAL  = new ThreadLocal<>();
 
     @Autowired
     private IBaseCacheManager baseCacheManager;
 
     @Autowired
-    private CacheEncoder cacheEncoder;
-
-    @Autowired
     private StrategyHandler strategyHandler;
 
     @Autowired
     private ListenerProperties listenerProperties ;
+
+    @Autowired
+    private CacheHandler cacheHandler;
+
+    @Autowired
+    private CacheEncoder cacheEncoder;
 
     @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT)
     public void pointCutMyBatisPlusFind() {
@@ -77,89 +70,11 @@ public final class DaoCacheAop {
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> beanClass = CLASS_THREAD_LOCAL.get() ;
         if (beanClass != null) {
-            Object result;
-            boolean listenerEnable = listenerProperties.isEnable();
-            MethodSignature methodSignature = (MethodSignature) point.getSignature();
-            Method daoMethod = methodSignature.getMethod();
-            String daoMethodName = daoMethod.getName() ;
-            //以PO类型进行不同持久类领域的划分
-            String poType = beanClass.getTypeName();
-            String lockKey = poType + daoMethodName ;
-            //该PO领域的初始化
-            //通过lambda表达式延迟加载锁并获取
-            ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey,k -> new ReentrantLock()) ;
-            try {
-                //key拼接命名空间前缀
-                Object daoArgs = point.getArgs();
-                String key = KacheAutoConfig.CACHE_PREFIX + getKey(point, beanClass, daoMethodName, daoMethod, daoArgs);
-                //获取缓存
-                result = baseCacheManager.get(key, beanClass ,lockKey);
-                if (result == null) {
-                    //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-                    //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
-                    methodLock.lock();
-                    result = baseCacheManager.get(key, beanClass ,lockKey);
-                    if (result == null) {
-                        //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
-                        ListenerHandler.notHit(key,beanClass, daoMethodName, daoArgs, listenerEnable);
-                        result = baseCacheManager.put(key, beanClass ,lockKey, point);
-                    } else {
-                        //将同步后获取缓存的线程的命中也计数
-                        ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
-                    }
-                } else {
-                    ListenerHandler.hit(key, beanClass, daoMethodName, daoArgs, listenerEnable);
-                }
-                //空值替换
-                if (baseCacheManager.getNullValue().equals(result)) {
-                    result = null ;
-                }
-            }catch (Exception e) {
-                log.error(e.getMessage(),e);
-                throw e ;
-            } finally {
-                if (methodLock.isHeldByCurrentThread() && methodLock.isLocked()) {
-                    methodLock.unlock();
-                }
-            }
-            return result;
+            return cacheHandler.load(point, beanClass, listenerProperties.isEnable(), baseCacheManager::daoRead
+                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, beanClass.getName());
         } else {
             return point.proceed() ;
         }
-    }
-
-
-    //Key获取方法
-    private String getKey(ProceedingJoinPoint point, Class<?> beanClass, String daoMethodName, Method daoMethod ,Object daoArgs) {
-        //判断serviceMethod的是否为通过id获取数据
-        //  若是则直接使用id进行获取
-        //  若否则经过编码后进行获取
-        //信息摘要收集
-        //获取DAO方法签名
-        if (daoMethodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
-            return setKey2Id(point);
-        }
-        DaoSelect daoSelect = daoMethod.getAnnotation(DaoSelect.class);
-        String methodStatus = null ;
-        if (daoSelect != null) {
-            methodStatus = daoSelect.status().getValue();
-        } else {
-            methodStatus = Status.BY_FIELD.getValue() ;
-        }
-        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
-            //使Key为ID
-            return setKey2Id(point);
-        }else {
-            String argsCode = cacheEncoder.argsEncode(daoArgs);
-            //使Key为各个参数编码后的一个特殊值
-            return cacheEncoder.encode(methodStatus, beanClass.getName(), daoMethodName, argsCode) ;
-        }
-    }
-
-    private String setKey2Id(ProceedingJoinPoint point) {
-        //使Key为ID
-        Object[] args = point.getArgs();
-        return args[0].toString();
     }
 
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
