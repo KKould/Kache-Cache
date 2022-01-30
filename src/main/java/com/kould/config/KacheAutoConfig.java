@@ -7,7 +7,7 @@ import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.handler.StrategyHandler;
-import com.kould.handler.impl.AmqpAsyncHandler;
+import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
@@ -93,7 +93,7 @@ public class KacheAutoConfig {
     @Bean
     @ConditionalOnMissingBean
     public StrategyHandler strategyHandler() {
-        return AmqpAsyncHandler.getInstance();
+        return new DBFirstHandler();
     }
 
     @Bean
