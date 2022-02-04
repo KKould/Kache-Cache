@@ -1,6 +1,5 @@
 package com.kould.aspect;
 
-import com.kould.annotation.CacheBean;
 import com.kould.config.KacheAutoConfig;
 import com.kould.config.ListenerProperties;
 import com.kould.core.CacheHandler;
@@ -19,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 @Aspect
 @Order(15)
@@ -26,7 +27,7 @@ public final class DaoCacheAop {
 
     private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
-    protected static final ThreadLocal<Class<?>> CLASS_THREAD_LOCAL  = new ThreadLocal<>();
+    public static final Map<String,Class<?>> CLASS_MAP = new HashMap<>();
 
     @Autowired
     private IBaseCacheManager baseCacheManager;
@@ -68,7 +69,7 @@ public final class DaoCacheAop {
      */
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutMyBatisPlusFind()")
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        Class<?> beanClass = CLASS_THREAD_LOCAL.get() ;
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return cacheHandler.load(point, beanClass, listenerProperties.isEnable(), baseCacheManager::daoRead
                     , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, beanClass.getName());
@@ -80,28 +81,37 @@ public final class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
-        return strategyHandler.delete(point, getKacheMessage(point)) ;
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        if (beanClass != null) {
+            return strategyHandler.delete(point, getKacheMessage(point, beanClass)) ;
+        } else {
+            return point.proceed() ;
+        }
     }
 
     @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutMyBatisPlusAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
-        return strategyHandler.insert(point, getKacheMessage(point)) ;
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        if (beanClass != null) {
+            return strategyHandler.insert(point, getKacheMessage(point, beanClass)) ;
+        } else {
+            return point.proceed() ;
+        }
     }
 
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutMyBatisPlusEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
-        return strategyHandler.update(point, getKacheMessage(point)) ;
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        if (beanClass != null) {
+            return strategyHandler.update(point, getKacheMessage(point, beanClass)) ;
+        } else {
+            return point.proceed() ;
+        }
     }
 
-    private KacheMessage getKacheMessage(ProceedingJoinPoint point) throws Exception {
-        CacheBean cacheBean = point.getTarget()
-                .getClass().getAnnotation(CacheBean.class);
-        if (cacheBean == null) {
-            throw new Exception("未标注CacheBeanClass或注解失效") ;
-        }
-        Class<?> beanClass = cacheBean.clazz();
+    private KacheMessage getKacheMessage(ProceedingJoinPoint point, Class<?> beanClass) throws Exception {
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         Method daoMethod = methodSignature.getMethod();
         String daoMethodName = daoMethod.getName() ;

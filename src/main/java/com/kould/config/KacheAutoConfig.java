@@ -1,7 +1,6 @@
 package com.kould.config;
 
 import com.kould.aspect.DaoCacheAop;
-import com.kould.aspect.ServiceClassAop;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
@@ -10,6 +9,7 @@ import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
+import com.kould.locator.DaoLocator;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
 import com.kould.logic.CacheLogic;
@@ -20,13 +20,10 @@ import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
-import org.springframework.amqp.core.Queue;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import static com.kould.handler.impl.AmqpAsyncHandler.*;
 
 @Configuration
 @EnableConfigurationProperties({
@@ -108,31 +105,13 @@ public class KacheAutoConfig {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public Queue asyncDeleteCacheQueue() {
-        return new Queue(QUEUE_DELETE_CACHE);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Queue asyncUpdateCacheQueue() {
-        return new Queue(QUEUE_UPDATE_CACHE);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Queue asyncInsertCacheQueue() {
-        return new Queue(QUEUE_INSERT_CACHE);
-    }
-
-    @Bean
     public DaoCacheAop daoCacheAop() {
         return new DaoCacheAop() ;
     }
 
     @Bean
-    public ServiceClassAop serviceClassAop() {
-        return new ServiceClassAop() ;
+    public DaoLocator daoLocator() {
+        return new DaoLocator();
     }
 
     @Bean

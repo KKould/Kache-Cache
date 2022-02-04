@@ -10,6 +10,8 @@ public class DaoProperties {
 
     private int randomTime = 120;
 
+    private String mapperPackage = "";
+
     public int getLockTime() {
         return lockTime;
     }
@@ -32,5 +34,13 @@ public class DaoProperties {
 
     public void setRandomTime(int randomTime) {
         this.randomTime = randomTime;
+    }
+
+    public String getMapperPackage() {
+        return mapperPackage;
+    }
+
+    public void setMapperPackage(String mapperPackage) {
+        this.mapperPackage = mapperPackage;
     }
 }

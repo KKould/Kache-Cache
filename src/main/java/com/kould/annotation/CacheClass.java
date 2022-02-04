@@ -7,6 +7,6 @@ import java.lang.annotation.*;
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CacheBean {
-    Class<?> clazz();
+public @interface CacheClass {
+    Class<?> value();
 }

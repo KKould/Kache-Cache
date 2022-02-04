@@ -36,20 +36,26 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Autowired
     private KacheLock kacheLock ;
 
+    private static final String COLLECTION_KRYO = KryoUtil.writeToString(new ArrayList<>());
+
     private static final String METHOD_GET_ID = "getId" ;
 
     //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
     private static final  String SCRIPT_LUA_CACHE_GET =
                     "local keys = redis.call('lrange',KEYS[1],0,redis.call('llen',KEYS[1])) " +
+                    "local keySize = table.getn(keys) " +
                     "if(next(keys) == nil) " +
                     "then " +
                     "   return nil " +
+                    "elseif(keySize == 1) " +
+                     "then " +
+                    "   return keys " +
                     "end " +
-                    "local result = {} " +
-                    "table.insert(result,keys[1]) " +
+                    "local keyFirst = keys[1] " +
                     "table.remove(keys,1) " +
-                    "table.insert(result,redis.call('mget',unpack(keys))) " +
-                    "if(table.getn(keys) == (table.getn(result) - 1)) " +
+                    "local result = redis.call('mget',unpack(keys)) " +
+                    "table.insert(result,1,keyFirst) " +
+                    "if(keySize == table.getn(result)) " +
                     "then " +
                     "   return result " +
                     "else " +
@@ -166,7 +172,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
                 recordsField.setAccessible(true);
                 Collection<Object> records = (Collection) recordsField.get(result) ;
-                recordsField.set(result,null);
+                recordsField.set(result,Collections.emptyList());
                 collection2Lua(jedis, key, lua, keys, values, records, result);
                 recordsField.set(result,records);
             } else {
@@ -287,7 +293,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             if (page != null) {
                 values.add(KryoUtil.writeToString(page)) ;
             } else {
-                values.add("[]") ;
+                values.add(COLLECTION_KRYO) ;
             }
             keys.add(key);
         } else {
@@ -343,14 +349,13 @@ public class RedisCacheManager extends RemoteCacheManager {
                         return KryoUtil.readFromString(list.get(0));
                         //判断返回结果是否为Collection或其子类
                     } else if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
-                        List<Object> result = new ArrayList<>();
                         //跳过第一位数据的填充
                         for (int i = 1; i < list.size(); i++) {
                             records.add(KryoUtil.readFromString(list.get(i)));
                         }
                         //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
                         Collections.reverse(records);
-                        return result;
+                        return records;
                     } else {
                         //此时为包装类的情况
                         Object result = KryoUtil.readFromString(list.get(0));
