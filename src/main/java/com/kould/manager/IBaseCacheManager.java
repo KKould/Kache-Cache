@@ -22,24 +22,26 @@ public abstract class IBaseCacheManager {
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改
      * @param key 缓存Key
-     * @param beanClass 该操作类型
-     * @param lockKey 锁Key
      * @param point 切点
+     * @param types 类类型
      * @return 缓存具体数据
      * @throws Throwable
      */
-    public abstract Object daoWrite(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable;
+    public abstract Object daoWrite(String key, ProceedingJoinPoint point, String types) throws Throwable;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
      * 优先从进程间缓存获取数据（在进程缓存开启的情况下）
      * @param key 缓存Key
-     * @param beanClass 该操作类型
-     * @param lockKey 锁Key
+     * @param types 类类型
      * @return 缓存具体数据
      * @throws ExecutionException
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public abstract Object daoRead(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
+    public abstract Object daoRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
+
+    public abstract Object serviceWrite(String key, ProceedingJoinPoint point, String types) throws Throwable;
+
+    public abstract Object serviceRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
 }

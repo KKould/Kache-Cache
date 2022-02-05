@@ -318,11 +318,10 @@ public class RedisCacheManager extends RemoteCacheManager {
      *      应首条数据的反序列化，得到其状态后再如同Collection的处理
      *      填充其中配置文件所设置的对应数据集属性
      * @param key 索引值
-     * @param beanClass PO类型
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, Class<?> beanClass, String lockKey) throws NoSuchFieldException, IllegalAccessException {
+    public Object get(String key, String lockKey) throws NoSuchFieldException, IllegalAccessException {
         Jedis jedis = null;
         Lock readLock = null ;
         try {
@@ -380,6 +379,37 @@ public class RedisCacheManager extends RemoteCacheManager {
         } finally {
             close(jedis);
         }
+    }
+
+    @Override
+    public Object unLockGet(String key) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            return KryoUtil.readFromString(jedis.get(key));
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        } finally {
+            close(jedis);
+        }
+        return null ;
+    }
+
+    @Override
+    public Object unLockPut(String key, ProceedingJoinPoint point) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            Object proceed = point.proceed();
+            return jedis.set(key,KryoUtil.writeToString(proceed));
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        } finally {
+            close(jedis);
+        }
+        return null ;
     }
 
     @Override

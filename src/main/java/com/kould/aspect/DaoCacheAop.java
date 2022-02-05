@@ -71,8 +71,8 @@ public final class DaoCacheAop {
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
-            return cacheHandler.load(point, beanClass, listenerProperties.isEnable(), baseCacheManager::daoRead
-                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, beanClass.getName());
+            return cacheHandler.load(point, listenerProperties.isEnable(), baseCacheManager::daoRead
+                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, beanClass.getTypeName());
         } else {
             return point.proceed() ;
         }
@@ -81,7 +81,7 @@ public final class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
-        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.delete(point, getKacheMessage(point, beanClass)) ;
         } else {
@@ -92,7 +92,7 @@ public final class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutMyBatisPlusAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
-        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.insert(point, getKacheMessage(point, beanClass)) ;
         } else {
@@ -103,7 +103,7 @@ public final class DaoCacheAop {
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutMyBatisPlusEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
         log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
-        Class<?> beanClass = CLASS_MAP.get(point.getTarget());
+        Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.update(point, getKacheMessage(point, beanClass)) ;
         } else {

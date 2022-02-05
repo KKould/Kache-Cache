@@ -1,7 +1,7 @@
 package com.kould.locator;
 
 import cn.hutool.core.util.StrUtil;
-import com.kould.annotation.CacheClass;
+import com.kould.annotation.DaoClass;
 import com.kould.aspect.DaoCacheAop;
 import com.kould.config.DaoProperties;
 import org.springframework.beans.BeansException;
@@ -19,12 +19,12 @@ public class DaoLocator implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         String mapperPackage = daoProperties.getMapperPackage();
-        Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(CacheClass.class);
+        Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(DaoClass.class);
         for (Map.Entry<String, Object> stringObjectEntry : beansWithAnnotation.entrySet()) {
             try {
                 Class<?> aClass = Class.forName(
                         mapperPackage + "." + StrUtil.upperFirst(stringObjectEntry.getKey()));
-                CacheClass annotation = aClass.getAnnotation(CacheClass.class);
+                DaoClass annotation = aClass.getAnnotation(DaoClass.class);
                 Class<?> clazz = annotation.value();
                 DaoCacheAop.CLASS_MAP.put(stringObjectEntry.getValue().toString(), clazz);
             } catch (ClassNotFoundException e) {

@@ -25,12 +25,12 @@ public class BaseCacheEncoder extends CacheEncoder {
 
 
     @Override
-    public String encode(String MethodStatus, String daoEnityName, String daoMethodName, String daoArgs) {
+    public String encode(String MethodStatus, String daoEnityName, String methodName, String args) {
         return KacheAutoConfig.NO_ID_TAG +
                 MethodStatus +
                 daoEnityName +
-                daoMethodName +
-                daoArgs ;
+                methodName +
+                args ;
 
     }
 
@@ -48,7 +48,7 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String getDaoKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method, Object args, String types) {
+    public String getDaoKey(ProceedingJoinPoint point, String methodName, Method method, Object args, String types) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
@@ -75,7 +75,7 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String getServiceKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method, Object args, String types) {
+    public String getServiceKey(ProceedingJoinPoint point, String methodName, Method method, Object args, String types) {
         String argsCode = argsEncode(point.getArgs());
         return encode(Status.BY_FIELD.getValue(), types, methodName, argsCode) ;
     }

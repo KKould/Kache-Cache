@@ -31,15 +31,14 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
     
     @Override
-    public <T> T update(String key, T result, Class<?> resultClass) {
+    public <T> T update(String key, T result, String types) {
 
         return result;
     }
 
     @Override
-    public Object get(String key, Class<?> beanClass) throws ExecutionException {
-        String name = beanClass.getName();
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
+    public Object get(String key, String types) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
         if (cache == null) {
             return null ;
         } else {
@@ -57,25 +56,23 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
 
     @Override
-    public void clear(Class<?> beanClass) throws ExecutionException {
-        String name = beanClass.getName();
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
+    public void clear(String types) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
         if (cache != null) {
             cache.invalidateAll();
         }
     }
 
     @Override
-    public <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException {
-        String name = beanClass.getName();
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(name);
+    public <T> T put(String key, T result,String types) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
         if (cache == null) {
             cache = CacheBuilder.newBuilder()
                     .weakValues()
                     .expireAfterAccess(strategyHandler.getCacheTime(),TimeUnit.SECONDS)
                     .maximumSize(interprocessCacheProperties.getSize())
                     .build() ;
-            GUAVA_CACHE_MAP.put(name, cache);
+            GUAVA_CACHE_MAP.put(types, cache);
         }
         if (result != null) {
             cache.put(key,result);

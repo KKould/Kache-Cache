@@ -7,6 +7,6 @@ import org.aspectj.lang.ProceedingJoinPoint;
 
 public abstract class CacheHandler {
 
-    public abstract Object load(ProceedingJoinPoint point, Class<?> beanClass, boolean listenerEnable
+    public abstract Object load(ProceedingJoinPoint point, boolean listenerEnable
             , ReadFunction readFunction, WriteFunction writeFunction, KeyFunction keyFunction , String types) throws Throwable ;
 }

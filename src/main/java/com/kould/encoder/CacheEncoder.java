@@ -10,6 +10,6 @@ public abstract class CacheEncoder {
     public abstract String encode(String MethodStatus, String daoEnityName, String daoMethodName, String daoArgs) ;
     public abstract String argsEncode(Object... args) ;
     public abstract String getPattern(String poName) ;
-    public abstract String getDaoKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method , Object args, String types) ;
-    public abstract String getServiceKey(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method , Object args, String types) ;
+    public abstract String getDaoKey(ProceedingJoinPoint point, String methodName, Method method , Object args, String types) ;
+    public abstract String getServiceKey(ProceedingJoinPoint point, String methodName, Method method , Object args, String types) ;
 }

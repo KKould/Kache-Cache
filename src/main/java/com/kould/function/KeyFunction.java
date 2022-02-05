@@ -6,5 +6,5 @@ import java.lang.reflect.Method;
 
 @FunctionalInterface
 public interface KeyFunction {
-    Object encode(ProceedingJoinPoint point, Class<?> beanClass, String methodName, Method method , Object args, String types) ;
+    Object encode(ProceedingJoinPoint point, String methodName, Method method , Object args, String types) ;
 }

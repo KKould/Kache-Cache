@@ -4,5 +4,5 @@ import org.aspectj.lang.ProceedingJoinPoint;
 
 @FunctionalInterface
 public interface WriteFunction {
-    Object write(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable;
+    Object write(String key, ProceedingJoinPoint point, String types) throws Throwable;
 }

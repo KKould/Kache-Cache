@@ -18,8 +18,8 @@ public abstract class InterprocessCacheManager {
     @Autowired
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
-    public abstract <T> T update(String key,T result, Class<?> beanClass) ;
-    public abstract Object get(String key, Class<?> beanClass) throws ExecutionException;
-    public abstract void clear(Class<?> beanClass) throws ExecutionException;
-    public abstract <T> T put(String key, T result, Class<?> beanClass) throws ExecutionException;
+    public abstract <T> T update(String key,T result, String types) ;
+    public abstract Object get(String key, String types);
+    public abstract void clear(String types);
+    public abstract <T> T put(String key, T result, String types);
 }

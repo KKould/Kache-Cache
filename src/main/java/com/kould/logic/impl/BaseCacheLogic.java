@@ -42,7 +42,7 @@ public class BaseCacheLogic extends CacheLogic {
 
     public void updateRemoteCache(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         Class<?> resultClass = msg.getCacheClazz();
-        String lockKey = resultClass.getSimpleName();
+        String lockKey = resultClass.getTypeName();
         Lock writeLock = null;
         try {
             List<String> delKeys = new ArrayList<>();
@@ -90,7 +90,7 @@ public class BaseCacheLogic extends CacheLogic {
 
     private void deleteCacheByKey(KacheMessage msg) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         Class<?> resultClass = msg.getCacheClazz();
-        String lockKey = resultClass.getSimpleName();
+        String lockKey = msg.getCacheClazz().getTypeName();
         Lock writeLock = null;
         try {
             List<String> delKeys = new ArrayList<>();
@@ -125,11 +125,11 @@ public class BaseCacheLogic extends CacheLogic {
     }
 
     private void interprocessCacheClear(KacheMessage msg, KacheLock kacheLock, InterprocessCacheManager interprocessCacheManager) throws ExecutionException {
-        String lockKey = msg.getCacheClazz().getSimpleName();
+        String lockKey = msg.getCacheClazz().getTypeName();
         Lock writeLock = null ;
         try {
             writeLock = kacheLock.writeLock(lockKey);
-            interprocessCacheManager.clear(msg.getCacheClazz()); ;
+            interprocessCacheManager.clear(lockKey); ;
             kacheLock.unLock(writeLock);
         } catch (Exception e) {
             if (kacheLock.isLockedByThisThread(writeLock)) {

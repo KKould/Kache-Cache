@@ -24,30 +24,41 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoWrite(String key, Class<?> beanClass, String lockKey, ProceedingJoinPoint point) throws Throwable {
-        Object result = remoteCacheManager.put(key, lockKey, point);
+    public Object daoWrite(String key, ProceedingJoinPoint point, String types) throws Throwable {
+        Object result = remoteCacheManager.put(key, types, point);
         if (interprocessCacheProperties.isEnable()) {
-            interprocessCacheManager.put(key, result, beanClass) ;
+            interprocessCacheManager.put(key, result, types) ;
         }
         return result;
     }
 
     @Override
-    public Object daoRead(String key, Class<?> beanClass, String lockKey) throws ExecutionException, NoSuchFieldException, IllegalAccessException {
+    public Object daoRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException {
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
-            result =interprocessCacheManager.get(key, beanClass) ;
+            result =interprocessCacheManager.get(key, types) ;
         }
         if (result == null) {
-            result = remoteCacheManager.get(key, beanClass, lockKey) ;
+            result = remoteCacheManager.get(key, types) ;
             if (interprocessCacheProperties.isEnable()) {
                 if (result != null) {
-                    interprocessCacheManager.put(key, result, beanClass) ;
+                    interprocessCacheManager.put(key, result, types) ;
                 }
             }
         }
         return result ;
     }
+
+    @Override
+    public Object serviceWrite(String key, ProceedingJoinPoint point, String types) {
+        return remoteCacheManager.unLockPut(key,point);
+    }
+
+    @Override
+    public Object serviceRead(String key, String types) {
+        return remoteCacheManager.unLockGet(key);
+    }
+
 
     private Object readResolve() {
         return INSTANCE;
