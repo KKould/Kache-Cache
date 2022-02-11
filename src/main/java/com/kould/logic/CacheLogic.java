@@ -20,15 +20,15 @@ public abstract class CacheLogic {
     @Autowired
     protected InterprocessCacheManager interprocessCacheManager ;
 
-    public abstract void deleteRemoteCache(KacheMessage msg) throws Exception;
+    public abstract void deleteRemoteCache(KacheMessage msg) throws Throwable;
 
     public abstract void deleteInterprocessCache(KacheMessage msg) throws Exception;
 
-    public abstract void updateRemoteCache(KacheMessage msg) throws Exception;
+    public abstract void updateRemoteCache(KacheMessage msg) throws Exception, Throwable;
 
     public abstract void updateInterprocessCache(KacheMessage msg) throws Exception;
 
-    public abstract void insertRemoteCache(KacheMessage msg) throws Exception;
+    public abstract void insertRemoteCache(KacheMessage msg) throws Throwable;
 
     public abstract void insertInterprocessCache(KacheMessage msg) throws Exception;
 }

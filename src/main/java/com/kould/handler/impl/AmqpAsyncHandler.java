@@ -76,7 +76,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = {QUEUE_DELETE_CACHE})
-    public void listen2DeleteRemote(KacheMessage msg) throws Exception {
+    public void listen2DeleteRemote(KacheMessage msg) throws Throwable {
         cacheLogic.deleteRemoteCache(msg);
     }
 
@@ -91,7 +91,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
-    public void listen2UpdateRemote(KacheMessage msg) throws Exception {
+    public void listen2UpdateRemote(KacheMessage msg) throws Throwable {
         cacheLogic.updateRemoteCache(msg);
     }
 
@@ -106,7 +106,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = QUEUE_INSERT_CACHE)
-    public void listen2InsertRemote(KacheMessage msg) throws Exception {
+    public void listen2InsertRemote(KacheMessage msg) throws Throwable {
         cacheLogic.insertRemoteCache(msg);
     }
 

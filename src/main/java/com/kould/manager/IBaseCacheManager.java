@@ -39,9 +39,9 @@ public abstract class IBaseCacheManager {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    public abstract Object daoRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
+    public abstract Object daoRead(String key, String types) throws Throwable;
 
     public abstract Object serviceWrite(String key, ProceedingJoinPoint point, String types) throws Throwable;
 
-    public abstract Object serviceRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException;
+    public abstract Object serviceRead(String key, String types) throws Throwable;
 }

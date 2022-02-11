@@ -10,6 +10,10 @@ public class DaoProperties {
 
     private int randomTime = 120;
 
+    private int poolMaxTotal = 20;
+
+    private int poolMaxIdle = 5;
+
     private String mapperPackage = "";
 
     public int getLockTime() {
@@ -34,6 +38,22 @@ public class DaoProperties {
 
     public void setRandomTime(int randomTime) {
         this.randomTime = randomTime;
+    }
+
+    public int getPoolMaxTotal() {
+        return poolMaxTotal;
+    }
+
+    public void setPoolMaxTotal(int poolMaxTotal) {
+        this.poolMaxTotal = poolMaxTotal;
+    }
+
+    public int getPoolMaxIdle() {
+        return poolMaxIdle;
+    }
+
+    public void setPoolMaxIdle(int poolMaxIdle) {
+        this.poolMaxIdle = poolMaxIdle;
     }
 
     public String getMapperPackage() {

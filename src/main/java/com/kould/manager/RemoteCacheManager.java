@@ -19,11 +19,11 @@ public abstract class RemoteCacheManager {
     public abstract Object getNullValue() ;
 
     public abstract Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable;
-    public abstract List<String> keys(String pattern) ;
-    public abstract Long del(String... keys) ;
-    public abstract <T> T updateById(String id,T result) ;
-    public abstract Object get(String key, String lockKey) throws NoSuchFieldException, IllegalAccessException;
+    public abstract List<String> keys(String pattern) throws Throwable;
+    public abstract Long del(String... keys) throws Throwable;
+    public abstract Object updateById(String id,Object result) throws Throwable;
+    public abstract Object get(String key, String lockKey) throws Throwable;
 
-    public abstract Object unLockGet(String key);
-    public abstract Object unLockPut(String key, ProceedingJoinPoint point);
+    public abstract Object unLockGet(String key) throws Throwable;
+    public abstract Object unLockPut(String key, ProceedingJoinPoint point) throws Throwable;
 }

@@ -33,7 +33,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoRead(String key, String types) throws ExecutionException, NoSuchFieldException, IllegalAccessException {
+    public Object daoRead(String key, String types) throws Throwable {
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
             result =interprocessCacheManager.get(key, types) ;
@@ -50,12 +50,12 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object serviceWrite(String key, ProceedingJoinPoint point, String types) {
+    public Object serviceWrite(String key, ProceedingJoinPoint point, String types) throws Throwable {
         return remoteCacheManager.unLockPut(key,point);
     }
 
     @Override
-    public Object serviceRead(String key, String types) {
+    public Object serviceRead(String key, String types) throws Throwable {
         return remoteCacheManager.unLockGet(key);
     }
 

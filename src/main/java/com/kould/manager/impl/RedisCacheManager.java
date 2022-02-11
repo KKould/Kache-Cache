@@ -5,13 +5,14 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.KacheAutoConfig;
 import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
+import com.kould.service.RedisService;
 import com.kould.utils.KryoUtil;
+import io.lettuce.core.ScriptOutputType;
+import io.lettuce.core.api.sync.RedisCommands;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
@@ -31,7 +32,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     private static final Logger log = LoggerFactory.getLogger(RedisCacheManager.class) ;
 
     @Autowired
-    private JedisPool jedisPool;
+    private RedisService redisService;
 
     @Autowired
     private KacheLock kacheLock ;
@@ -100,32 +101,21 @@ public class RedisCacheManager extends RemoteCacheManager {
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
      */
     @PostConstruct
-    private void init() {
-        Jedis jedis = null ;
-        try {
-            jedis = jedisPool.getResource();
-            scriptGetSHA1 = scriptLoad(jedis, SCRIPT_GET_KACHE,SCRIPT_LUA_CACHE_GET) ;
-            scriptKeysSHA1 = scriptLoad(jedis, SCRIPT_KEYS_KACHE,SCRIPT_LUA_CACHE_KEYS) ;
-        } catch (Exception e) {
-            log.error(e.getMessage(),e);
-        } finally {
-            close(jedis);
-        }
+    private void init() throws Throwable {
+        redisService.executeSync(commands -> {
+            scriptGetSHA1 = scriptLoad(commands, SCRIPT_GET_KACHE,SCRIPT_LUA_CACHE_GET) ;
+            scriptKeysSHA1 = scriptLoad(commands, SCRIPT_KEYS_KACHE,SCRIPT_LUA_CACHE_KEYS) ;
+            return true;
+        });
     }
 
-    private String scriptLoad(Jedis jedis, String tag, String script) {
-        String sha1 = jedis.get(tag);
-        if (sha1 ==null || !jedis.scriptExists(sha1)) {
-            sha1 = jedis.scriptLoad(script) ;
-            jedis.set(tag, sha1) ;
+    private String scriptLoad(RedisCommands<String, String> commands, String tag, String script) {
+        String sha1 = commands.get(tag);
+        if (sha1 ==null || !commands.scriptExists(sha1).get(0)) {
+            sha1 = commands.scriptLoad(script) ;
+            commands.set(tag, sha1) ;
         }
         return sha1;
-    }
-
-    private void close(Jedis jedis) {
-        if (jedis != null) {
-            jedis.close();
-        }
     }
 
     @Override
@@ -157,73 +147,72 @@ public class RedisCacheManager extends RemoteCacheManager {
      */
     @Override
     public Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable {
-        Jedis jedis = null;
-        Lock writeLock = null;
-        try {
-            jedis = jedisPool.getResource();
-            StringBuilder lua = new StringBuilder();
-            List<String> keys = new ArrayList<>() ;
-            List<String> values = new ArrayList<>() ;
-            writeLock = kacheLock.writeLock(lockKey);
-            Object result = point.proceed();
-            if (result instanceof Collection) {
-                collection2Lua(jedis, key, lua, keys, values, (Collection) result,null);
-            } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
-                Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
-                recordsField.setAccessible(true);
-                Collection<Object> records = (Collection) recordsField.get(result) ;
-                recordsField.set(result,Collections.emptyList());
-                collection2Lua(jedis, key, lua, keys, values, records, result);
-                recordsField.set(result,records);
-            } else {
-                lua.append("redis.call('setex',KEYS[1],")
-                        .append(strategyHandler.getCacheTime())
-                        .append(",ARGV[1]);");
-                String id = null ;
-                if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
-                    //若为ID方法，则直接将key赋值给id
-                    id = key ;
-                } else if (result != null) {
-                    //获取条件方法单结果
-                    Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
-                    id = KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(result).toString() ;
+        return redisService.executeSync(commands -> {
+            Lock writeLock = null;
+            try {
+                StringBuilder lua = new StringBuilder();
+                List<String> keys = new ArrayList<>() ;
+                List<String> values = new ArrayList<>() ;
+                writeLock = kacheLock.writeLock(lockKey);
+                Object result = point.proceed();
+                if (result instanceof Collection) {
+                    collection2Lua(commands, key, lua, keys, values, (Collection) result,null);
+                } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
+                    Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
+                    recordsField.setAccessible(true);
+                    Collection<Object> records = (Collection) recordsField.get(result) ;
+                    recordsField.set(result,Collections.emptyList());
+                    collection2Lua(commands, key, lua, keys, values, records, result);
+                    recordsField.set(result,records);
                 } else {
-                    id = KacheAutoConfig.CACHE_PREFIX + getNullTag() ;
-                }
-                if (result == null) {
-                    values.add((String) getNullValue()) ;
-                } else {
-                    values.add(KryoUtil.writeToString(result)) ;
-                }
-                keys.add(id) ;
-                //判断此时是否为id获取的单结果或者为条件查询获取的单结果
-                if (!key.equals(id)) {
-                    keys.add(key) ;
-                    values.add(id) ;
-                    lua.append("redis.call('del',KEYS[2]);");
-                    lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
-                    lua.append("return redis.call('expire',KEYS[2],")
+                    lua.append("redis.call('setex',KEYS[1],")
                             .append(strategyHandler.getCacheTime())
-                            .append(");");
+                            .append(",ARGV[1]);");
+                    String id = null ;
+                    if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                        //若为ID方法，则直接将key赋值给id
+                        id = key ;
+                    } else if (result != null) {
+                        //获取条件方法单结果
+                        Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
+                        id = KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(result).toString() ;
+                    } else {
+                        id = KacheAutoConfig.CACHE_PREFIX + getNullTag() ;
+                    }
+                    if (result == null) {
+                        values.add((String) getNullValue()) ;
+                    } else {
+                        values.add(KryoUtil.writeToString(result)) ;
+                    }
+                    keys.add(id) ;
+                    //判断此时是否为id获取的单结果或者为条件查询获取的单结果
+                    if (!key.equals(id)) {
+                        keys.add(key) ;
+                        values.add(id) ;
+                        lua.append("redis.call('del',KEYS[2]);");
+                        lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
+                        lua.append("return redis.call('expire',KEYS[2],")
+                                .append(strategyHandler.getCacheTime())
+                                .append(");");
+                    }
                 }
-            }
-            jedis.eval(lua.toString(),keys,values) ;
-            kacheLock.unLock(writeLock);
-            return result ;
-        } catch (Exception e) {
-            if (writeLock != null && kacheLock.isLockedByThisThread(writeLock)) {
+                commands.eval(lua.toString(), ScriptOutputType.MULTI
+                        , keys.toArray(new String[keys.size()]), values.toArray(new String[values.size()])) ;
                 kacheLock.unLock(writeLock);
+                return result ;
+            } catch (Exception e) {
+                if (writeLock != null && kacheLock.isLockedByThisThread(writeLock)) {
+                    kacheLock.unLock(writeLock);
+                }
+                throw e ;
             }
-            throw e ;
-        } finally {
-            close(jedis);
-        }
+        });
     }
 
-    private void collection2Lua(Jedis jedis, String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records , Object page) throws Exception {
+    private void collection2Lua(RedisCommands<String, String> commands, String key, StringBuilder lua, List<String> keys, List<String> values, Collection<Object> records , Object page) throws Exception {
         StringBuilder idsNum = new StringBuilder();
         StringBuilder echo = new StringBuilder() ;
-        ArrayList<String> echoIds ;
+        List<String> echoIds ;
         int count = 0;
         int delCount = 0 ;
         Iterator<Object> iterator = records.iterator();
@@ -249,8 +238,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         .append("end ") ;
             }
             echo.append("return result ") ;
-            //脚本生成完毕并执行 ！
-            echoIds = (ArrayList<String>) jedis.eval(echo.toString(), keys.size()
+            echoIds = commands.eval(echo.toString(), ScriptOutputType.MULTI
                     , keys.toArray(new String[keys.size()]));
             for (Object record : records) {
                 count ++ ;
@@ -321,150 +309,103 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, String lockKey) throws NoSuchFieldException, IllegalAccessException {
-        Jedis jedis = null;
-        Lock readLock = null ;
-        try {
-            jedis = jedisPool.getResource();
-            //判断是否为直接通过ID获取单条方法
-            if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
-                readLock = kacheLock.readLock(lockKey);
-                String result = jedis.get(key);
-                kacheLock.unLock(readLock);
-                if (result != null) {
-                    return KryoUtil.readFromString(result);
-                } else {
-                    return null ;
-                }
-            } else {
-                //为条件查询方法
-                readLock = kacheLock.readLock(lockKey);
-                List<String> list = (ArrayList) jedis.evalsha(scriptGetSHA1, 1, key);
-                kacheLock.unLock(readLock);
-                List<Object> records = new ArrayList<>();
-                if (list != null && !list.isEmpty()) {
-                    //判断结果是否为单个POBean
-                    if (list.size() == 1) {
-                        return KryoUtil.readFromString(list.get(0));
-                        //判断返回结果是否为Collection或其子类
-                    } else if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
-                        //跳过第一位数据的填充
-                        for (int i = 1; i < list.size(); i++) {
-                            records.add(KryoUtil.readFromString(list.get(i)));
-                        }
-                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                        Collections.reverse(records);
-                        return records;
+    public Object get(String key, String lockKey) throws Throwable {
+        return redisService.executeSync(commands -> {
+            Lock readLock = null ;
+            try {
+                //判断是否为直接通过ID获取单条方法
+                if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                    readLock = kacheLock.readLock(lockKey);
+                    String result = commands.get(key);
+                    kacheLock.unLock(readLock);
+                    if (result != null) {
+                        return KryoUtil.readFromString(result);
                     } else {
-                        //此时为包装类的情况
-                        Object result = KryoUtil.readFromString(list.get(0));
-                        Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
-                        recordsField.setAccessible(true);
-                        recordsField.set(result, records);
-                        //跳过第一位数据的填充
-                        for (int i = 1; i < list.size(); i++) {
-                            records.add(KryoUtil.readFromString(list.get(i)));
-                        }
-                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                        Collections.reverse(records);
-                        return result;
+                        return null ;
                     }
-                } else return null;
+                } else {
+                    //为条件查询方法
+                    readLock = kacheLock.readLock(lockKey);
+                    List<String> list = commands.evalsha(scriptGetSHA1, ScriptOutputType.MULTI, key);
+                    kacheLock.unLock(readLock);
+                    List<Object> records = new ArrayList<>();
+                    if (list != null && !list.isEmpty() && list.get(0) != null) {
+                        //判断结果是否为单个POBean
+                        if (list.size() == 1) {
+                            return KryoUtil.readFromString(list.get(0));
+                            //判断返回结果是否为Collection或其子类
+                        } else if (KryoUtil.readFromString(list.get(0)) instanceof Collection) {
+                            //跳过第一位数据的填充
+                            for (int i = 1; i < list.size(); i++) {
+                                records.add(KryoUtil.readFromString(list.get(i)));
+                            }
+                            //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                            Collections.reverse(records);
+                            return records;
+                        } else {
+                            //此时为包装类的情况
+                            Object result = KryoUtil.readFromString(list.get(0));
+                            Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
+                            recordsField.setAccessible(true);
+                            recordsField.set(result, records);
+                            //跳过第一位数据的填充
+                            for (int i = 1; i < list.size(); i++) {
+                                records.add(KryoUtil.readFromString(list.get(i)));
+                            }
+                            //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                            Collections.reverse(records);
+                            return result;
+                        }
+                    } else return null;
+                }
+            } catch (Exception e) {
+                if (readLock != null && kacheLock.isLockedByThisThread(readLock)) {
+                    kacheLock.unLock(readLock);
+                }
+                throw e ;
             }
-        } catch (Exception e) {
-            if (readLock != null && kacheLock.isLockedByThisThread(readLock)) {
-                kacheLock.unLock(readLock);
-            }
-            throw e ;
-        } finally {
-            close(jedis);
-        }
+        }) ;
     }
 
     @Override
-    public Object unLockGet(String key) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            return KryoUtil.readFromString(jedis.get(key));
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            close(jedis);
-        }
-        return null ;
+    public Object unLockGet(String key) throws Throwable {
+        return redisService.executeSync(commands -> commands.get(key));
     }
 
     @Override
-    public Object unLockPut(String key, ProceedingJoinPoint point) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
+    public Object unLockPut(String key, ProceedingJoinPoint point) throws Throwable {
+        return redisService.executeSync(commands -> {
             Object proceed = point.proceed();
-            return jedis.set(key,KryoUtil.writeToString(proceed));
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
-        } finally {
-            close(jedis);
-        }
-        return null ;
+            return commands.set(key,KryoUtil.writeToString(proceed));
+        });
     }
 
     @Override
-    public List<String> keys(String pattern) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            return (ArrayList<String>)jedis.evalsha(scriptKeysSHA1, 1, pattern);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            close(jedis);
-        }
-        return null ;
+    public List<String> keys(String pattern) throws Throwable {
+        return redisService.executeSync(
+                commands -> commands.evalsha(scriptKeysSHA1, ScriptOutputType.MULTI, pattern));
     }
 
     @Override
-    public Long del(String... keys) {
-        Jedis jedis = null;
-        try {
-            if (keys != null) {
-                jedis = jedisPool.getResource();
-                return jedis.del(keys);
-            }
-            return 0L;
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            close(jedis);
-        }
-        return 0L;
+    public Long del(String... keys) throws Throwable {
+        return redisService.executeSync(commands -> commands.del(keys));
     }
 
     @Override
-    public <T> T updateById(String id, T result) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            String key = KacheAutoConfig.CACHE_PREFIX + id ;
-            String s = jedis.get(key);
-            if (s != null) {
-                Object target = KryoUtil.readFromString(s) ;
-                BeanUtil.copyProperties(result, target,
-                        true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-                jedis.setex(key, strategyHandler.getCacheTime(), KryoUtil.writeToString(target));
-                return (T) target;
-            } else {
-                return null ;
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        } finally {
-            close(jedis);
-        }
-        return null ;
+    public Object updateById(String id, Object result) throws Throwable {
+       return redisService.executeSync(commands -> {
+           String key = KacheAutoConfig.CACHE_PREFIX + id ;
+           String s = commands.get(key);
+           if (s != null) {
+               Object target = KryoUtil.readFromString(s) ;
+               BeanUtil.copyProperties(result, target,
+                       true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
+               commands.setex(key, strategyHandler.getCacheTime(), KryoUtil.writeToString(target));
+               return target;
+           } else {
+               return null ;
+           }
+       });
     }
 
     /**
