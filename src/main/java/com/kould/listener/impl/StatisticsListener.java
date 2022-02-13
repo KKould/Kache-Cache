@@ -49,7 +49,7 @@ public class StatisticsListener extends CacheListener {
     }
 
     private MethodStatistic getMethodStatistic(String key, KacheMessage msg) {
-        String fullName = msg.getCacheClazz().getName() + "."+ msg.getMethodName();
+        String fullName = msg.getTypes() + "."+ msg.getMethodName();
         MethodStatistic methodStatistic = STATISTIC_MAP.computeIfAbsent(fullName, k -> new MethodStatistic());
         methodStatistic.getKey_set().add(key);
         return methodStatistic;

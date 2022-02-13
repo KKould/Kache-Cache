@@ -53,14 +53,14 @@ public class BaseCacheHandler extends CacheHandler {
                 result = readFunction.read(key , types);
                 if (result == null) {
                     //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
-                    ListenerHandler.notHit(key, methodName, daoArgs, listenerEnable);
+                    ListenerHandler.notHit(key, methodName, daoArgs, types, listenerEnable);
                     result = writeFunction.write(key , point, types);
                 } else {
                     //将同步后获取缓存的线程的命中也计数
-                    ListenerHandler.hit(key, methodName, daoArgs, listenerEnable);
+                    ListenerHandler.hit(key, methodName, daoArgs, types, listenerEnable);
                 }
             } else {
-                ListenerHandler.hit(key, methodName, daoArgs, listenerEnable);
+                ListenerHandler.hit(key, methodName, daoArgs, types, listenerEnable);
             }
             //空值替换
             if (baseCacheManager.getNullValue().equals(result)) {

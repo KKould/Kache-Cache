@@ -20,6 +20,7 @@ import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
+import com.kould.rest.KacheRest;
 import com.kould.service.RedisService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -127,5 +128,10 @@ public class KacheAutoConfig {
     @ConditionalOnMissingBean
     public CacheHandler cacheHandler() {
         return new BaseCacheHandler() ;
+    }
+
+    @Bean
+    public KacheRest kacheRest() {
+        return new KacheRest();
     }
 }
