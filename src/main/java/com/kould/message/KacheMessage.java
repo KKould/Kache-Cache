@@ -9,13 +9,13 @@ public class KacheMessage implements Serializable {
 
     //Method无法被序列化
     private String methodName ;
-    private Object arg ;
+    private Object[] arg ;
     private Class<?> cacheClazz ;
     private String types;
 
     public static class Builder implements com.kould.type.Builder<KacheMessage> {
         private String methodName ;
-        private Object arg ;
+        private Object[] arg ;
         private Class<?> cacheClazz ;
         private String types;
 
@@ -26,7 +26,7 @@ public class KacheMessage implements Serializable {
             return this ;
         }
 
-        public Builder arg(Object arg) {
+        public Builder arg(Object[] arg) {
             this.arg = arg;
             return this ;
         }
@@ -50,7 +50,7 @@ public class KacheMessage implements Serializable {
     public KacheMessage() {
     }
 
-    public KacheMessage(String methodName, Object arg, Class<?> cacheClazz, String types) {
+    public KacheMessage(String methodName, Object[] arg, Class<?> cacheClazz, String types) {
         this.methodName = methodName;
         this.arg = arg;
         this.cacheClazz = cacheClazz;
@@ -72,7 +72,7 @@ public class KacheMessage implements Serializable {
         return methodName;
     }
 
-    public Object getArg() {
+    public Object[] getArg() {
         return arg;
     }
 

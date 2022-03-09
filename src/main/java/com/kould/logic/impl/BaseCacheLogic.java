@@ -43,6 +43,7 @@ public class BaseCacheLogic extends CacheLogic {
     public void updateRemoteCache(KacheMessage msg) throws Throwable {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = resultClass.getTypeName();
+        Object arg = msg.getArg()[0];
         Lock writeLock = null;
         try {
             List<String> delKeys = new ArrayList<>();
@@ -55,10 +56,10 @@ public class BaseCacheLogic extends CacheLogic {
             writeLock = kacheLock.writeLock(lockKey);
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
-            if (resultClass.isAssignableFrom(msg.getArg().getClass())){
-                Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
+            if (resultClass.isAssignableFrom(arg.getClass())){
+                Method methodGetId = arg.getClass().getMethod(METHOD_GET_ID, null);
                 log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
-                remoteCacheManager.updateById(methodGetId.invoke(msg.getArg()).toString(),msg.getArg()) ;
+                remoteCacheManager.updateById(methodGetId.invoke(arg).toString(),arg) ;
             }
             //==========下为重复代码
             if (delKeys.size() > 0) {
@@ -91,6 +92,7 @@ public class BaseCacheLogic extends CacheLogic {
     private void deleteCacheByKey(KacheMessage msg) throws Throwable {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = msg.getCacheClazz().getTypeName();
+        Object arg = msg.getArg()[0];
         Lock writeLock = null;
         try {
             List<String> delKeys = new ArrayList<>();
@@ -104,11 +106,11 @@ public class BaseCacheLogic extends CacheLogic {
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
             log.info("\r\nKache:+++++++++Redis缓存删除检测....");
-            if (msg.getArg() instanceof String) {
-                delKeys.add(msg.getArg().toString()) ;
-            } else if (resultClass.isAssignableFrom(msg.getArg().getClass())){
-                Method methodGetId = msg.getArg().getClass().getMethod(METHOD_GET_ID, null);
-                delKeys.add(methodGetId.invoke(msg.getArg()).toString()) ;
+            if (arg instanceof String) {
+                delKeys.add((String) arg) ;
+            } else if (resultClass.isAssignableFrom(arg.getClass())){
+                Method methodGetId = arg.getClass().getMethod(METHOD_GET_ID, null);
+                delKeys.add(methodGetId.invoke(arg).toString()) ;
             }
             //==========下为重复代码
             if (delKeys.size() > 0) {

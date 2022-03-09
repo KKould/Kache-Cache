@@ -24,7 +24,7 @@ public final class ListenerHandler {
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void hit(String key, String methodName, Object arg, String types, boolean enable) {
+    public static void hit(String key, String methodName, Object[] arg, String types, boolean enable) {
         if (enable) {
             executorService.execute(() -> {
                 for (CacheListener cacheListener : CACHE_LISTENER_LIST) {
@@ -39,7 +39,7 @@ public final class ListenerHandler {
     }
 
     //异步方法，不影响DaoCacheAop中的执行时间
-    public static void notHit(String key, String methodName, Object arg, String types, boolean enable) {
+    public static void notHit(String key, String methodName, Object[] arg, String types, boolean enable) {
         if (enable) {
             executorService.execute(() -> {
                 for (CacheListener cacheListener : CACHE_LISTENER_LIST) {

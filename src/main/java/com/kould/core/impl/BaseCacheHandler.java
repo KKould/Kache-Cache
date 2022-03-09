@@ -42,7 +42,7 @@ public class BaseCacheHandler extends CacheHandler {
         ReentrantLock methodLock = REENTRANT_LOCK_MAP.computeIfAbsent(lockKey, k -> new ReentrantLock()) ;
         try {
             //key拼接命名空间前缀
-            Object daoArgs = point.getArgs();
+            Object[] daoArgs = point.getArgs();
             String key = KacheAutoConfig.CACHE_PREFIX + keyFunction.encode(point, methodName, daoMethod, daoArgs, types);
             //获取缓存
             result = readFunction.read(key , types);
