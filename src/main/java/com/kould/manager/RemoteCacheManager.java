@@ -5,8 +5,6 @@ import com.kould.handler.StrategyHandler;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.List;
-
 public abstract class RemoteCacheManager {
 
     @Autowired
@@ -18,7 +16,7 @@ public abstract class RemoteCacheManager {
     public abstract String getNullTag() ;
 
     public abstract Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable;
-    public abstract List<String> keys(String pattern) throws Throwable;
+    public abstract Boolean delKeys(String pattern) throws Throwable;
     public abstract Long del(String... keys) throws Throwable;
     public abstract Object updateById(String id,Object result) throws Throwable;
     public abstract Object get(String key, String lockKey) throws Throwable;

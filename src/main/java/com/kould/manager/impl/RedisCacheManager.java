@@ -66,25 +66,31 @@ public class RedisCacheManager extends RemoteCacheManager {
                     "end " ;
 
     //Lua脚本，用于在Reids中获取符合表达式的索引
-    private static final  String SCRIPT_LUA_CACHE_KEYS =
+    private static final  String SCRIPT_LUA_CACHE_DEL_KEYS =
                     "local cursor = 0 " +
                     "local resp = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
                     "cursor = tonumber(resp[1]) " +
-                    "local result = resp[2] " +
+                    "for key,value in pairs(resp[2]) do " +
+                    "    if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
+                    "    then " +
+                    "       redis.call('del',value) " +
+                    "    end " +
+                    "end " +
                     "while(cursor ~= 0) do " +
                     "    local resp1 = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
                     "    cursor = tonumber(resp1[1]) " +
                     "       for key,value in pairs(resp1[2]) do " +
-                    "           table.insert(result,value) " +
+                    "           if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
+                    "           then " +
+                    "               redis.call('del',value) " +
+                    "           end " +
                     "       end " +
                     "end " +
-                    "return result " ;
+                    "return true " ;
 
     private String scriptGetSHA1 ;
 
-    private String scriptKeysSHA1 ;
-
-    private static final Object NULL_TAG_VALUE = new NullValue();
+    private String scriptDelKeysSHA1 ;
 
     private RedisCacheManager() {}
 
@@ -99,7 +105,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     private void init() throws Throwable {
         redisService.executeSync(commands -> {
             scriptGetSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_GET);
-            scriptKeysSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_KEYS);
+            scriptDelKeysSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_DEL_KEYS);
             return true;
         });
     }
@@ -362,9 +368,9 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public List<String> keys(String pattern) throws Throwable {
+    public Boolean delKeys(String pattern) throws Throwable {
         return redisService.executeSync(
-                commands -> commands.evalsha(scriptKeysSHA1, ScriptOutputType.MULTI, pattern));
+                commands -> commands.evalsha(scriptDelKeysSHA1, ScriptOutputType.BOOLEAN, pattern));
     }
 
     @Override
