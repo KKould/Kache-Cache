@@ -8,41 +8,38 @@ import java.nio.charset.StandardCharsets;
 
 public class KryoRedisCodec implements RedisCodec<String, Object> {
 
-    private static final byte OTHER_TYPE = (byte) 1;
-
     @Override
     public String decodeKey(ByteBuffer byteBuffer) {
-        return StandardCharsets.US_ASCII.decode(byteBuffer).toString();
+        return StandardCharsets.UTF_8.decode(byteBuffer).toString();
     }
 
     @Override
     public Object decodeValue(ByteBuffer byteBuffer) {
-        byte[] array = byteBuffer.array();
-        byte type = array[0];
-        byte[] copy = new byte[array.length - 1];
-        System.arraycopy(array, 1, copy,0 ,copy.length);
-        if (type != OTHER_TYPE) {
-            return StandardCharsets.US_ASCII.decode(byteBuffer).toString();
-        } else {
-            return KryoUtil.readFromByteArray(copy);
-        }
+        byte[] bytes = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytes);
+        return KryoUtil.readFromByteArray(bytes);
     }
 
     @Override
     public ByteBuffer encodeKey(String s) {
-        return StandardCharsets.US_ASCII.encode(s);
+        return StandardCharsets.UTF_8.encode(s);
     }
 
+    /**
+     * 可能你会发现一个很奇怪的问题：为什么decodeValue没有对String进行处理，
+     * 而encodeValue则会对String进行UTF-8的编码
+     *
+     * 因为Kache的存储方式的K绝对为String，而Value是String与Object混杂的，而其中获取Value时，
+     * 值都不会为String，因为String在lua脚本中就进行处理了，不需要返回String，所以反序列化时则视为Object
+     * @param o
+     * @return ByteBuffer
+     */
     @Override
     public ByteBuffer encodeValue(Object o) {
         if (o instanceof String) {
-            return StandardCharsets.US_ASCII.encode((String) o);
+            return StandardCharsets.UTF_8.encode((String) o);
         } else {
-            byte[] bytes = KryoUtil.writeToByteArray(o);
-            byte[] copy = new byte[bytes.length + 1];
-            System.arraycopy(bytes, 0, copy,1 ,copy.length);
-            copy[0] = OTHER_TYPE;
-            return ByteBuffer.wrap(copy);
+            return ByteBuffer.wrap(KryoUtil.writeToByteArray(o));
         }
     }
 

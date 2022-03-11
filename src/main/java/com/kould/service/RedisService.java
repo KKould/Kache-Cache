@@ -1,5 +1,6 @@
 package com.kould.service;
 
+import com.kould.codec.KryoRedisCodec;
 import com.kould.config.DaoProperties;
 import com.kould.function.SyncCommandCallback;
 import io.lettuce.core.RedisClient;
@@ -21,16 +22,16 @@ public class RedisService {
     @Autowired
     RedisClient redisClient;
 
-    GenericObjectPool<StatefulRedisConnection<String, String>> redisConnectionPool;
+    GenericObjectPool<StatefulRedisConnection<String, Object>> redisConnectionPool;
 
     @PostConstruct
     public void init() {
-        GenericObjectPoolConfig<StatefulRedisConnection<String, String>> poolConfig = new GenericObjectPoolConfig<>();
+        GenericObjectPoolConfig<StatefulRedisConnection<String, Object>> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(daoProperties.getPoolMaxTotal());
         poolConfig.setMaxIdle(daoProperties.getPoolMaxIdle());
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);
-        this.redisConnectionPool = ConnectionPoolSupport.createGenericObjectPool(() -> redisClient.connect(), poolConfig);
+        this.redisConnectionPool = ConnectionPoolSupport.createGenericObjectPool(() -> redisClient.connect(new KryoRedisCodec()), poolConfig);
     }
 
     @PreDestroy
@@ -40,9 +41,9 @@ public class RedisService {
     }
 
     public <T> T executeSync(SyncCommandCallback<T> callback) throws Throwable {
-        try (StatefulRedisConnection<String, String> connection = redisConnectionPool.borrowObject()) {
+        try (StatefulRedisConnection<String, Object> connection = redisConnectionPool.borrowObject()) {
             connection.setAutoFlushCommands(true);
-            RedisCommands<String, String> commands = connection.sync();
+            RedisCommands<String, Object> commands = connection.sync();
             return callback.doInConnection(commands);
         } catch (Exception e) {
             throw new RuntimeException(e);

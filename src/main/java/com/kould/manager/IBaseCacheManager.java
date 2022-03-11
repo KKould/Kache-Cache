@@ -16,8 +16,6 @@ public abstract class IBaseCacheManager {
     @Autowired
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
-    public abstract Object getNullValue() ;
-
     /**
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改

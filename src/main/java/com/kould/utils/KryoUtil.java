@@ -9,12 +9,6 @@ import org.objenesis.strategy.StdInstantiatorStrategy;
 import java.io.*;
 import java.util.Base64;
 
-/**
- * @Author: songyang
- * @Description:
- * @Date: Created in 8:03 PM 2019/5/9
- * @Modified By:
- */
 public class KryoUtil {
 
     //每个线程的 Kryo 实例
@@ -22,7 +16,6 @@ public class KryoUtil {
         @Override
         protected Kryo initialValue() {
             Kryo kryo = new Kryo();
-
             /**
              * 不要轻易改变这里的配置！更改之后，序列化的格式就会发生变化，
              * 上线的同时就必须清除 Redis 里的所有缓存，

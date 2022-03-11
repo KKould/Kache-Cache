@@ -2,6 +2,7 @@ package com.kould.core.impl;
 
 import com.kould.config.KacheAutoConfig;
 import com.kould.core.CacheHandler;
+import com.kould.enity.NullValue;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
@@ -63,7 +64,7 @@ public class BaseCacheHandler extends CacheHandler {
                 ListenerHandler.hit(key, methodName, daoArgs, types, listenerEnable);
             }
             //空值替换
-            if (baseCacheManager.getNullValue().equals(result)) {
+            if (result instanceof NullValue) {
                 result = null ;
             }
         }catch (Exception e) {
