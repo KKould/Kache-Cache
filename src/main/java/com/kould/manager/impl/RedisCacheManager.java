@@ -144,12 +144,18 @@ public class RedisCacheManager extends RemoteCacheManager {
                 Object result = point.proceed();
                 if (result instanceof Collection) {
                     collection2Lua(commands, key, lua, keys, values, (Collection) result,null);
+                    commands.eval(lua.toString(), ScriptOutputType.MULTI
+                            , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
+                    kacheLock.unLock(writeLock);
                 } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
                     Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
                     recordsField.setAccessible(true);
                     Collection<Object> records = (Collection) recordsField.get(result) ;
                     recordsField.set(result,Collections.emptyList());
                     collection2Lua(commands, key, lua, keys, values, records, result);
+                    commands.eval(lua.toString(), ScriptOutputType.MULTI
+                            , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
+                    kacheLock.unLock(writeLock);
                     recordsField.set(result,records);
                 } else {
                     lua.append("redis.call('setex',KEYS[1],")
@@ -182,10 +188,10 @@ public class RedisCacheManager extends RemoteCacheManager {
                                 .append(strategyHandler.getCacheTime())
                                 .append(");");
                     }
+                    commands.eval(lua.toString(), ScriptOutputType.MULTI
+                            , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
+                    kacheLock.unLock(writeLock);
                 }
-                commands.eval(lua.toString(), ScriptOutputType.MULTI
-                        , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
-                kacheLock.unLock(writeLock);
                 return result ;
             } catch (Exception e) {
                 if (writeLock != null && kacheLock.isLockedByThisThread(writeLock)) {

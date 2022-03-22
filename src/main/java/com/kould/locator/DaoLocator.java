@@ -11,6 +11,10 @@ import org.springframework.context.ApplicationContextAware;
 
 import java.util.Map;
 
+/**
+ * MyBatis的持久层通过动态代理进行了Dao的实例生成，导致实例中可能无法获取到注解从而无法获取对应的实体类Class类型
+ * 该组件用于在初始化时像CLASS_MAP中注入对应的Dao实例与Class类型作为映射去得到对应的Class类型。
+ */
 public class DaoLocator implements ApplicationContextAware {
 
     @Autowired

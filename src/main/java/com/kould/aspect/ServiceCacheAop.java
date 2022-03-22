@@ -35,7 +35,7 @@ public class ServiceCacheAop {
     public void pointCutIService() {
     }
 
-    @Around("@within(com.kould.annotation.ServiceClass) || pointCutIService()")
+    @Around("@within(com.kould.annotation.ServiceClass) || @within(com.kould.annotation.MethodClass) || pointCutIService()")
     public Object AroundInvoke(ProceedingJoinPoint point) throws Throwable {
         Class<?> targetClass = point.getTarget().getClass();
         String classKey = null;
