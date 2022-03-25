@@ -19,46 +19,102 @@
 
 ----
 
+### How is it different from other caching frameworks？
+
+GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中对缓存的各种定义和操作都做出了非常合理的诠释与实现。
+
+而类似的缓存框架也有J2Cache、Memcache、Ehcache等充分经受实践拷打的优秀开源框架。
+
+甚至更甚者诸如SpringCache、AutoLoadCache这样的自动化缓存框架让用户脱离了缓存变更而手动处理缓存操作的繁琐业务流程。
+
+而在这众多优先开源缓存框架之中，Kache存在的必要是什么？
+
+> 论证这种缓存结构对于内存空间的最大化利用是否可行
+
+**Kache是一个在缓存结构在传统的缓存概念上做出了“解耦”：**
+
+往常的缓存结构基本是将函数的参数作为Key，函数的结果作为Value
+
+![](https://s3.bmp.ovh/imgs/2022/03/0a2b1ef988f419d7.png)
+
+这样的缓存结构既简单，又能满足大多数的缓存左右。满足了大多数情况下的使用。
+
+只是在这种情况下产生了新的数据冗余问题：
+
+![](https://s3.bmp.ovh/imgs/2022/03/f01bd5ab450f70d7.png)
+
+![](https://s3.bmp.ovh/imgs/2022/03/36d284e947e06742.png)
+
+上图则为这种缓存结构下，不同参数指向同一数据的情况。
+
+在类似进程间缓存时，像Java之中，这样的key-value使用类似HashMap的数据结构作为存储，故value和key为对象时都是以引用的形式存储，在合理的操作下并不会存在有重复的对象占用内存空间。
+
+而在Redis这样常作为缓存的NoSQL数据库则并非如此。
+
+在存入Redis时，数据往往都需要经过序列化；而序列化后的数据即使值是一致，但因为key的不同而导致同一份序列化数据会分别存储，造成数据冗余的占用。不仅在大对象序列化时会占用大量的cpu计算资源，也会导致有限的IO无法得到充分的利用。
+
+**这里引用一篇腾讯在知乎发布的一部有关于缓存文章的一句话：**
+
+> Redis key大小设计： 由于网络的一次传输MTU最大为1500字节，所以为了保证高效的性能，建议单个k-v大小不超过1KB，一次网络传输就能完成，避免多次网络交互； k-v是越小性能越好
+
+这也意味着，若是像结果为List这样的数据集时，避免相同数据重复的序列化而导致序列化结果的空间变大，则能让缓存越小而越好。
+
+**而如何让数据减少重复序列化占用空间的同时保证数据信息的完整性？**
+
+我的想法是，利用像Java进程对对象的引用一样，将单独的数据分别存入Redis之中，将id作为引用信息，使数据集中不包含具体的数据内容，取而代之则为各个数据的id。
+
+![](https://s3.bmp.ovh/imgs/2022/03/234d69e5e58ec6fa.png)
+
+这种方式将具体数据与参数进行解耦，将单独且具体的数据分布在Redis之中。
+
+在面对刚才不同参数对应同一参数之间，做到了真正贴合实际引用逻辑。
+
+这样的缓存结构之中，**我称上缓存为索引缓存、下缓存为元数据缓存**
+
+而在Kache实现中更具体一些的逻辑如下：
+
+当数据被**条件**读取时：
+
+- 通过编码器将参数编码，作为索引缓存的Key
+
+- 若对应的索引缓存不存在
+
+  - 解析数据集中元数据的个数与主键
+  - 拼接Echo脚本，用于查询Redis中所需的元数据缓存是否存在
+  - 若元数据都无或仅有部分：
+    - 将对应的数据集中元数据解析出并将Redis中缺少的元数据与该索引数据一起保存在Redis之中
+
+  - 若元数据都有：
+    - 直接将索引缓存存入，**不需要对具体数据再序列化且存入Redis之中。从而降低数据变动而导致缓存更新成本**
+
+- 若对应索引数据存在
+  - 将对应的参数通过编码器获取索引缓存的Key
+  - 通过Lua脚本在获取对应的索引缓存时，使用Redis的mget指令批量获取对应的元数据并进行填充，然后返回加工好的索引缓存（完整的序列化数据）
+
+
+
 ### 概要 | Synopsis
 
-- **持久化缓存**
-- **仅一个注解即可完成缓存操作（基于MyBatis-Plus的情况）**
-- **缓存与业务逻辑分离**
-- **开箱即用**
-- **极致优化响应速度与网络IO**
-- **支持分布式**
+- **Dao持久层缓冲增强**
+- **实验性质的缓存框架**
+  - 零重复序列化元数据
+  - 元数据高命中率
+  - 低缓存变更代价
+
 
 ### 优势 | Advantage
 
-- **0.3毫秒响应时间**：Kache拥有进程间缓存与远程缓存的二级缓存设计，默认提供为Guava的进程间缓存实现与Redis的远程缓存实现；在默认的配置下，id搜索平均为0.2毫秒，条件搜索平均为0.4毫秒的单次响应速度
-
-- **极低侵入**：若使用MyBatis-Plus的IService和BaseServiceImpl，**则仅需要一个注解即可完成缓存操作**
-
-- **降低数据库的IO消耗**：Kache为Key-Value的缓存结构，缓存后可**避免重复的数据库检索的冗余消耗**
-
-- **溅射查询**：单次条件查询会被解析为多个元数据缓存，**提高缓存命中率和利用率**
-
+- **极低侵入**：以黑盒的形式作为Dao持久化层的代理提供缓存功能
+- **面向数据库操作**：Kache仅服务于Dao持久层，降低MySQL数据库等负担，转移至Redis
+- **溅射查询**：单次条件查询会被解析为多个元数据缓存，能够做到简单的缓存预存
 - **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用**Lua脚本完成了一次网络io**完成上述操作，且提高缓存命中率（详情见原理）
-
-- **基于注解**：Kache的实现原理是基于Service层与Dao层的代理与使用注解的形式获取摘要编码进行缓存，控制存取的渠道；
-
-  仅需在对应的方法及类上添加注释而不修改本身的业务代码，**不会影响本身的业务流程稳定性**
-
-- **并发同步读，并行异步写**：使用同步读写锁与消息队列，将读操作以：进程间缓存 -> 远程缓存 -> 数据库的次序同步读取，**尽可能的减少对网络io的消耗并提高响应时间**，而增删改操作则将三个数据源同时操作，并不会因为阻塞而较大地影响写入响应时间（默认提供该策略）
-
-- **支持策略拓展**：**针对不同应用场景，可以自己通过策略实现延时双删**、Write Back、Read/Write Through等策略（默认提供异步基于AMQP的异步处理（即上条）与同步的数据库优先处理）
-
+- **基于注解**：Kache的实现原理是基于Dao层的动态代理与使用注解的形式获取摘要编码进行缓存。仅需在对应的方法及类上添加注释而不修改本身的业务代码，**不会影响本身的业务流程稳定性**
+- **支持策略拓展**：针对不同应用场景，可以自己通过策略实现延时双删、Write Back、Read/Write Through等策略，同时也能够拓展Kafka等其他消息队列（内部已提供同步的数据库优先处理（默认）与异步基于RabbitMQ的异步处理）
 - **高拓展性**：提供进程间缓存、远程缓存与缓存调度器的接口，**允许使用者通过实现对应的抽象类兼容所需的NoSQL、进程间缓存框架**以更好的兼容使用者的项目
-
-- **IO消耗低**：积极使用Lua脚本进行IO优化并用GuavaCache辅助缓存，**最大化减少网络IO带来的性能影响**
-
-- **可读性较强**：源代码为1961行，注释304行
-
+- **IO消耗低**：积极使用Lua脚本进行IO优化并用GuavaCache辅助进程间缓存，**最大化减少网络IO带来的性能影响
 - **高速读取**：通过类似HashMap的编码形式进行对应数据的去除，**读取Lua脚本为静态常量，仅写入Lua脚本为动态拼接**
-
-- **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，**默认提供StatisticsListener统计监听器**
-
-- **内置Web信息端点**：**允许通过Web路径动态观测缓存命中情况**，详情在示例中
+- **内置Actuator信息端点**：**允许通过URL路径动态观测缓存命中情况**，详情在示例中
+- **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，**默认提供StatisticsListener统计缓存监听器**
 
 ### 使用 | Use
 
@@ -66,13 +122,13 @@
 
 #### **1、Kache依赖引入**
 
-#### **2、Service层写入注解**
+#### **2、Dao层写入注解**
 
-#### **3、Dao层写入注解**
+#### 3、提供Lettuce实例
 
-#### **4、根据策略提供所需组件（默认为异步删除需要提供对应RabbitMQ实例）**
+#### **可选：根据策略提供所需组件（异步策略需要提供对应RabbitMQ、Kafka等实例）**
 
-#### **5、配置文件参考(详情见说明，可跳过)**
+#### **可选：配置文件参考(详情见说明，可跳过)**
 
 ##### 示例：
 
@@ -85,100 +141,117 @@
 </dependency>
 ```
 
-**2**.**Service**的实现类或接口上添加@CachebeanClass(clazz = PO.class)注解并填入对应的PO类类型
-
-**若使用IService类似的模板ServiceImpl，则在对应的ServiceImpl上添加@CacheImpl即可**
-
-**（若使用MyBatis-Plus的默认ServiceImpl可跳过）**
-
-```java
-//该标签用于声明Service对应持久类
-@CacheBean(clazz = BlogPO.class)
-@Service
-public class BlogServiceImpl extends BaseServiceImpl<BlogPO, BlogMapper> implements IBlogService {
-
-    @Override
-    public List<BlogPO> findByBlogTitle(BlogBaseDTO blogBaseDTO) {
-        Page<BlogPO> page = new Page<>(blogBaseDTO.getIndex(), blogBaseDTO.getStepSize()) ;
-        QueryWrapper<BlogPO> wrapper = new QueryWrapper<>() ;
-        wrapper.eq("title",blogBaseDTO.getTitle()) ;
-        return this.blogMapper.selectPage(page, wrapper).getRecords() ;
-    }
-    
-    @Override
-    public int edit(BlogPO blogPO) {
-        return this.blogMapper.updateById(blogPO);
-    }
-}
-```
-
-**3**.其对应的**Dao层**的Dao方法添加注释：
+**2**.其对应的**Dao层**的Dao方法添加注释：
 
 - 搜索方法：@DaoSelect
-- 其对应的@DaoSelect的status默认为Status.BY_Field：
+  - 其对应的@DaoSelect的status默认为Status.BY_Field：
+    - status = Status.BY_FIELD : 非ID查询方法
+    - status = Status.BY_ID : ID查询方法
 
-  - status = Status.BY_FIELD : 业务查询方法
-  - status = Status.BY_ID : ID查询方法
 - 插入方法：@DaoInsert
 - 更新方法：@DaoUpdate
 - 删除方法：@DaoDelete
-- **(若使用MyBatis-Plus的默认Mapper可跳过)**
+- **(MyBatis-Plus的BaseMapper已经在代码中做了支持，不需要加入注释)**
 
 ```java
-public interface BaseMapper<T> {
-    //该标签声明该方法为持久类数据插入
-    @DaoInsert
-    int insert(T entity);
-    
-    //该标签声明该方法为持久类数据删除
-	@DaoDelete
-    int deleteById(Serializable id);
-    
-    //该标签声明该方法为持久类数据修改
-	@DaoUpdate
-    int update(@Param("et") T entity, @Param("ew") Wrapper<T> updateWrapper);
+@Repository
+@DaoClass(Tag.class)
+public interface TagMapper extends BaseMapper<Tag> {
 
-    //该标签声明该方法为持久类数据查找
-    @DaoSelect(Status.BY_ID)
-    T selectById(Serializable id);
-
-    //该标签声明该方法为持久类数据查找
-    @DaoSelect(Status.BY_FIELD)
-    IPage<T> selectPage(IPage<T> page, @Param("ew") Wrapper<T> queryWrapper);
+    @Select("select t.* from klog_article_tag at "
+            + "right join klog_tag t on t.id = at.tag_id "
+            + "where t.deleted = 0 AND at.deleted = 0 "
+            + "group by t.id order by count(at.tag_id) desc limit #{limit}")
+    @DaoSelect(status = Status.BY_FIELD)
+    List<Tag> listHotTagsByArticleUse(@Param("limit") int limit);
 }
 ```
 
-**4**.提供消息队列源（此处略）
+**3**.提供Lettuce实例：
 
-**5**.可选配置（默认值）：
+```java
+@Configuration
+public class RedisAutoConfig {
+    @Value("${spring.redis.host}")
+    private String host;
+    @Value("${spring.redis.port}")
+    private Integer port;
+    @Value("${spring.redis.password}")
+    private String password;
+    @Value("${spring.redis.database}")
+    private Integer database;
+
+    @Bean
+    RedisClient redisClient() {
+        RedisURI uri = RedisURI.Builder.redis(this.host, this.port)
+                .withPassword(this.password)
+                .withDatabase(this.database)
+                .build();
+        return RedisClient.create(uri);
+    }
+}
+```
+
+**可选**：提供消息队列源（可选，当使用框架内提供的异步策略时），参考：
+
+```java
+@Configuration
+public class MessageQueueConfig {
+
+    public static final String LOG_QUEUE_NAME = "KLOG_LOG_QUEUE";
+
+    @Bean
+    public Queue logQueue() {
+        return new Queue(LOG_QUEUE_NAME,false,false,false);
+    }
+
+    @Bean
+    public Queue kacheInsertQueue() {
+        return new Queue(AmqpAsyncHandler.QUEUE_INSERT_CACHE,false,false,false);
+    }
+
+    @Bean
+    public Queue kacheDeleteQueue() {
+        return new Queue(AmqpAsyncHandler.QUEUE_DELETE_CACHE,false,false,false);
+    }
+
+    @Bean
+    public Queue kacheUpdateQueue() {
+        return new Queue(AmqpAsyncHandler.QUEUE_UPDATE_CACHE,false,false,false);
+    }
+}
+```
+
+**可选**：配置（默认值）：
 
 ```yaml
 #Kache各属性可修改值
 kache:
    dao:
-       lock-time: 3 //分布式锁持续时间，默认为2
-       base-time: 300 //缓存基本存活时间，默认为300
-       random-time: 120 //缓存随机延长时间，默认为120
+       lock-time: 3 //分布式锁持续时间
+       base-time: 86400 //缓存基本存活时间
+       random-time: 600 //缓存随机延长时间
+       poolMaxTotal: 20	//Redis连接池最大连接数
+       poolMaxIdle: 5	//Redis连接池最大Idle状态连接数
    interprocess-cache:
-       enable: true //进程间缓存是否开启，默认为true
+       enable: true //进程间缓存是否开启
        size: 50 //进程间缓存数量
    data-field:
        name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
-       declare-type: java.util.List //上述属性名所对应的属性声明类型（全称），默认为java.util.List
+       declare-type: java.util.List //上述属性名所对应的属性声明类型（全称）
    listener:
-   	   enable: true //监听器是否开启，默认为true
+   	   enable: true //监听器是否开启
 ```
 
 **其他说明：**
 
 - 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的缓存读写安全
-- src/resource/other目录下有一份JedisPool配置的文件可供参考
 - - 搜索方法：select*(..)
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
 
-**Web端点**：**/kache/details**：下为例子，参数为：
+**Actuator端点**：**/kache**：下为例子，参数为：
 
 - 总命中次数：sumHit
 - 总未命中次数：sumNotHit
@@ -189,30 +262,131 @@ kache:
 
 ```json
 {
-    "com.kould.listener.impl.StatisticsListener": {
-        "statisticMap": {
-            "com.kould.service.impl.FounderTeamServiceImpl.findByFieldLike": {
-                "key_set": [
-                    "KACHE:NO_ID_selectPage7242089337059975123METHOD_SERVICE_BY_FIELDfindByFieldLikecom.kould.po.FounderTeamPO",
-                    "KACHE:NO_ID_selectPage4902055363543254289METHOD_SERVICE_BY_FIELDfindByFieldLikecom.kould.po.FounderTeamPO"
+    "com.kould.listener.impl.StatisticsListener":{
+        "statisticMap":{
+            "com.kould.klog.entity.ArticleAndTag.selectList":{
+                "key_set":[
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList7366488776458918380",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList3688230540085275879",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-6616124714197240509",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-8825655128112326602",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-4800593238996224284",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList8175467167130639943",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList5515765047547306303"
                 ],
-                "hit": 1500,
-                "notHit": 4
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
             },
-            "com.kould.service.impl.FounderTeamServiceImpl.findById": {
-                "key_set": [
-                    "KACHE:1427152189974417410",
-                    "KACHE:1456098452778844161"
+            "com.kould.klog.entity.Comment.selectPage":{
+                "key_set":[
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-5088645369418484732",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-601408742373120668",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-3261110861956454308"
                 ],
-                "hit": 1511,
-                "notHit": 2
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.ArticleBody.selectById":{
+                "key_set":[
+                    "KACHE:1504703525416009729",
+                    "KACHE:1487892466958348290",
+                    "KACHE:1501379280208101377"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.Article.selectById":{
+                "key_set":[
+                    "KACHE:1504703525986435074",
+                    "KACHE:1487892467822374914",
+                    "KACHE:1501379280321347585"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.Article.selectList":{
+                "key_set":[
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectList-2737135272387492214",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectList6742038077807145512"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.Tag.listHotTagsByArticleUse":{
+                "key_set":[
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.TaglistHotTagsByArticleUse8537847423193657128"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.Category.selectById":{
+                "key_set":[
+                    "KACHE:1487868148098592770",
+                    "KACHE:1487868235843432449",
+                    "KACHE:1487868277975216130"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
+            },
+            "com.kould.klog.entity.Article.selectPage":{
+                "key_set":[
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-8185391717994071526",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage4874353664547449116",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-512645026620581858",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-5899643717788612832",
+                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage7160101664752907810"
+                ],
+                "hit":{
+
+                },
+                "notHit":{
+
+                }
             }
         },
-        "sumHit": 3011,
-        "sumNotHit": 6
+        "sumHit":23,
+        "sumNotHit":19
     }
 }
 ```
+
+注：若想使用端点需要在配置文件中暴露
+
+例子：暴露全部Actuator端点
+
+```yaml
+management.endpoints.web.exposure.include=*
+```
+
+
 
 ### 架构 | Framework
 

@@ -1,71 +1,28 @@
 package com.kould.config;
 
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisPassword;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
 @Configuration
 public class RedisAutoConfig {
+    @Value("${spring.redis.host}")
+    private String host;
+    @Value("${spring.redis.port}")
+    private Integer port;
+    //    @Value("${spring.redis.password}")
+//    private String password;
+    @Value("${spring.redis.database}")
+    private Integer database;
 
     @Bean
-    public RedisConnectionFactory redisConnectionFactory(JedisPoolConfig jedisPoolConfig,
-                                                         RedisStandaloneConfiguration jedisConfig) {
-        JedisConnectionFactory connectionFactory = new JedisConnectionFactory(jedisConfig);
-        connectionFactory.setPoolConfig(jedisPoolConfig);
-        return connectionFactory;
-    }
-
-    @Configuration
-    public static class JedisConf {
-        @Value("${spring.redis.host:127.0.0.1}")
-        private String host;
-        @Value("${spring.redis.port:6379}")
-        private Integer port;
-//        @Value("${spring.redis.password:}")
-        private String password;
-        @Value("${spring.redis.database:0}")
-        private Integer database;
-        @Value("${spring.redis.timeout:1000}")
-        private Integer timeout;
-
-        @Value("${spring.redis.jedis.pool.max-active:8}")
-        private Integer maxActive;
-        @Value("${spring.redis.jedis.pool.max-idle:8}")
-        private Integer maxIdle;
-        @Value("${spring.redis.jedis.pool.max-wait:-1}")
-        private Long maxWait;
-        @Value("${spring.redis.jedis.pool.min-idle:0}")
-        private Integer minIdle;
-
-        @Bean
-        public JedisPoolConfig jedisPoolConfig() {
-            JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-            jedisPoolConfig.setMaxIdle(maxIdle);
-            jedisPoolConfig.setMaxWaitMillis(maxWait);
-            jedisPoolConfig.setMaxTotal(maxActive);
-            jedisPoolConfig.setMinIdle(minIdle);
-            return jedisPoolConfig;
-        }
-
-        @Bean
-        public JedisPool jedisPool() {
-            return new JedisPool(jedisPoolConfig(),host,port,timeout,password,database) ;
-        }
-
-        @Bean
-        public RedisStandaloneConfiguration jedisConfig() {
-            RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-            config.setHostName(host);
-            config.setPort(port);
-            config.setDatabase(database);
-            config.setPassword(RedisPassword.of(password));
-            return config;
-        }
+    RedisClient redisClient() {
+        RedisURI uri = RedisURI.Builder.redis(this.host, this.port)
+//                .withPassword(this.password)
+                .withDatabase(this.database)
+                .build();
+        return RedisClient.create(uri);
     }
 }

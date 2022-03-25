@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("kache.listener")
 public class ListenerProperties {
-    private boolean enable = false;
+    private boolean enable = true;
 
     public boolean isEnable() {
         return enable;
