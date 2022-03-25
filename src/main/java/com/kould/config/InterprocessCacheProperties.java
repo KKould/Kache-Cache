@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("kache.interprocess-cache")
 public class InterprocessCacheProperties {
-    private boolean enable = true;
+    private boolean enable = false;
 
-    private int size = 50;
+    private int size =200;
 
     public boolean isEnable() {
         return enable;

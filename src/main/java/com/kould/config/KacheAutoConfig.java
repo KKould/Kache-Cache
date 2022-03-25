@@ -5,6 +5,7 @@ import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
+import com.kould.endpoint.KacheEndpoint;
 import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
@@ -20,9 +21,8 @@ import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
-import com.kould.rest.KacheRest;
 import com.kould.service.RedisService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -131,7 +131,9 @@ public class KacheAutoConfig {
     }
 
     @Bean
-    public KacheRest kacheRest() {
-        return new KacheRest();
+    @ConditionalOnMissingBean
+    @ConditionalOnEnabledEndpoint
+    public KacheEndpoint kacheEndpoint() {
+        return new KacheEndpoint();
     }
 }

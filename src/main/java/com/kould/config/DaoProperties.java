@@ -6,9 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class DaoProperties {
     private int lockTime = 3 ;
 
-    private int baseTime = 300;
+    private int baseTime = 86400;
 
-    private int randomTime = 120;
+    private int randomTime = 600;
 
     private int poolMaxTotal = 20;
 
