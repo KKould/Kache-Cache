@@ -128,22 +128,22 @@ public class RedisCacheManager extends RemoteCacheManager {
      *          则将直接获取result的id并与result作为单条PO存入；
      *          再将key和id作为键值对，存入作为索引
      * @param key 索引值
-     * @param lockKey 锁值
+     * @param types 类型名
      * @param point 切入点
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable {
+    public Object put(String key, String types, ProceedingJoinPoint point) throws Throwable {
         return redisService.executeSync(commands -> {
             Lock writeLock = null;
             try {
                 StringBuilder lua = new StringBuilder();
                 List<String> keys = new ArrayList<>() ;
                 List<Object> values = new ArrayList<>() ;
-                writeLock = kacheLock.writeLock(lockKey);
+                writeLock = kacheLock.writeLock(types);
                 Object result = point.proceed();
                 if (result instanceof Collection) {
-                    collection2Lua(commands, key, lua, keys, values, (Collection) result,null);
+                    collection2Lua(commands, key, types, lua, keys, values, (Collection) result,null);
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
                             , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
                     kacheLock.unLock(writeLock);
@@ -152,7 +152,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     recordsField.setAccessible(true);
                     Collection<Object> records = (Collection) recordsField.get(result) ;
                     recordsField.set(result,Collections.emptyList());
-                    collection2Lua(commands, key, lua, keys, values, records, result);
+                    collection2Lua(commands, key, types, lua, keys, values, records, result);
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
                             , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
                     kacheLock.unLock(writeLock);
@@ -202,7 +202,8 @@ public class RedisCacheManager extends RemoteCacheManager {
         });
     }
 
-    private void collection2Lua(RedisCommands<String, Object> commands, String key, StringBuilder lua, List<String> keys, List<Object> values, Collection<Object> records , Object page) throws Exception {
+    private void collection2Lua(RedisCommands<String, Object> commands, String key, String types, StringBuilder lua
+            , List<String> keys, List<Object> values, Collection<Object> records , Object page) throws Exception {
         StringBuilder idsNum = new StringBuilder();
         StringBuilder echo = new StringBuilder() ;
         //用于收集哪些元数据是否已存在（每个元素指的是records中的元素索引）
@@ -217,7 +218,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             echo.append("local result = {} ") ;
             while(iterator.hasNext()) {
                 count2Echo ++ ;
-                keys.add(KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(iterator.next()).toString());
+                keys.add(KacheAutoConfig.CACHE_PREFIX + types + methodGetId.invoke(iterator.next()).toString());
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")

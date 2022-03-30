@@ -55,7 +55,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         //信息摘要收集
         //获取DAO方法签名
         if (methodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
-            return setKey2Id(point);
+            return setKey2Id(point, types);
         }
         DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
         String methodStatus = null ;
@@ -66,7 +66,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         }
         if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
             //使Key为ID
-            return setKey2Id(point);
+            return setKey2Id(point,types);
         }else {
             String argsCode = argsEncode(args);
             //使Key为各个参数编码后的一个特殊值
@@ -80,10 +80,10 @@ public class BaseCacheEncoder extends CacheEncoder {
         return encode(Status.BY_FIELD.getValue(), types, methodName, argsCode) ;
     }
 
-    private String setKey2Id(ProceedingJoinPoint point) {
+    private String setKey2Id(ProceedingJoinPoint point, String type) {
         //使Key为ID
         Object[] args = point.getArgs();
-        return args[0].toString();
+        return type + args[0].toString();
     }
 
     private Object readResolve() {

@@ -15,7 +15,7 @@ public abstract class RemoteCacheManager {
 
     public abstract String getNullTag() ;
 
-    public abstract Object put(String key, String lockKey, ProceedingJoinPoint point) throws Throwable;
+    public abstract Object put(String key, String types, ProceedingJoinPoint point) throws Throwable;
     public abstract Boolean delKeys(String pattern) throws Throwable;
     public abstract Long del(String... keys) throws Throwable;
     public abstract Object updateById(String id,Object result) throws Throwable;
