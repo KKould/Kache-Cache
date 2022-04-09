@@ -19,6 +19,8 @@
 
 ----
 
+### 与其他缓存框架有何差异？
+
 ### How is it different from other caching frameworks？
 
 GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中对缓存的各种定义和操作都做出了非常合理的诠释与实现。
@@ -76,27 +78,75 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 - 通过编码器将参数编码，作为索引缓存的Key
 
 - 若对应的索引缓存不存在
-
+  
   - 解析数据集中元数据的个数与主键
-
+  
   - 拼接Echo脚本，用于查询Redis中所需的元数据缓存是否存在
-
+  
   - 若元数据都无或仅有部分：
+    
     - 将对应的数据集中元数据解析出，并将Redis中缺少的元数据与该索引数据一起保存在Redis之中
-
+      
       ![](https://s3.bmp.ovh/imgs/2022/03/e81275da3402fe92.png)
-    
+  
   - 若元数据都有：
-    - 直接将索引缓存存入，**不需要对具体数据再序列化且存入Redis之中。从而降低数据变动而导致缓存更新成本**
     
+    - 直接将索引缓存存入，**不需要对具体数据再序列化且存入Redis之中。从而降低数据变动而导致缓存更新成本**
+      
       ![](https://s3.bmp.ovh/imgs/2022/03/4eaac6c6c9c9db8f.png)
 
 - 若对应索引数据存在
+  
   - 将对应的参数通过编码器获取索引缓存的Key
   - 通过Lua脚本在获取对应的索引缓存时，使用Redis的mget指令批量获取对应的元数据并进行填充，然后返回加工好的索引缓存（完整的序列化数据）
 
-而这样独特的缓存结构相对于传统结构可以更好的在相对高频的数据变更场景下，发挥更强的单点数据查询能力，同时大幅降低重复序列化带来的冗余计算成本。
 
+
+这样类型的缓存所能带来的特点：
+
+- 数据集与单个数据分离
+  
+  - 数据集删除的成本降低
+    
+    - 当数据集被修改时，根据实际情况可能会重复利用之前所存储过的元数据缓存
+    
+    - 最大化减少序列化的内容，做到不重复序列化一致数据
+
+- 元数据以Id作为Key
+  
+  - 为FindById方法直接提供对应的Key，可以直接获取对应元缓存
+
+- 索引缓存仅有容器类的状态与元数据id集合
+  
+  - 删除索引缓存而使缓存不删除元缓存数据
+  
+  - 多个索引缓存共享一致的元缓存数据，去除数据冗余
+
+
+
+#### 因此可得其适用场景：
+
+- 对缓存依赖性较强，且数据变动较为频繁
+
+- Redis的基础建设较弱，服务器配置较低，对缓存的可用空间有限制
+
+- 应用服务器CPU较差且IO密集
+
+- 通过Id获取数据的方法使用较为频繁
+
+- 瓶颈为数据库操作
+
+- 大量重复数据
+
+- 单个数据的内容大
+
+- 数据体量大
+
+
+
+**若是满足以上大多数情况，则该缓存结构能给你带来相较于传统框架而言更为理想的性能。**
+
+**该框架仅是此结构的一种实现，未经实际生产环境磨练。欢迎尝鲜**
 
 ### 概要 | Synopsis
 
@@ -106,6 +156,30 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
   - 元数据高命中率
   - 低缓存变更代价
 
+### 结构 | Structure
+
+```
+|-com.kould
+    |-annotaion    缓存注解
+    |-aspect    操作拦截Aop
+    |-codec    序列化编码器
+    |-config    spring-starter与yml解析配置
+    |-core    缓存读写处理逻辑
+    |-encoder    缓存命名编码器
+    |-endpoint    spring-actuate端点
+    |-enity    缓存实体类
+    |-function    函数式接口
+    |-handler    缓存策略处理
+    |-listener    缓存监听器
+    |-locator    初始化加载器
+    |-lock    缓存锁
+    |-logic    缓存更新处理逻辑
+    |-manager    缓存操纵管理器
+    |-message    缓存信息封装
+    |-service    Redis操作客户端
+    |-type    结构化接口
+    |-utils    工具
+```
 
 ### 优势 | Advantage
 
@@ -122,8 +196,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 - **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，**默认提供StatisticsListener统计缓存监听器**
 
 ### 使用 | Use
-
-使用流程：
 
 #### **1、Kache依赖引入**
 
@@ -149,13 +221,17 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 **2**.其对应的**Dao层**的Dao方法添加注释：
 
 - 搜索方法：@DaoSelect
+  
   - 其对应的@DaoSelect的status默认为Status.BY_Field：
     - status = Status.BY_FIELD : 非ID查询方法
     - status = Status.BY_ID : ID查询方法
 
 - 插入方法：@DaoInsert
+
 - 更新方法：@DaoUpdate
+
 - 删除方法：@DaoDelete
+
 - **(MyBatis-Plus的BaseMapper已经在代码中做了支持，不需要加入注释)**
 
 ```java
@@ -236,8 +312,8 @@ kache:
        lock-time: 3 //分布式锁持续时间
        base-time: 86400 //缓存基本存活时间
        random-time: 600 //缓存随机延长时间
-       poolMaxTotal: 20	//Redis连接池最大连接数
-       poolMaxIdle: 5	//Redis连接池最大Idle状态连接数
+       poolMaxTotal: 20    //Redis连接池最大连接数
+       poolMaxIdle: 5    //Redis连接池最大Idle状态连接数
    interprocess-cache:
        enable: true //进程间缓存是否开启
        size: 50 //进程间缓存数量
@@ -245,7 +321,7 @@ kache:
        name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
        declare-type: java.util.List //上述属性名所对应的属性声明类型（全称）
    listener:
-   	   enable: true //监听器是否开启
+          enable: true //监听器是否开启
 ```
 
 **其他说明：**
@@ -391,15 +467,11 @@ kache:
 management.endpoints.web.exposure.include=*
 ```
 
-
-
 ### 架构 | Framework
 
 Java标准MVC架构如图：
 
-![Kache架构](https://www.hualigs.cn/image/61c46745cfd99.jpg)
-
-![Kache结构图](https://s3.bmp.ovh/imgs/2021/11/20a75b43c86cff1f.jpg)
+![Kache结构图](https://s3.bmp.ovh/imgs/2022/04/09/685006080e2d0b91.png)
 
 **（溢出方框外表示允许拓展）**
 
@@ -513,8 +585,6 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 
 ![Kache缓存结构](https://s3.bmp.ovh/imgs/2021/11/4ec53d620c952a95.jpg)
 
-
-
 ### 测试 | Test
 
 ##### 一分钟持续并发单一PO类重复操作
@@ -537,13 +607,13 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 
 **Arthas的dashboard检测情况：**
 
-​	开始：
+​    开始：
 
-​	![](https://s3.bmp.ovh/imgs/2021/11/e677bc3a4d56d171.png)
+​    ![](https://s3.bmp.ovh/imgs/2021/11/e677bc3a4d56d171.png)
 
-​	结束：
+​    结束：
 
-​	![](https://s3.bmp.ovh/imgs/2021/11/38b6dfd492b29a71.png)
+​    ![](https://s3.bmp.ovh/imgs/2021/11/38b6dfd492b29a71.png)
 
 ###### Kache组：
 
@@ -557,13 +627,13 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 
 **Arthas的dashboard检测情况：**
 
-​	开始：
+​    开始：
 
-​	![](https://s3.bmp.ovh/imgs/2021/11/16e27216b18fd98b.png)
+​    ![](https://s3.bmp.ovh/imgs/2021/11/16e27216b18fd98b.png)
 
-​	结束：
+​    结束：
 
-​	![](https://s3.bmp.ovh/imgs/2021/11/7abfcb1943f50df1.png)
+​    ![](https://s3.bmp.ovh/imgs/2021/11/7abfcb1943f50df1.png)
 
 ###### **测试总结**：
 
