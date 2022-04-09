@@ -386,9 +386,9 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Object updateById(String id, Object result) throws Throwable {
+    public Object updateById(String id, String type, Object result) throws Throwable {
        return redisService.executeSync(commands -> {
-           String key = KacheAutoConfig.CACHE_PREFIX + id ;
+           String key = KacheAutoConfig.CACHE_PREFIX + type + id; ;
            Object target = commands.get(key);
            if (target != null) {
                BeanUtil.copyProperties(result, target,

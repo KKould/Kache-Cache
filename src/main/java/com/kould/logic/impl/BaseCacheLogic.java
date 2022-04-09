@@ -42,18 +42,18 @@ public class BaseCacheLogic extends CacheLogic {
 
     public void updateRemoteCache(KacheMessage msg) throws Throwable {
         Class<?> resultClass = msg.getCacheClazz();
-        String lockKey = resultClass.getTypeName();
+        String type = resultClass.getTypeName();
         Object arg = msg.getArg()[0];
         Class<?> argClass = arg.getClass();
         Lock writeLock = null;
         try {
-            writeLock = kacheLock.writeLock(lockKey);
+            writeLock = kacheLock.writeLock(type);
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
             if (resultClass.isAssignableFrom(argClass)){
                 Method methodGetId = argClass.getMethod(METHOD_GET_ID, null);
                 log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
-                remoteCacheManager.updateById(methodGetId.invoke(arg).toString(),arg) ;
+                remoteCacheManager.updateById(methodGetId.invoke(arg).toString(), type, arg) ;
             }
             //==========下为重复代码
             remoteCacheManager.delKeys(cacheEncoder.getPattern(resultClass.getName()));
