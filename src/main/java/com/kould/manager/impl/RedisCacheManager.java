@@ -68,24 +68,16 @@ public class RedisCacheManager extends RemoteCacheManager {
     //Lua脚本，用于在Reids中获取符合表达式的索引
     private static final  String SCRIPT_LUA_CACHE_DEL_KEYS =
                     "local cursor = 0 " +
-                    "local resp = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
-                    "cursor = tonumber(resp[1]) " +
-                    "for key,value in pairs(resp[2]) do " +
-                    "    if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
-                    "    then " +
-                    "       redis.call('del',value) " +
-                    "    end " +
-                    "end " +
-                    "while(cursor ~= 0) do " +
-                    "    local resp1 = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
-                    "    cursor = tonumber(resp1[1]) " +
-                    "       for key,value in pairs(resp1[2]) do " +
-                    "           if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
-                    "           then " +
-                    "               redis.call('del',value) " +
-                    "           end " +
-                    "       end " +
-                    "end " +
+                    "repeat" +
+                    "   local resp = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
+                    "   cursor = tonumber(resp[1]) " +
+                    "   for key,value in pairs(resp[2]) do " +
+                    "      if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
+                    "      then " +
+                    "         redis.call('del',value) " +
+                    "      end " +
+                    "   end " +
+                    "until (cursor <= 0)" +
                     "return true " ;
 
     private String scriptGetSHA1 ;
