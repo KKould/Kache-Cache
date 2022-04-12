@@ -1,6 +1,7 @@
 package com.kould.config;
 
 import com.kould.aspect.DaoCacheAop;
+import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
@@ -22,6 +23,7 @@ import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
 import com.kould.service.RedisService;
+import io.lettuce.core.codec.RedisCodec;
 import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -135,5 +137,11 @@ public class KacheAutoConfig {
     @ConditionalOnEnabledEndpoint
     public KacheEndpoint kacheEndpoint() {
         return new KacheEndpoint();
+    }
+
+    @Bean("KacheRedisCodec")
+    @ConditionalOnMissingBean(name = "KacheRedisCodec")
+    public RedisCodec<String, Object> redisCodec() {
+        return new KryoRedisCodec();
     }
 }

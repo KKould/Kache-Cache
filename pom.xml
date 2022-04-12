@@ -6,7 +6,7 @@
 
   <groupId>io.gitee.kould</groupId>
   <artifactId>Kache</artifactId>
-  <version>1.7.7</version>
+  <version>1.7.8</version>
   <packaging>jar</packaging>
 
   <name>Kache</name>
@@ -30,6 +30,7 @@
     <lettuce.ver>5.2.1.RELEASE</lettuce.ver>
     <hutool.ver>4.1.14</hutool.ver>
     <google.guava.ver>22.0</google.guava.ver>
+    <protostuff.ver>1.7.4</protostuff.ver>
     <kryo-shaded.ver>4.0.0</kryo-shaded.ver>
     <kryo-serializers.ver>0.41</kryo-serializers.ver>
   </properties>
@@ -90,6 +91,16 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${google.guava.ver}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-core</artifactId>
+      <version>${protostuff.ver}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-runtime</artifactId>
+      <version>${protostuff.ver}</version>
     </dependency>
     <dependency>
       <groupId>com.esotericsoftware</groupId>
