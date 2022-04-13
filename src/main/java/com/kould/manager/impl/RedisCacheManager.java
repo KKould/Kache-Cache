@@ -332,8 +332,12 @@ public class RedisCacheManager extends RemoteCacheManager {
                         } else {
                             //此时为包装类的情况
                             Field recordsField = first.getClass().getDeclaredField(dataFieldProperties.getName());
-                            recordsField.setAccessible(true);
-                            recordsField.set(first, records);
+                            try {
+                                recordsField.set(first, records);
+                            } catch (IllegalAccessException e) {
+                                recordsField.setAccessible(true);
+                                recordsField.set(first, records);
+                            }
                             //跳过第一位数据的填充
                             for (int i = 1; i < list.size(); i++) {
                                 records.add(list.get(i));
