@@ -40,7 +40,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         //此处可以返回空但是空会导致同一Service方法内调用同一Dao方法且Dao方法的参数不一致时会导致缓存误差
         //需要寻找循环依赖序列化方案-》Mybatis-Plus的Wrapper
         //new:使用Kryo序列化
-        return SHA1.getDigestOfString(KryoUtil.writeToByteArray(args));
+        return String.valueOf(getHash(KryoUtil.writeToByteArray(args)));
     }
 
     @Override
@@ -89,5 +89,13 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private Object readResolve() {
         return INSTANCE;
+    }
+
+    private static long getHash(byte[] bytes){
+        long hash = HASH;
+        for (byte datum : bytes) {
+            hash = P * hash + datum ;
+        }
+        return hash + bytes.length;
     }
 }
