@@ -5,7 +5,6 @@ import com.kould.config.KacheAutoConfig;
 import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.utils.KryoUtil;
-import com.kould.utils.SHA1;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 import java.lang.reflect.Method;
@@ -73,12 +72,6 @@ public class BaseCacheEncoder extends CacheEncoder {
             //使Key为各个参数编码后的一个特殊值
             return encode(methodStatus, types, methodName, argsCode) ;
         }
-    }
-
-    @Override
-    public String getServiceKey(ProceedingJoinPoint point, String methodName, Method method, Object args, String types) {
-        String argsCode = argsEncode(point.getArgs());
-        return encode(Status.BY_FIELD.getValue(), types, methodName, argsCode) ;
     }
 
     private String setKey2Id(ProceedingJoinPoint point, String type) {

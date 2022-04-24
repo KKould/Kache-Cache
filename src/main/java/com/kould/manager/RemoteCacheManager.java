@@ -20,7 +20,4 @@ public abstract class RemoteCacheManager {
     public abstract Long del(String... keys) throws Throwable;
     public abstract Object updateById(String id,String type,Object result) throws Throwable;
     public abstract Object get(String key, String lockKey) throws Throwable;
-
-    public abstract Object unLockGet(String key) throws Throwable;
-    public abstract Object unLockPut(String key, ProceedingJoinPoint point) throws Throwable;
 }

@@ -2,6 +2,8 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.kould.config.KacheAutoConfig;
 import com.kould.enity.NullValue;
 import com.kould.lock.KacheLock;
@@ -16,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 /*
@@ -31,6 +33,10 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private static final Logger log = LoggerFactory.getLogger(RedisCacheManager.class) ;
 
+    private static final Cache<String, Field> FIELD_CACHE = CacheBuilder.newBuilder()
+            .weakValues()
+            .build() ;
+
     @Autowired
     private RedisService redisService;
 
@@ -41,7 +47,7 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
-    private static final String METHOD_GET_ID = "getId" ;
+    private String FIELD_ID = "id";
 
     //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
     private static final  String SCRIPT_LUA_CACHE_GET =
@@ -159,8 +165,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         id = key ;
                     } else if (result != null) {
                         //获取条件方法单结果
-                        Method methodGetId = result.getClass().getMethod(METHOD_GET_ID, null);
-                        id = KacheAutoConfig.CACHE_PREFIX + methodGetId.invoke(result).toString() ;
+                        id = KacheAutoConfig.CACHE_PREFIX + getFieldByNameAndClass(result.getClass(), FIELD_ID) ;
                     } else {
                         id = KacheAutoConfig.CACHE_PREFIX + getNullTag() ;
                     }
@@ -205,12 +210,13 @@ public class RedisCacheManager extends RemoteCacheManager {
         Iterator<Object> iterator = records.iterator();
         if (iterator.hasNext()) {
             //生成Echo脚本（返回Redis内不存在的单条数据，用于减少重复的数据，减少重复序列化和多余的IO占用）
-            Method methodGetId = records.iterator().next().getClass().getMethod(METHOD_GET_ID,null) ;
             int count2Echo = 0 ;
             echo.append("local result = {} ") ;
             while(iterator.hasNext()) {
+                Object next = iterator.next();
                 count2Echo ++ ;
-                keys.add(KacheAutoConfig.CACHE_PREFIX + types + methodGetId.invoke(iterator.next()).toString());
+                keys.add(KacheAutoConfig.CACHE_PREFIX + types + getFieldByNameAndClass(next.getClass(), FIELD_ID)
+                        .get(next));
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -285,6 +291,21 @@ public class RedisCacheManager extends RemoteCacheManager {
         }
     }
 
+    private Field getFieldByNameAndClass(Class<?> clazz, String fieldName) throws ExecutionException {
+        String fieldKey = clazz.getName() + fieldName;
+        return FIELD_CACHE.get(fieldKey, () -> {
+            Field fieldIDCache ;
+            try {
+                fieldIDCache = clazz.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                //此处用于解决继承导致的getDeclaredField不能直接获取父类属性的问题
+                fieldIDCache = clazz.getSuperclass().getDeclaredField(fieldName);
+            }
+            fieldIDCache.setAccessible(true);
+            return fieldIDCache;
+        });
+    }
+
     /**
      * 使用Lua脚本在Redis处直接完成索引值的散列数据收集并以List的形式返回
      * 随后解析list：
@@ -331,13 +352,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                             return records;
                         } else {
                             //此时为包装类的情况
-                            Field recordsField = first.getClass().getDeclaredField(dataFieldProperties.getName());
-                            try {
-                                recordsField.set(first, records);
-                            } catch (IllegalAccessException e) {
-                                recordsField.setAccessible(true);
-                                recordsField.set(first, records);
-                            }
+                            getFieldByNameAndClass(first.getClass(), dataFieldProperties.getName())
+                                    .set(first, records);
                             //跳过第一位数据的填充
                             for (int i = 1; i < list.size(); i++) {
                                 records.add(list.get(i));
@@ -355,19 +371,6 @@ public class RedisCacheManager extends RemoteCacheManager {
                 throw e ;
             }
         }) ;
-    }
-
-    @Override
-    public Object unLockGet(String key) throws Throwable {
-        return redisService.executeSync(commands -> commands.get(key));
-    }
-
-    @Override
-    public Object unLockPut(String key, ProceedingJoinPoint point) throws Throwable {
-        return redisService.executeSync(commands -> {
-            Object proceed = point.proceed();
-            return commands.set(key,proceed);
-        });
     }
 
     @Override

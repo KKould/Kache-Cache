@@ -33,6 +33,7 @@
     <protostuff.ver>1.7.4</protostuff.ver>
     <kryo-shaded.ver>4.0.0</kryo-shaded.ver>
     <kryo-serializers.ver>0.41</kryo-serializers.ver>
+    <cglib.ver>3.2.4</cglib.ver>
   </properties>
 
   <dependencies>
@@ -111,6 +112,11 @@
       <groupId>de.javakaffee</groupId>
       <artifactId>kryo-serializers</artifactId>
       <version>${kryo-serializers.ver}</version>
+    </dependency>
+    <dependency>
+      <groupId>cglib</groupId>
+      <artifactId>cglib</artifactId>
+      <version>${cglib.ver}</version>
     </dependency>
   </dependencies>
 

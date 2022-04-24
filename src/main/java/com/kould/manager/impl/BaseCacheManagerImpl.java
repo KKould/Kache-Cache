@@ -1,4 +1,5 @@
 package com.kould.manager.impl;
+
 import com.kould.manager.IBaseCacheManager;
 import org.aspectj.lang.ProceedingJoinPoint;
 
@@ -41,17 +42,6 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         }
         return result ;
     }
-
-    @Override
-    public Object serviceWrite(String key, ProceedingJoinPoint point, String types) throws Throwable {
-        return remoteCacheManager.unLockPut(key,point);
-    }
-
-    @Override
-    public Object serviceRead(String key, String types) throws Throwable {
-        return remoteCacheManager.unLockGet(key);
-    }
-
 
     private Object readResolve() {
         return INSTANCE;
