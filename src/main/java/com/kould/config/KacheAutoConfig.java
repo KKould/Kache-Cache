@@ -51,8 +51,6 @@ public class KacheAutoConfig {
 
     public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
 
-    public static final String POINTCUT_EXPRESSION_SERVICE_MYBATIS_PLUS_ISERVICE = "execution(* com.baomidou.mybatisplus.extension.service.impl.ServiceImpl.*(..))" ;
-
     public static final String MYBATIS_PLUS_MAPPER_SELECT_BY_ID = "selectById" ;
 
     public static final String SERVICE_BY_ID = "METHOD_SERVICE_BY_ID" ;
