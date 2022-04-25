@@ -11,15 +11,10 @@ import java.util.concurrent.locks.Lock;
 
 public class RedissonLock extends KacheLock {
 
-    private static final RedissonLock INSTANCE = new RedissonLock() ;
+    private final RedissonClient redissonClient;
 
-    @Autowired
-    private RedissonClient redissonClient;
-
-    private RedissonLock() {}
-
-    public static RedissonLock getInstance() {
-        return INSTANCE ;
+    public RedissonLock(RedissonClient redissonClient) {
+        this.redissonClient = redissonClient;
     }
 
     @Override
@@ -53,9 +48,5 @@ public class RedissonLock extends KacheLock {
         }
         RLock rLock = (RLock) lock ;
         return rLock.isLocked() && rLock.isHeldByCurrentThread();
-    }
-
-    private Object readResolve() {
-        return INSTANCE;
     }
 }

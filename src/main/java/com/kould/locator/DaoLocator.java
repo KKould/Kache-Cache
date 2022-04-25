@@ -5,7 +5,6 @@ import com.kould.annotation.DaoClass;
 import com.kould.aspect.DaoCacheAop;
 import com.kould.config.DaoProperties;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
@@ -17,8 +16,11 @@ import java.util.Map;
  */
 public class DaoLocator implements ApplicationContextAware {
 
-    @Autowired
-    private DaoProperties daoProperties;
+    public DaoLocator(DaoProperties daoProperties) {
+        this.daoProperties = daoProperties;
+    }
+
+    private final DaoProperties daoProperties;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

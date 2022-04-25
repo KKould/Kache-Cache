@@ -2,18 +2,21 @@ package com.kould.manager;
 
 import com.kould.config.InterprocessCacheProperties;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.ExecutionException;
 
 public abstract class IBaseCacheManager {
-    @Autowired
+
+    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties) {
+        this.interprocessCacheManager = interprocessCacheManager;
+        this.remoteCacheManager = remoteCacheManager;
+        this.interprocessCacheProperties = interprocessCacheProperties;
+    }
+
     protected InterprocessCacheManager interprocessCacheManager ;
 
-    @Autowired
     protected RemoteCacheManager remoteCacheManager ;
 
-    @Autowired
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
     /**

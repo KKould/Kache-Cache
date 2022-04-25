@@ -1,7 +1,7 @@
 package com.kould.encoder.impl;
 
 import com.kould.annotation.DaoSelect;
-import com.kould.config.KacheAutoConfig;
+import com.kould.config.Kache;
 import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.utils.KryoUtil;
@@ -26,7 +26,7 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     @Override
     public String encode(String MethodStatus, String daoEnityName, String methodName, String args) {
-        return KacheAutoConfig.NO_ID_TAG +
+        return Kache.NO_ID_TAG +
                 MethodStatus +
                 daoEnityName +
                 methodName +
@@ -54,7 +54,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         //  若否则经过编码后进行获取
         //信息摘要收集
         //获取DAO方法签名
-        if (methodName.equals(KacheAutoConfig.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
+        if (methodName.equals(Kache.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
             return setKey2Id(point, types);
         }
         DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
@@ -64,7 +64,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         } else {
             methodStatus = Status.BY_FIELD.getValue() ;
         }
-        if (methodStatus.equals(KacheAutoConfig.SERVICE_BY_ID)) {
+        if (methodStatus.equals(Kache.SERVICE_BY_ID)) {
             //使Key为ID
             return setKey2Id(point,types);
         }else {

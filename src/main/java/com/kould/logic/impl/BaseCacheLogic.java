@@ -1,17 +1,15 @@
 package com.kould.logic.impl;
 
-import com.kould.config.KacheAutoConfig;
+import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.logic.CacheLogic;
 import com.kould.manager.InterprocessCacheManager;
+import com.kould.manager.RemoteCacheManager;
 import com.kould.message.KacheMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
@@ -22,14 +20,9 @@ public class BaseCacheLogic extends CacheLogic {
 
     private static final String METHOD_GET_ID = "getId" ;
 
-    private static final BaseCacheLogic INSTANCE = new BaseCacheLogic() ;
-
-    private BaseCacheLogic() {
-
-    }
-
-    public static BaseCacheLogic getInstance() {
-        return INSTANCE ;
+    public BaseCacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder
+            , RemoteCacheManager remoteCacheManager, InterprocessCacheManager interprocessCacheManager) {
+        super(kacheLock, cacheEncoder, remoteCacheManager, interprocessCacheManager);
     }
 
     public void deleteRemoteCache(KacheMessage msg) throws Throwable {

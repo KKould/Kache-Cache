@@ -3,6 +3,9 @@ package com.kould.manager.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.kould.config.DaoProperties;
+import com.kould.config.InterprocessCacheProperties;
+import com.kould.handler.StrategyHandler;
 import com.kould.manager.InterprocessCacheManager;
 
 import java.util.Map;
@@ -17,19 +20,17 @@ import java.util.concurrent.TimeUnit;
 仅为Key->Value形式存储
  */
 public class GuavaCacheManager extends InterprocessCacheManager {
-    
-    private static final GuavaCacheManager INSTANCE = new GuavaCacheManager() ;
+
+
 
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
     private static final Map<String, Cache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();
 
-    private GuavaCacheManager() {}
-
-    public static GuavaCacheManager getInstance() {
-        return INSTANCE ;
+    public GuavaCacheManager(DaoProperties daoProperties, InterprocessCacheProperties interprocessCacheProperties) {
+        super(daoProperties, interprocessCacheProperties);
     }
-    
+
     @Override
     public <T> T update(String key, T result, String types) {
 
@@ -64,7 +65,7 @@ public class GuavaCacheManager extends InterprocessCacheManager {
         if (cache == null) {
             cache = CacheBuilder.newBuilder()
                     .weakValues()
-                    .expireAfterAccess(strategyHandler.getCacheTime(),TimeUnit.SECONDS)
+                    .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
                     .maximumSize(interprocessCacheProperties.getSize())
                     .build() ;
             GUAVA_CACHE_MAP.put(types, cache);
@@ -73,9 +74,5 @@ public class GuavaCacheManager extends InterprocessCacheManager {
             cache.put(key,result);
         }
         return result;
-    }
-
-    private Object readResolve() {
-        return INSTANCE;
     }
 }

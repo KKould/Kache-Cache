@@ -5,20 +5,24 @@ import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.message.KacheMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public abstract class CacheLogic {
-    @Autowired
+
     protected KacheLock kacheLock ;
 
-    @Autowired
     protected CacheEncoder cacheEncoder ;
 
-    @Autowired
     protected RemoteCacheManager remoteCacheManager;
 
-    @Autowired
     protected InterprocessCacheManager interprocessCacheManager ;
+
+    public CacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder, RemoteCacheManager remoteCacheManager,
+                      InterprocessCacheManager interprocessCacheManager) {
+        this.kacheLock = kacheLock;
+        this.cacheEncoder = cacheEncoder;
+        this.remoteCacheManager = remoteCacheManager;
+        this.interprocessCacheManager = interprocessCacheManager;
+    }
 
     public abstract void deleteRemoteCache(KacheMessage msg) throws Throwable;
 

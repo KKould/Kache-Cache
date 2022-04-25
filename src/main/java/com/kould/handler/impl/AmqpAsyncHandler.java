@@ -1,6 +1,8 @@
 package com.kould.handler.impl;
 
+import com.kould.config.DaoProperties;
 import com.kould.handler.AsyncHandler;
+import com.kould.logic.CacheLogic;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.slf4j.Logger;
@@ -10,7 +12,6 @@ import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /*
 基于AMQP协议的异步处理器
@@ -21,15 +22,11 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AmqpAsyncHandler.class) ;
 
-    private static final AmqpAsyncHandler INSTANCE = new AmqpAsyncHandler() ;
+    private final AmqpTemplate amqpTemplate;
 
-    @Autowired
-    private AmqpTemplate amqpTemplate;
-
-    private AmqpAsyncHandler() {}
-
-    public static AmqpAsyncHandler getInstance() {
-        return INSTANCE ;
+    public AmqpAsyncHandler(DaoProperties daoProperties, CacheLogic cacheLogic, AmqpTemplate amqpTemplate) {
+        super(daoProperties, cacheLogic);
+        this.amqpTemplate = amqpTemplate;
     }
 
     public static final String QUEUE_DELETE_CACHE = "KACHE_CACHE_DELETE" ;
@@ -57,11 +54,6 @@ public class AmqpAsyncHandler extends AsyncHandler {
     @Override
     public Object insert(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
         return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
-    }
-
-    @Override
-    public int getCacheTime() {
-        return (int) (daoProperties.getBaseTime() + Math.random() * daoProperties.getRandomTime());
     }
 
     private Object asyncChange(ProceedingJoinPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {

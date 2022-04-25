@@ -9,24 +9,25 @@ import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.support.ConnectionPoolSupport;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 
 public class RedisService {
 
-    @Autowired
-    private DaoProperties daoProperties;
+    private final DaoProperties daoProperties;
 
-    @Autowired
-    private RedisClient redisClient;
+    private final RedisClient redisClient;
 
-    @Resource(name = "KacheRedisCodec")
-    private RedisCodec<String, Object> redisCodec;
+    private final RedisCodec<String, Object> redisCodec;
 
     GenericObjectPool<StatefulRedisConnection<String, Object>> redisConnectionPool;
+
+    public RedisService(DaoProperties daoProperties, RedisClient redisClient, RedisCodec<String, Object> redisCodec) {
+        this.daoProperties = daoProperties;
+        this.redisClient = redisClient;
+        this.redisCodec = redisCodec;
+    }
 
     @PostConstruct
     public void init() {
@@ -35,7 +36,8 @@ public class RedisService {
         poolConfig.setMaxIdle(daoProperties.getPoolMaxIdle());
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);
-        this.redisConnectionPool = ConnectionPoolSupport.createGenericObjectPool(() -> redisClient.connect(redisCodec), poolConfig);
+        this.redisConnectionPool = ConnectionPoolSupport.createGenericObjectPool(() -> redisClient.connect(redisCodec)
+                , poolConfig);
     }
 
     @PreDestroy

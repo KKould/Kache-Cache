@@ -1,17 +1,19 @@
 package com.kould.manager;
 
+import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
-import com.kould.handler.StrategyHandler;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public abstract class RemoteCacheManager {
 
-    @Autowired
-    protected StrategyHandler strategyHandler;
+    protected DataFieldProperties dataFieldProperties;
 
-    @Autowired
-    protected DataFieldProperties dataFieldProperties ;
+    protected DaoProperties daoProperties;
+
+    public RemoteCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties) {
+        this.daoProperties = daoProperties;
+        this.dataFieldProperties = dataFieldProperties;
+    }
 
     public abstract String getNullTag() ;
 

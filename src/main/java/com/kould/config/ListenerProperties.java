@@ -1,9 +1,14 @@
 package com.kould.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties("kache.listener")
 public class ListenerProperties {
+
+    public ListenerProperties() {
+    }
+
+    public ListenerProperties(boolean enable) {
+        this.enable = enable;
+    }
+
     private boolean enable = true;
 
     public boolean isEnable() {

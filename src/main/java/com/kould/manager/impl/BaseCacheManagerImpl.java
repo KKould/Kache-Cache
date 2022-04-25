@@ -1,6 +1,9 @@
 package com.kould.manager.impl;
 
+import com.kould.config.InterprocessCacheProperties;
 import com.kould.manager.IBaseCacheManager;
+import com.kould.manager.InterprocessCacheManager;
+import com.kould.manager.RemoteCacheManager;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 /*
@@ -9,12 +12,9 @@ import org.aspectj.lang.ProceedingJoinPoint;
  */
 public class BaseCacheManagerImpl extends IBaseCacheManager {
 
-    private static final BaseCacheManagerImpl INSTANCE = new BaseCacheManagerImpl() ;
-
-    private BaseCacheManagerImpl() {}
-
-    public static BaseCacheManagerImpl getInstance() {
-        return INSTANCE ;
+    public BaseCacheManagerImpl(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager
+            , InterprocessCacheProperties interprocessCacheProperties) {
+        super(interprocessCacheManager, remoteCacheManager, interprocessCacheProperties);
     }
 
     @Override
@@ -41,9 +41,5 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
             }
         }
         return result ;
-    }
-
-    private Object readResolve() {
-        return INSTANCE;
     }
 }

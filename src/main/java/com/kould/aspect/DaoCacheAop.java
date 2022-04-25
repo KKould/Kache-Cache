@@ -1,6 +1,6 @@
 package com.kould.aspect;
 
-import com.kould.config.KacheAutoConfig;
+import com.kould.config.Kache;
 import com.kould.config.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
@@ -14,58 +14,59 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
 @Aspect
-@Order(15)
 public final class DaoCacheAop {
 
     private static final Logger log = LoggerFactory.getLogger(DaoCacheAop.class) ;
 
     public static final Map<String,Class<?>> CLASS_MAP = new HashMap<>();
 
-    @Autowired
-    private IBaseCacheManager baseCacheManager;
+    private final IBaseCacheManager baseCacheManager;
 
-    @Autowired
-    private StrategyHandler strategyHandler;
+    private final StrategyHandler strategyHandler;
 
-    @Autowired
-    private ListenerProperties listenerProperties ;
+    private final ListenerProperties listenerProperties;
 
-    @Autowired
-    private CacheHandler cacheHandler;
+    private final CacheHandler cacheHandler;
 
-    @Autowired
-    private CacheEncoder cacheEncoder;
+    private final CacheEncoder cacheEncoder;
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT)
+    public DaoCacheAop(IBaseCacheManager baseCacheManager, StrategyHandler strategyHandler,
+                       ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder) {
+        this.baseCacheManager = baseCacheManager;
+        this.strategyHandler = strategyHandler;
+        this.listenerProperties = listenerProperties;
+        this.cacheHandler = cacheHandler;
+        this.cacheEncoder = cacheEncoder;
+    }
+
+    @Pointcut(Kache.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT)
     public void pointCutMyBatisPlusFind() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_INSERT)
+    @Pointcut(Kache.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_INSERT)
     public void pointCutMyBatisPlusAdd() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE)
+    @Pointcut(Kache.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE)
     public void pointCutMyBatisPlusRemove() {
     }
 
-    @Pointcut(KacheAutoConfig.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE)
+    @Pointcut(Kache.POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE)
     public void pointCutMyBatisPlusEdit() {
     }
 
     /**
      * 数据查询最上层中的缓存操作抽象逻辑切片处理
      * 用于主体上对缓存操作进行调控
-     * @param point
+     * @param point 数据操纵切入点
      * @return 缓存具体数据
-     * @throws Throwable
+     * @throws Throwable 可能存在的问题，由业务代码决定
      */
     @Around("@annotation(com.kould.annotation.DaoSelect) || pointCutMyBatisPlusFind()")
     public Object findAroundInvoke(ProceedingJoinPoint point) throws Throwable {
@@ -80,7 +81,7 @@ public final class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoDelete) || pointCutMyBatisPlusRemove()")
     public Object removeAroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据删除");
+        log.info(Kache.CACHE_PREFIX + "检测到数据删除");
         Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.delete(point, getKacheMessage(point, beanClass)) ;
@@ -91,7 +92,7 @@ public final class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoInsert) || pointCutMyBatisPlusAdd()")
     public Object insertAroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据增加");
+        log.info(Kache.CACHE_PREFIX + "检测到数据增加");
         Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.insert(point, getKacheMessage(point, beanClass)) ;
@@ -102,7 +103,7 @@ public final class DaoCacheAop {
 
     @Around("@annotation(com.kould.annotation.DaoUpdate) || pointCutMyBatisPlusEdit()")
     public Object editAroundInvoke(ProceedingJoinPoint point) throws Throwable {
-        log.info(KacheAutoConfig.CACHE_PREFIX + "检测到数据修改");
+        log.info(Kache.CACHE_PREFIX + "检测到数据修改");
         Class<?> beanClass = CLASS_MAP.get(point.getTarget().toString());
         if (beanClass != null) {
             return strategyHandler.update(point, getKacheMessage(point, beanClass)) ;
@@ -111,7 +112,7 @@ public final class DaoCacheAop {
         }
     }
 
-    private KacheMessage getKacheMessage(ProceedingJoinPoint point, Class<?> beanClass) throws Exception {
+    private KacheMessage getKacheMessage(ProceedingJoinPoint point, Class<?> beanClass) {
         MethodSignature methodSignature = (MethodSignature) point.getSignature();
         Method daoMethod = methodSignature.getMethod();
         String daoMethodName = daoMethod.getName() ;

@@ -1,9 +1,15 @@
 package com.kould.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties("kache.interprocess-cache")
 public class InterprocessCacheProperties {
+
+    public InterprocessCacheProperties() {
+    }
+
+    public InterprocessCacheProperties(boolean enable, int size) {
+        this.enable = enable;
+        this.size = size;
+    }
+
     private boolean enable = false;
 
     private int size =200;

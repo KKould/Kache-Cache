@@ -4,13 +4,12 @@ import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
-import org.springframework.data.redis.serializer.SerializationException;
 
 public class ProtostuffUtils {
 
     private static final Schema<ObjectWrapper> schema = RuntimeSchema.getSchema(ObjectWrapper.class);
 
-    public static byte[] serialize(Object t) throws SerializationException {
+    public static byte[] serialize(Object t) {
         LinkedBuffer buffer = LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE);
         byte[] bytes;
         try {
@@ -21,7 +20,7 @@ public class ProtostuffUtils {
         return bytes;
     }
 
-    public static Object deserialize(byte[] bytes) throws SerializationException {
+    public static Object deserialize(byte[] bytes) {
         if (bytes == null || bytes.length == 0) {
             return null;
         }

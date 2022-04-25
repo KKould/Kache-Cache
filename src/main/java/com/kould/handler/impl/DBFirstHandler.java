@@ -1,10 +1,16 @@
 package com.kould.handler.impl;
 
+import com.kould.config.DaoProperties;
 import com.kould.handler.SyncHandler;
+import com.kould.logic.CacheLogic;
 import com.kould.message.KacheMessage;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 public class DBFirstHandler extends SyncHandler {
+
+    public DBFirstHandler(DaoProperties daoProperties, CacheLogic cacheLogic) {
+        super(daoProperties, cacheLogic);
+    }
 
     @Override
     public Object delete(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
@@ -28,10 +34,5 @@ public class DBFirstHandler extends SyncHandler {
         cacheLogic.insertRemoteCache(serviceMessage);
         cacheLogic.insertInterprocessCache(serviceMessage);
         return proceed;
-    }
-
-    @Override
-    public int getCacheTime() {
-        return (int) (daoProperties.getBaseTime() + Math.random() * daoProperties.getRandomTime());
     }
 }

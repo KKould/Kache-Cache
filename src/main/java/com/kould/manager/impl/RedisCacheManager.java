@@ -4,7 +4,9 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.kould.config.KacheAutoConfig;
+import com.kould.config.DaoProperties;
+import com.kould.config.DataFieldProperties;
+import com.kould.config.Kache;
 import com.kould.enity.NullValue;
 import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
@@ -12,8 +14,6 @@ import com.kould.service.RedisService;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -29,10 +29,6 @@ import java.util.concurrent.locks.Lock;
  */
 public class RedisCacheManager extends RemoteCacheManager {
 
-    private static final RedisCacheManager INSTANCE = new RedisCacheManager() ;
-
-    private static final Logger log = LoggerFactory.getLogger(RedisCacheManager.class) ;
-
     private static final Cache<String, Field> FIELD_CACHE = CacheBuilder.newBuilder()
             .weakValues()
             .build() ;
@@ -47,9 +43,8 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
-    private String FIELD_ID = "id";
-
     //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
+    //需要优化Kache.SERVICE_BY_FIELD的查找，使用索引优化
     private static final  String SCRIPT_LUA_CACHE_GET =
                     "local keys = redis.call('lrange',KEYS[1],0,redis.call('llen',KEYS[1])) " +
                     "local keySize = table.getn(keys) " +
@@ -78,7 +73,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     "   local resp = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
                     "   cursor = tonumber(resp[1]) " +
                     "   for key,value in pairs(resp[2]) do " +
-                    "      if (string.find('" + KacheAutoConfig.SERVICE_BY_FIELD + "',value) ~= nil) " +
+                    "      if (string.find('" + Kache.SERVICE_BY_FIELD + "',value) ~= nil) " +
                     "      then " +
                     "         redis.call('del',value) " +
                     "      end " +
@@ -90,11 +85,10 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private String scriptDelKeysSHA1 ;
 
-    private RedisCacheManager() {}
-
-    public static RedisCacheManager getInstance() {
-        return INSTANCE ;
+    public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties) {
+        super(dataFieldProperties, daoProperties);
     }
+
 
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
@@ -138,6 +132,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 StringBuilder lua = new StringBuilder();
                 List<String> keys = new ArrayList<>() ;
                 List<Object> values = new ArrayList<>() ;
+                String recordsName = dataFieldProperties.getRecordsName();
                 writeLock = kacheLock.writeLock(types);
                 Object result = point.proceed();
                 if (result instanceof Collection) {
@@ -145,9 +140,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
                             , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
                     kacheLock.unLock(writeLock);
-                } else if (result != null && isHasField(result.getClass(), dataFieldProperties.getName())) {
-                    Field recordsField = result.getClass().getDeclaredField(dataFieldProperties.getName());
-                    recordsField.setAccessible(true);
+                } else if (result != null && isHasField(result.getClass(), recordsName)) {
+                    Field recordsField = getFieldByNameAndClass(result.getClass(), recordsName);
                     Collection<Object> records = (Collection) recordsField.get(result) ;
                     recordsField.set(result,Collections.emptyList());
                     collection2Lua(commands, key, types, lua, keys, values, records, result);
@@ -157,17 +151,17 @@ public class RedisCacheManager extends RemoteCacheManager {
                     recordsField.set(result,records);
                 } else {
                     lua.append("redis.call('setex',KEYS[1],")
-                            .append(strategyHandler.getCacheTime())
+                            .append(daoProperties.getCacheTime())
                             .append(",ARGV[1]);");
                     String id = null ;
-                    if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                    if (!key.contains(Kache.NO_ID_TAG)) {
                         //若为ID方法，则直接将key赋值给id
                         id = key ;
                     } else if (result != null) {
                         //获取条件方法单结果
-                        id = KacheAutoConfig.CACHE_PREFIX + getFieldByNameAndClass(result.getClass(), FIELD_ID) ;
+                        id = Kache.CACHE_PREFIX + getFieldByNameAndClass(result.getClass(), dataFieldProperties.getPrimaryKeyName()) ;
                     } else {
-                        id = KacheAutoConfig.CACHE_PREFIX + getNullTag() ;
+                        id = Kache.CACHE_PREFIX + getNullTag() ;
                     }
                     if (result == null) {
                         values.add(NULL_VALUE) ;
@@ -182,7 +176,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         lua.append("redis.call('del',KEYS[2]);");
                         lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
                         lua.append("return redis.call('expire',KEYS[2],")
-                                .append(strategyHandler.getCacheTime())
+                                .append(daoProperties.getCacheTime())
                                 .append(");");
                     }
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
@@ -215,8 +209,9 @@ public class RedisCacheManager extends RemoteCacheManager {
             while(iterator.hasNext()) {
                 Object next = iterator.next();
                 count2Echo ++ ;
-                keys.add(KacheAutoConfig.CACHE_PREFIX + types + getFieldByNameAndClass(next.getClass(), FIELD_ID)
-                        .get(next));
+                keys.add(Kache.CACHE_PREFIX
+                        + types
+                        + getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName()).get(next));
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -228,7 +223,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         .append("else ")
                         //若存在则延长命中缓存的存活时间
                         .append("redis.call('expire',KEYS[").append(count2Echo).append("],")
-                        .append(strategyHandler.getCacheTime()).append("); ")
+                        .append(daoProperties.getCacheTime()).append("); ")
                         .append("end ") ;
             }
             echo.append("return result ") ;
@@ -243,7 +238,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     lua.append("redis.call('setex',KEYS[")
                             .append(count)
                             .append("],")
-                            .append(strategyHandler.getCacheTime())
+                            .append(daoProperties.getCacheTime())
                             .append(",ARGV[")
                             .append(count - delCount)
                             .append("]);");
@@ -271,7 +266,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             lua.append("return redis.call('expire',KEYS[")
                     .append(records.size() + 1)
                     .append("],")
-                    .append(strategyHandler.getCacheTime())
+                    .append(daoProperties.getCacheTime())
                     .append(");");
             values.addAll(keys);
             if (page != null) {
@@ -284,13 +279,20 @@ public class RedisCacheManager extends RemoteCacheManager {
             lua.append("redis.call('del',KEYS[1]) ");
             lua.append("redis.call('lpush',KEYS[1],ARGV[1]) ") ;
             lua.append("return redis.call('expire',KEYS[1],")
-                    .append(strategyHandler.getCacheTime())
+                    .append(daoProperties.getCacheTime())
                     .append(");");
             keys.add(key) ;
             values.add(page) ;
         }
     }
 
+    /**
+     * 类反射缓存，通过Guava Cache避免反射而优化
+     * @param clazz 目标Class
+     * @param fieldName 属性名
+     * @return Field 去除安全检查的属性
+     * @throws ExecutionException 线程内异常
+     */
     private Field getFieldByNameAndClass(Class<?> clazz, String fieldName) throws ExecutionException {
         String fieldKey = clazz.getName() + fieldName;
         return FIELD_CACHE.get(fieldKey, () -> {
@@ -325,7 +327,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             Lock readLock = null ;
             try {
                 //判断是否为直接通过ID获取单条方法
-                if (!key.contains(KacheAutoConfig.NO_ID_TAG)) {
+                if (!key.contains(Kache.NO_ID_TAG)) {
                     readLock = kacheLock.readLock(lockKey);
                     Object result = commands.get(key);
                     kacheLock.unLock(readLock);
@@ -352,7 +354,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                             return records;
                         } else {
                             //此时为包装类的情况
-                            getFieldByNameAndClass(first.getClass(), dataFieldProperties.getName())
+                            getFieldByNameAndClass(first.getClass(), dataFieldProperties.getRecordsName())
                                     .set(first, records);
                             //跳过第一位数据的填充
                             for (int i = 1; i < list.size(); i++) {
@@ -387,12 +389,12 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Override
     public Object updateById(String id, String type, Object result) throws Throwable {
        return redisService.executeSync(commands -> {
-           String key = KacheAutoConfig.CACHE_PREFIX + type + id; ;
+           String key = Kache.CACHE_PREFIX + type + id; ;
            Object target = commands.get(key);
            if (target != null) {
                BeanUtil.copyProperties(result, target,
                        true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
-               commands.setex(key, strategyHandler.getCacheTime(), target);
+               commands.setex(key, daoProperties.getCacheTime(), target);
                return target;
            } else {
                return null ;
@@ -408,14 +410,9 @@ public class RedisCacheManager extends RemoteCacheManager {
      */
     private boolean isHasField(Class<?> clazz, String field) {
         try {
-            clazz.getDeclaredField(field);
-            return true ;
-        } catch (NoSuchFieldException e) {
+            return getFieldByNameAndClass(clazz, field) != null;
+        } catch (ExecutionException e) {
             return false ;
         }
-    }
-
-    private Object readResolve() {
-        return INSTANCE;
     }
 }
