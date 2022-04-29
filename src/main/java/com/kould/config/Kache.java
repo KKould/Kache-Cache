@@ -6,6 +6,7 @@ import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
+import com.kould.enity.RegexEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
@@ -33,13 +34,13 @@ public class Kache {
 
     private static Kache kache;
 
-    private DaoProperties daoProperties;
+    private final DaoProperties daoProperties;
 
-    private DataFieldProperties dataFieldProperties;
+    private final DataFieldProperties dataFieldProperties;
 
-    private InterprocessCacheProperties interprocessCacheProperties;
+    private final InterprocessCacheProperties interprocessCacheProperties;
 
-    private ListenerProperties listenerProperties;
+    private final ListenerProperties listenerProperties;
 
     //"METHOD_SERVICE_BY_ID "
     public static final String SERVICE_BY_ID = "$MSBI" ;
@@ -55,6 +56,14 @@ public class Kache {
     public static final String CACHE_PREFIX = "KACHE:" ;
 
     private final String mapperPackage;
+
+    private final String selectRegex;
+
+    private final String insertRegex;
+
+    private final String deleteRegex;
+
+    private final String updateRegex;
 
     private final CacheEncoder cacheEncoder;
 
@@ -79,6 +88,14 @@ public class Kache {
     private final CacheListener cacheListener = StatisticsListener.newInstance();
 
     public static class Builder implements com.kould.type.Builder<Kache> {
+
+        private String selectRegex;
+
+        private String insertRegex;
+
+        private String deleteRegex;
+
+        private String updateRegex;
 
         private String mapperPackage;
 
@@ -113,6 +130,26 @@ public class Kache {
         private RedisService redisService;
 
         public Builder() { }
+
+        public Kache.Builder selectRegex(String selectRegex) {
+            this.selectRegex = selectRegex;
+            return this;
+        }
+
+        public Kache.Builder insertRegex(String insertRegex) {
+            this.insertRegex = insertRegex;
+            return this;
+        }
+
+        public Kache.Builder deleteRegex(String deleteRegex) {
+            this.deleteRegex = deleteRegex;
+            return this;
+        }
+
+        public Kache.Builder updateRegex(String updateRegex) {
+            this.updateRegex = updateRegex;
+            return this;
+        }
 
         public Kache.Builder mapperPackage(String mapperPackage) {
             this.mapperPackage = mapperPackage;
@@ -196,6 +233,18 @@ public class Kache {
 
         @Override
         public Kache build() {
+            if (this.selectRegex == null) {
+                this.selectRegex = "^select";
+            }
+            if (this.insertRegex == null) {
+                this.insertRegex = "^insert";
+            }
+            if (this.deleteRegex == null) {
+                this.deleteRegex = "^delete";
+            }
+            if (this.updateRegex == null) {
+                this.updateRegex = "^update";
+            }
             if (this.mapperPackage == null) {
                 throw new NullPointerException(MAPPER_PATH_NULL);
             }
@@ -263,6 +312,10 @@ public class Kache {
     }
 
     public Kache(Builder builder) {
+        this.selectRegex = builder.selectRegex;
+        this.insertRegex = builder.insertRegex;
+        this.deleteRegex = builder.deleteRegex;
+        this.updateRegex = builder.updateRegex;
         this.mapperPackage = builder.mapperPackage;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
@@ -286,7 +339,8 @@ public class Kache {
         enhancer.setSuperclass(target.getClass());
         // 设置回调
         enhancer.setCallback(new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
-                , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder));
+                , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder
+                , new RegexEntity(selectRegex ,insertRegex ,deleteRegex ,updateRegex)));
         // create方法正式创建代理类
         return (T) enhancer.create();
     }

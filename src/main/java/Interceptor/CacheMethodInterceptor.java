@@ -4,6 +4,7 @@ import com.kould.annotation.*;
 import com.kould.config.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
+import com.kould.enity.RegexEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.enity.KacheMessage;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
+import java.util.regex.Pattern;
 
 public final class CacheMethodInterceptor implements MethodInterceptor {
 
@@ -33,8 +35,10 @@ public final class CacheMethodInterceptor implements MethodInterceptor {
 
     private final CacheEncoder cacheEncoder;
 
+    private final RegexEntity regexEntity;
+
     public CacheMethodInterceptor(Object target, Class<?> entityClass, IBaseCacheManager baseCacheManager, StrategyHandler strategyHandler,
-                                  ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder) {
+                                  ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder, RegexEntity regexEntity) {
         this.target = target;
         this.entityClass = entityClass;
         this.baseCacheManager = baseCacheManager;
@@ -42,6 +46,7 @@ public final class CacheMethodInterceptor implements MethodInterceptor {
         this.listenerProperties = listenerProperties;
         this.cacheHandler = cacheHandler;
         this.cacheEncoder = cacheEncoder;
+        this.regexEntity = regexEntity;
     }
 
 
@@ -59,21 +64,21 @@ public final class CacheMethodInterceptor implements MethodInterceptor {
         Class<?> mapperEntityClass = this.entityClass;
         //此处使用的Target为该类实例化时注入的target，以实现二次加工（比如MyBatis生成的实例再次由Kache实例化）
         MethodPoint methodPoint = new MethodPoint(methodProxy, this.target, args, method);
-
-        if (method.isAnnotationPresent(DaoSelect.class)) {
+        String methodName = method.getName();
+        if (method.isAnnotationPresent(DaoSelect.class) || Pattern.matches(regexEntity.getSelectRegex(),methodName)) {
             return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
                     , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, mapperEntityClass.getTypeName()
                     , method.getAnnotation(DaoSelect.class).status());
         }
-        if (method.isAnnotationPresent(DaoInsert.class)) {
+        if (method.isAnnotationPresent(DaoInsert.class) || Pattern.matches(regexEntity.getInsertRegex(),methodName)) {
             return strategyHandler.insert(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args));
         }
-        if (method.isAnnotationPresent(DaoDelete.class)) {
+        if (method.isAnnotationPresent(DaoDelete.class) || Pattern.matches(regexEntity.getDeleteRegex(),methodName)) {
             return strategyHandler.delete(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args));
         }
-        if (method.isAnnotationPresent(DaoUpdate.class)) {
+        if (method.isAnnotationPresent(DaoUpdate.class) || Pattern.matches(regexEntity.getUpdateRegex(),methodName)) {
             return strategyHandler.update(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args));
         }
