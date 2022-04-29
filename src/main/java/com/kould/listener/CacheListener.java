@@ -1,6 +1,6 @@
 package com.kould.listener;
 
-import com.kould.message.KacheMessage;
+import com.kould.enity.KacheMessage;
 
 import java.lang.reflect.InvocationTargetException;
 

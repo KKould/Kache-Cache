@@ -2,7 +2,7 @@ package com.kould.listener.impl;
 
 import com.kould.listener.CacheListener;
 import com.kould.listener.ListenerHandler;
-import com.kould.message.KacheMessage;
+import com.kould.enity.KacheMessage;
 
 import java.util.HashMap;
 import java.util.Map;

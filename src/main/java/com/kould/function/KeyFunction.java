@@ -1,10 +1,11 @@
 package com.kould.function;
 
-import org.aspectj.lang.ProceedingJoinPoint;
+import com.kould.config.Status;
+import com.kould.proxy.MethodPoint;
 
 import java.lang.reflect.Method;
 
 @FunctionalInterface
 public interface KeyFunction {
-    Object encode(ProceedingJoinPoint point, String methodName, Method method , Object args, String types) ;
+    Object encode(MethodPoint point, String methodName, Method method , Object args, String types, Status methodStatus) ;
 }

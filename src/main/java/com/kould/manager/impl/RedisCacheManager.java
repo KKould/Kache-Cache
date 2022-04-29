@@ -2,19 +2,16 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
 import com.kould.config.Kache;
 import com.kould.enity.NullValue;
 import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
+import com.kould.proxy.MethodPoint;
 import com.kould.service.RedisService;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.sync.RedisCommands;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
@@ -28,16 +25,6 @@ import java.util.concurrent.locks.Lock;
 实现散列化的形式进行缓存存储
  */
 public class RedisCacheManager extends RemoteCacheManager {
-
-    private static final Cache<String, Field> FIELD_CACHE = CacheBuilder.newBuilder()
-            .weakValues()
-            .build() ;
-
-    @Autowired
-    private RedisService redisService;
-
-    @Autowired
-    private KacheLock kacheLock ;
 
     private static final NullValue NULL_VALUE = new NullValue();
 
@@ -85,8 +72,14 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private String scriptDelKeysSHA1 ;
 
-    public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties) {
+    private final RedisService redisService;
+
+    private final KacheLock kacheLock ;
+
+    public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties, RedisService redisService, KacheLock kacheLock) {
         super(dataFieldProperties, daoProperties);
+        this.redisService = redisService;
+        this.kacheLock = kacheLock;
     }
 
 
@@ -125,7 +118,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public Object put(String key, String types, ProceedingJoinPoint point) throws Throwable {
+    public Object put(String key, String types, MethodPoint point) throws Throwable {
         return redisService.executeSync(commands -> {
             Lock writeLock = null;
             try {
@@ -134,7 +127,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 List<Object> values = new ArrayList<>() ;
                 String recordsName = dataFieldProperties.getRecordsName();
                 writeLock = kacheLock.writeLock(types);
-                Object result = point.proceed();
+                Object result = point.execute();
                 if (result instanceof Collection) {
                     collection2Lua(commands, key, types, lua, keys, values, (Collection) result,null);
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
@@ -287,28 +280,6 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     /**
-     * 类反射缓存，通过Guava Cache避免反射而优化
-     * @param clazz 目标Class
-     * @param fieldName 属性名
-     * @return Field 去除安全检查的属性
-     * @throws ExecutionException 线程内异常
-     */
-    private Field getFieldByNameAndClass(Class<?> clazz, String fieldName) throws ExecutionException {
-        String fieldKey = clazz.getName() + fieldName;
-        return FIELD_CACHE.get(fieldKey, () -> {
-            Field fieldIDCache ;
-            try {
-                fieldIDCache = clazz.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException e) {
-                //此处用于解决继承导致的getDeclaredField不能直接获取父类属性的问题
-                fieldIDCache = clazz.getSuperclass().getDeclaredField(fieldName);
-            }
-            fieldIDCache.setAccessible(true);
-            return fieldIDCache;
-        });
-    }
-
-    /**
      * 使用Lua脚本在Redis处直接完成索引值的散列数据收集并以List的形式返回
      * 随后解析list：
      *  若list的首位数据为"[]"或"{}"则说明为Collection（目前还只是支持List）
@@ -410,9 +381,29 @@ public class RedisCacheManager extends RemoteCacheManager {
      */
     private boolean isHasField(Class<?> clazz, String field) {
         try {
-            return getFieldByNameAndClass(clazz, field) != null;
-        } catch (ExecutionException e) {
+            getFieldByNameAndClass(clazz, field);
+            return true;
+        } catch (ExecutionException | NoSuchFieldException e) {
             return false ;
         }
+    }
+
+    /**
+     * 类反射获取属性方法并解除安全检查
+     * @param clazz 目标Class
+     * @param fieldName 属性名
+     * @return Field 去除安全检查的属性
+     * @throws ExecutionException 线程内异常
+     */
+    private static Field getFieldByNameAndClass(Class<?> clazz, String fieldName) throws ExecutionException, NoSuchFieldException {
+        Field field ;
+        try {
+            field = clazz.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+            //此处用于解决继承导致的getDeclaredField不能直接获取父类属性的问题
+            field = clazz.getSuperclass().getDeclaredField(fieldName);
+        }
+        field.setAccessible(true);
+        return field;
     }
 }

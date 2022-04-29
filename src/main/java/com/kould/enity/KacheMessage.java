@@ -1,4 +1,4 @@
-package com.kould.message;
+package com.kould.enity;
 
 import java.io.Serializable;
 
@@ -7,7 +7,6 @@ public class KacheMessage implements Serializable {
 
     private static final long serialVersionUID = -567614646101307581L;
 
-    //Method无法被序列化
     private String methodName ;
     private Object[] arg ;
     private Class<?> cacheClazz ;

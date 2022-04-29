@@ -4,7 +4,7 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import com.kould.message.KacheMessage;
+import com.kould.enity.KacheMessage;
 
 public abstract class CacheLogic {
 

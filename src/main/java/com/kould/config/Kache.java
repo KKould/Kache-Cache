@@ -1,6 +1,6 @@
 package com.kould.config;
 
-import com.kould.aspect.DaoCacheAop;
+import Interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
@@ -10,7 +10,6 @@ import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
-import com.kould.locator.DaoLocator;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
 import com.kould.logic.CacheLogic;
@@ -25,6 +24,7 @@ import com.kould.service.RedisService;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
+import net.sf.cglib.proxy.Enhancer;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -41,54 +41,46 @@ public class Kache {
 
     private ListenerProperties listenerProperties;
 
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_SELECT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.select*(..))";
-
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_INSERT = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.insert*(..))";
-
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_DELETE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.delete*(..))";
-
-    public static final String POINTCUT_EXPRESSION_DAO_MYBATIS_PLUS_UPDATE = "execution(* com.baomidou.mybatisplus.core.mapper.BaseMapper.update*(..))";
-
-    public static final String MYBATIS_PLUS_MAPPER_SELECT_BY_ID = "selectById" ;
-
     //"METHOD_SERVICE_BY_ID "
-    public static final String SERVICE_BY_ID = "MSBI" ;
+    public static final String SERVICE_BY_ID = "$MSBI" ;
 
     //"METHOD_SERVICE_BY_FIELD"
-    public static final String SERVICE_BY_FIELD = "MSBF" ;
+    public static final String SERVICE_BY_FIELD = "$MSBF" ;
 
     //"NO_ID-"
-    public static final String NO_ID_TAG = "NI-" ;
+    public static final String NO_ID_TAG = "$NI-" ;
+
+    public static final String MAPPER_PATH_NULL = "Kache's mapperPackage is null!";
 
     public static final String CACHE_PREFIX = "KACHE:" ;
 
-    private CacheEncoder cacheEncoder;
+    private final String mapperPackage;
 
-    private IBaseCacheManager iBaseCacheManager;
+    private final CacheEncoder cacheEncoder;
 
-    private RemoteCacheManager remoteCacheManager;
+    private final IBaseCacheManager iBaseCacheManager;
 
-    private RedisService redisService;
+    private final RemoteCacheManager remoteCacheManager;
 
-    private InterprocessCacheManager interprocessCacheManager;
+    private final RedisService redisService;
 
-    private KacheLock kacheLock;
+    private final InterprocessCacheManager interprocessCacheManager;
 
-    private StrategyHandler strategyHandler;
+    private final KacheLock kacheLock;
 
-    private CacheLogic cacheLogic;
+    private final StrategyHandler strategyHandler;
 
-    private DaoCacheAop daoCacheAop;
+    private final CacheLogic cacheLogic;
 
-    private DaoLocator daoLocator;
+    private final CacheHandler cacheHandler;
 
-    private CacheHandler cacheHandler;
+    private final RedisCodec<String, Object> redisCodec;
 
-    private RedisCodec<String, Object> redisCodec;
-
-    private CacheListener cacheListener = StatisticsListener.newInstance();
+    private final CacheListener cacheListener = StatisticsListener.newInstance();
 
     public static class Builder implements com.kould.type.Builder<Kache> {
+
+        private String mapperPackage;
 
         private RedisClient redisClient;
 
@@ -108,8 +100,6 @@ public class Kache {
 
         private ListenerProperties listenerProperties;
 
-        private DaoLocator daoLocator;
-
         private InterprocessCacheManager interprocessCacheManager;
 
         private RemoteCacheManager remoteCacheManager;
@@ -120,11 +110,14 @@ public class Kache {
 
         private IBaseCacheManager iBaseCacheManager;
 
-        private DaoCacheAop daoCacheAop;
-
         private RedisService redisService;
 
         public Builder() { }
+
+        public Kache.Builder mapperPackage(String mapperPackage) {
+            this.mapperPackage = mapperPackage;
+            return this;
+        }
 
         public Kache.Builder redisClient(RedisClient redisClient) {
             this.redisClient = redisClient;
@@ -171,16 +164,6 @@ public class Kache {
             return this;
         }
 
-        public Kache.Builder daoCacheAop(DaoCacheAop daoCacheAop) {
-            this.daoCacheAop = daoCacheAop;
-            return this;
-        }
-
-        public Kache.Builder daoLocator(DaoLocator daoLocator) {
-            this.daoLocator = daoLocator;
-            return this;
-        }
-
         public Kache.Builder cacheHandler(CacheHandler cacheHandler) {
             this.cacheHandler = cacheHandler;
             return this;
@@ -213,6 +196,9 @@ public class Kache {
 
         @Override
         public Kache build() {
+            if (this.mapperPackage == null) {
+                throw new NullPointerException(MAPPER_PATH_NULL);
+            }
             if (this.redisClient == null) {
                 RedisURI redisUri = RedisURI.builder()                    // <1> 建立单机链接的链接信息
                         .withHost("localhost")
@@ -245,15 +231,13 @@ public class Kache {
             if (this.listenerProperties == null) {
                 this.listenerProperties = new ListenerProperties();
             }
-            if (this.daoLocator == null) {
-                this.daoLocator = new DaoLocator(daoProperties);
-            }
             if (this.interprocessCacheManager == null) {
                 this.interprocessCacheManager = new GuavaCacheManager(daoProperties
                         , interprocessCacheProperties);
             }
             if (this.remoteCacheManager == null) {
-                this.remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties);
+                this.remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
+                        , redisService, kacheLock);
             }
             if (this.cacheLogic == null) {
                 this.cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager
@@ -266,10 +250,6 @@ public class Kache {
                 this.iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
                         , remoteCacheManager, interprocessCacheProperties);
             }
-            if (this.daoCacheAop == null) {
-                this.daoCacheAop = new DaoCacheAop(iBaseCacheManager, strategyHandler, listenerProperties
-                        , cacheHandler, cacheEncoder);
-            }
             if (this.redisService == null) {
                 this.redisService = new RedisService(daoProperties, redisClient, redisCodec);
             }
@@ -278,13 +258,16 @@ public class Kache {
         }
     }
 
+    public static Builder builder() {
+        return new Builder() ;
+    }
+
     public Kache(Builder builder) {
+        this.mapperPackage = builder.mapperPackage;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
         this.cacheLogic = builder.cacheLogic;
-        this.daoCacheAop = builder.daoCacheAop;
         this.daoProperties = builder.daoProperties;
-        this.daoLocator = builder.daoLocator;
         this.dataFieldProperties = builder.dataFieldProperties;
         this.iBaseCacheManager = builder.iBaseCacheManager;
         this.interprocessCacheProperties = builder.interprocessCacheProperties;
@@ -297,6 +280,17 @@ public class Kache {
         this.strategyHandler = builder.strategyHandler;
     }
 
+    public <T> T getProxy(T target,Class<?> entityClass) {
+        Enhancer enhancer = new Enhancer();
+        //设置被代理类
+        enhancer.setSuperclass(target.getClass());
+        // 设置回调
+        enhancer.setCallback(new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
+                , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder));
+        // create方法正式创建代理类
+        return (T) enhancer.create();
+    }
+
     public static Kache getInstance() {
         return kache;
     }
@@ -305,135 +299,63 @@ public class Kache {
         return daoProperties;
     }
 
-    public void setDaoProperties(DaoProperties daoProperties) {
-        this.daoProperties = daoProperties;
-    }
-
     public DataFieldProperties getDataFieldProperties() {
         return dataFieldProperties;
-    }
-
-    public void setDataFieldProperties(DataFieldProperties dataFieldProperties) {
-        this.dataFieldProperties = dataFieldProperties;
     }
 
     public InterprocessCacheProperties getInterprocessCacheProperties() {
         return interprocessCacheProperties;
     }
 
-    public void setInterprocessCacheProperties(InterprocessCacheProperties interprocessCacheProperties) {
-        this.interprocessCacheProperties = interprocessCacheProperties;
-    }
-
     public ListenerProperties getListenerProperties() {
         return listenerProperties;
     }
 
-    public void setListenerProperties(ListenerProperties listenerProperties) {
-        this.listenerProperties = listenerProperties;
+    public String getMapperPackage() {
+        return mapperPackage;
     }
 
     public CacheEncoder getCacheEncoder() {
         return cacheEncoder;
     }
 
-    public void setCacheEncoder(CacheEncoder cacheEncoder) {
-        this.cacheEncoder = cacheEncoder;
-    }
-
     public IBaseCacheManager getiBaseCacheManager() {
         return iBaseCacheManager;
-    }
-
-    public void setiBaseCacheManager(IBaseCacheManager iBaseCacheManager) {
-        this.iBaseCacheManager = iBaseCacheManager;
     }
 
     public RemoteCacheManager getRemoteCacheManager() {
         return remoteCacheManager;
     }
 
-    public void setRemoteCacheManager(RemoteCacheManager remoteCacheManager) {
-        this.remoteCacheManager = remoteCacheManager;
-    }
-
     public RedisService getRedisService() {
         return redisService;
-    }
-
-    public void setRedisService(RedisService redisService) {
-        this.redisService = redisService;
     }
 
     public InterprocessCacheManager getInterprocessCacheManager() {
         return interprocessCacheManager;
     }
 
-    public void setInterprocessCacheManager(InterprocessCacheManager interprocessCacheManager) {
-        this.interprocessCacheManager = interprocessCacheManager;
-    }
-
     public KacheLock getKacheLock() {
         return kacheLock;
-    }
-
-    public void setKacheLock(KacheLock kacheLock) {
-        this.kacheLock = kacheLock;
     }
 
     public StrategyHandler getStrategyHandler() {
         return strategyHandler;
     }
 
-    public void setStrategyHandler(StrategyHandler strategyHandler) {
-        this.strategyHandler = strategyHandler;
-    }
-
     public CacheLogic getCacheLogic() {
         return cacheLogic;
-    }
-
-    public void setCacheLogic(CacheLogic cacheLogic) {
-        this.cacheLogic = cacheLogic;
-    }
-
-    public DaoCacheAop getDaoCacheAop() {
-        return daoCacheAop;
-    }
-
-    public void setDaoCacheAop(DaoCacheAop daoCacheAop) {
-        this.daoCacheAop = daoCacheAop;
-    }
-
-    public DaoLocator getDaoLocator() {
-        return daoLocator;
-    }
-
-    public void setDaoLocator(DaoLocator daoLocator) {
-        this.daoLocator = daoLocator;
     }
 
     public CacheHandler getCacheHandler() {
         return cacheHandler;
     }
 
-    public void setCacheHandler(CacheHandler cacheHandler) {
-        this.cacheHandler = cacheHandler;
-    }
-
     public RedisCodec<String, Object> getRedisCodec() {
         return redisCodec;
     }
 
-    public void setRedisCodec(RedisCodec<String, Object> redisCodec) {
-        this.redisCodec = redisCodec;
-    }
-
     public CacheListener getCacheListener() {
         return cacheListener;
-    }
-
-    public void setCacheListener(CacheListener cacheListener) {
-        this.cacheListener = cacheListener;
     }
 }

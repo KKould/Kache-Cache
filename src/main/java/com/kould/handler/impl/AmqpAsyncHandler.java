@@ -3,8 +3,8 @@ package com.kould.handler.impl;
 import com.kould.config.DaoProperties;
 import com.kould.handler.AsyncHandler;
 import com.kould.logic.CacheLogic;
-import com.kould.message.KacheMessage;
-import org.aspectj.lang.ProceedingJoinPoint;
+import com.kould.enity.KacheMessage;
+import com.kould.proxy.MethodPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -42,23 +42,23 @@ public class AmqpAsyncHandler extends AsyncHandler {
     public static final String INTERPROCESS_INSERT_EXCHANGE_NAME = "KACHE_INTERPROCESS_INSERT_EXCHANGE" ;
 
     @Override
-    public Object delete(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
         return asyncChange(point,QUEUE_DELETE_CACHE,INTERPROCESS_DELETE_EXCHANGE_NAME,serviceMessage) ;
     }
 
     @Override
-    public Object update(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object update(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
         return asyncChange(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,serviceMessage) ;
     }
 
     @Override
-    public Object insert(ProceedingJoinPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
         return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
     }
 
-    private Object asyncChange(ProceedingJoinPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {
+    private Object asyncChange(MethodPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
-        Object proceed = point.proceed();
+        Object proceed = point.execute();
         if (serviceMessage != null) {
             amqpTemplate.convertAndSend(queue, serviceMessage);
             amqpTemplate.convertAndSend(exchange, "", serviceMessage);

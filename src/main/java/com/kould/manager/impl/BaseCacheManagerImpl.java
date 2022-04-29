@@ -4,7 +4,7 @@ import com.kould.config.InterprocessCacheProperties;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import org.aspectj.lang.ProceedingJoinPoint;
+import com.kould.proxy.MethodPoint;
 
 /*
 此处进程间缓存并不与远程缓存做同一读写操作锁，通过牺牲一部分数据一致性换取最小的网络IO消耗
@@ -18,7 +18,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoWrite(String key, ProceedingJoinPoint point, String types) throws Throwable {
+    public Object daoWrite(String key, MethodPoint point, String types) throws Throwable {
         Object result = remoteCacheManager.put(key, types, point);
         if (interprocessCacheProperties.isEnable()) {
             interprocessCacheManager.put(key, result, types) ;

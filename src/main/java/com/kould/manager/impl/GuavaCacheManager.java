@@ -21,8 +21,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class GuavaCacheManager extends InterprocessCacheManager {
 
-
-
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
     private static final Map<String, Cache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();

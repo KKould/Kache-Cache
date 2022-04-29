@@ -1,14 +1,14 @@
 package com.kould.core.impl;
 
 import com.kould.config.Kache;
+import com.kould.config.Status;
 import com.kould.core.CacheHandler;
 import com.kould.enity.NullValue;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
 import com.kould.listener.ListenerHandler;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.reflect.MethodSignature;
+import com.kould.proxy.MethodPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,26 +20,25 @@ public class BaseCacheHandler extends CacheHandler {
     private static final Logger log = LoggerFactory.getLogger(BaseCacheHandler.class) ;
 
     @Override
-    public Object load(ProceedingJoinPoint point, boolean listenerEnable, ReadFunction readFunction
-            , WriteFunction writeFunction, KeyFunction keyFunction ,String types) throws Throwable {
+    public Object load(MethodPoint point, boolean listenerEnable, ReadFunction readFunction
+            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status methodStatus) throws Throwable {
         Object result;
-        MethodSignature methodSignature = (MethodSignature) point.getSignature();
-        Method daoMethod = methodSignature.getMethod();
+        Method daoMethod = point.getMethod();
         String methodName = daoMethod.getName() ;
         //key拼接命名空间前缀
         Object[] daoArgs = point.getArgs();
         //以PO类型进行不同持久类领域的划分并拼接参数与方法作为锁对象，而intern方法是必要的
-        //通过intern保证字符串都是源自于常量池而使得相同字符串为同一对象，保证锁的一致性
-        String lockKey = (types + methodName + Arrays.hashCode(daoArgs)).intern();
+        String lockKey = (types + methodName + Arrays.hashCode(daoArgs));
         //该PO领域的初始化
         try {
-            String key = Kache.CACHE_PREFIX + keyFunction.encode(point, methodName, daoMethod, daoArgs, types);
+            String key = Kache.CACHE_PREFIX + keyFunction.encode(point, methodName, daoMethod, daoArgs, types, methodStatus);
             //获取缓存
             result = readFunction.read(key , types);
             if (result == null) {
                 //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
                 //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
-                synchronized (lockKey) {
+                //通过intern保证字符串都是源自于常量池而使得相同字符串为同一对象，保证锁的一致性
+                synchronized (lockKey.intern()) {
                     result = readFunction.read(key , types);
                     if (result == null) {
                         //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确

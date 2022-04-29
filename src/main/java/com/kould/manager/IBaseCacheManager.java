@@ -1,7 +1,7 @@
 package com.kould.manager;
 
 import com.kould.config.InterprocessCacheProperties;
-import org.aspectj.lang.ProceedingJoinPoint;
+import com.kould.proxy.MethodPoint;
 
 import java.util.concurrent.ExecutionException;
 
@@ -28,7 +28,7 @@ public abstract class IBaseCacheManager {
      * @return 缓存具体数据
      * @throws Throwable
      */
-    public abstract Object daoWrite(String key, ProceedingJoinPoint point, String types) throws Throwable;
+    public abstract Object daoWrite(String key, MethodPoint point, String types) throws Throwable;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控

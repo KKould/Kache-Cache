@@ -5,7 +5,7 @@ import com.kould.lock.KacheLock;
 import com.kould.logic.CacheLogic;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import com.kould.message.KacheMessage;
+import com.kould.enity.KacheMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

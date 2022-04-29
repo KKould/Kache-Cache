@@ -1,11 +1,10 @@
 package com.kould.encoder.impl;
 
-import com.kould.annotation.DaoSelect;
 import com.kould.config.Kache;
 import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
+import com.kould.proxy.MethodPoint;
 import com.kould.utils.KryoUtil;
-import org.aspectj.lang.ProceedingJoinPoint;
 
 import java.lang.reflect.Method;
 
@@ -31,7 +30,6 @@ public class BaseCacheEncoder extends CacheEncoder {
                 daoEnityName +
                 methodName +
                 args ;
-
     }
 
     @Override
@@ -48,33 +46,24 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String getDaoKey(ProceedingJoinPoint point, String methodName, Method method, Object args, String types) {
+    public String getDaoKey(MethodPoint point, String methodName, Method method, Object args
+            , String types, Status methodStatus) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
         //信息摘要收集
         //获取DAO方法签名
-        if (methodName.equals(Kache.MYBATIS_PLUS_MAPPER_SELECT_BY_ID)) {
-            return setKey2Id(point, types);
-        }
-        DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
-        String methodStatus = null ;
-        if (daoSelect != null) {
-            methodStatus = daoSelect.status().getValue();
-        } else {
-            methodStatus = Status.BY_FIELD.getValue() ;
-        }
-        if (methodStatus.equals(Kache.SERVICE_BY_ID)) {
+        if (methodStatus.equals(Status.BY_ID)) {
             //使Key为ID
             return setKey2Id(point,types);
         }else {
             String argsCode = argsEncode(args);
             //使Key为各个参数编码后的一个特殊值
-            return encode(methodStatus, types, methodName, argsCode) ;
+            return encode(methodStatus.getValue(), types, methodName, argsCode) ;
         }
     }
 
-    private String setKey2Id(ProceedingJoinPoint point, String type) {
+    private String setKey2Id(MethodPoint point, String type) {
         //使Key为ID
         Object[] args = point.getArgs();
         return type + args[0].toString();
