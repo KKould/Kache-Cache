@@ -1,4 +1,4 @@
-package com.kould.enity;
+package com.kould.entity;
 
 public class RegexEntity {
 
@@ -10,11 +10,14 @@ public class RegexEntity {
 
     private final String updateRegex;
 
-    public RegexEntity(String selectRegex, String insertRegex, String deleteRegex, String updateRegex) {
+    private final String selectStatusByIdRegex;
+
+    public RegexEntity(String selectRegex, String insertRegex, String deleteRegex, String updateRegex, String selectStatusByIdRegex) {
         this.selectRegex = selectRegex;
         this.insertRegex = insertRegex;
         this.deleteRegex = deleteRegex;
         this.updateRegex = updateRegex;
+        this.selectStatusByIdRegex = selectStatusByIdRegex;
     }
 
     public String getSelectRegex() {
@@ -31,5 +34,9 @@ public class RegexEntity {
 
     public String getUpdateRegex() {
         return updateRegex;
+    }
+
+    public String getSelectStatusByIdRegex() {
+        return selectStatusByIdRegex;
     }
 }

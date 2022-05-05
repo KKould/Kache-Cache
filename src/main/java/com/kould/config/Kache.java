@@ -1,12 +1,12 @@
 package com.kould.config;
 
-import Interceptor.CacheMethodInterceptor;
+import interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
-import com.kould.enity.RegexEntity;
+import com.kould.entity.RegexEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
@@ -25,14 +25,11 @@ import com.kould.service.RedisService;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
-import net.sf.cglib.proxy.Enhancer;
-
+import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
 public class Kache {
-
-    private static Kache kache;
 
     private final DaoProperties daoProperties;
 
@@ -65,6 +62,8 @@ public class Kache {
 
     private final String updateRegex;
 
+    private final String selectStatusByIdRegex;
+
     private final CacheEncoder cacheEncoder;
 
     private final IBaseCacheManager iBaseCacheManager;
@@ -96,6 +95,8 @@ public class Kache {
         private String deleteRegex;
 
         private String updateRegex;
+
+        private String selectStatusByIdRegex;
 
         private String mapperPackage;
 
@@ -148,6 +149,11 @@ public class Kache {
 
         public Kache.Builder updateRegex(String updateRegex) {
             this.updateRegex = updateRegex;
+            return this;
+        }
+
+        public Kache.Builder selectStatusByIdRegex(String selectStatusByIdRegex) {
+            this.selectStatusByIdRegex = selectStatusByIdRegex;
             return this;
         }
 
@@ -234,16 +240,19 @@ public class Kache {
         @Override
         public Kache build() {
             if (this.selectRegex == null) {
-                this.selectRegex = "^select";
+                this.selectRegex = "^select.*";
             }
             if (this.insertRegex == null) {
-                this.insertRegex = "^insert";
+                this.insertRegex = "^insert.*";
             }
             if (this.deleteRegex == null) {
-                this.deleteRegex = "^delete";
+                this.deleteRegex = "^delete.*";
             }
             if (this.updateRegex == null) {
-                this.updateRegex = "^update";
+                this.updateRegex = "^update.*";
+            }
+            if (this.selectStatusByIdRegex == null) {
+                this.selectStatusByIdRegex = "selectById";
             }
             if (this.mapperPackage == null) {
                 throw new NullPointerException(MAPPER_PATH_NULL);
@@ -284,6 +293,9 @@ public class Kache {
                 this.interprocessCacheManager = new GuavaCacheManager(daoProperties
                         , interprocessCacheProperties);
             }
+            if (this.redisService == null) {
+                this.redisService = new RedisService(daoProperties, redisClient, redisCodec);
+            }
             if (this.remoteCacheManager == null) {
                 this.remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
                         , redisService, kacheLock);
@@ -299,11 +311,7 @@ public class Kache {
                 this.iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
                         , remoteCacheManager, interprocessCacheProperties);
             }
-            if (this.redisService == null) {
-                this.redisService = new RedisService(daoProperties, redisClient, redisCodec);
-            }
-            kache = new Kache(this);
-            return kache ;
+            return new Kache(this) ;
         }
     }
 
@@ -316,6 +324,7 @@ public class Kache {
         this.insertRegex = builder.insertRegex;
         this.deleteRegex = builder.deleteRegex;
         this.updateRegex = builder.updateRegex;
+        this.selectStatusByIdRegex = builder.selectStatusByIdRegex;
         this.mapperPackage = builder.mapperPackage;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
@@ -334,19 +343,17 @@ public class Kache {
     }
 
     public <T> T getProxy(T target,Class<?> entityClass) {
-        Enhancer enhancer = new Enhancer();
-        //设置被代理类
-        enhancer.setSuperclass(target.getClass());
-        // 设置回调
-        enhancer.setCallback(new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
+        return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
                 , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder
-                , new RegexEntity(selectRegex ,insertRegex ,deleteRegex ,updateRegex)));
-        // create方法正式创建代理类
-        return (T) enhancer.create();
+                , new RegexEntity(selectRegex ,insertRegex ,deleteRegex ,updateRegex, selectStatusByIdRegex)));
     }
 
-    public static Kache getInstance() {
-        return kache;
+    public void init() throws Exception {
+        remoteCacheManager.init();
+    }
+
+    public void destroy() throws Exception{
+        redisService.shutdown();
     }
 
     public DaoProperties getDaoProperties() {

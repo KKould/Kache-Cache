@@ -6,6 +6,7 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.proxy.MethodPoint;
 import com.kould.utils.KryoUtil;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 
 public class BaseCacheEncoder extends CacheEncoder {
@@ -22,14 +23,14 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private static final long HASH = 0L ;
 
-
     @Override
-    public String encode(String MethodStatus, String daoEnityName, String methodName, String args) {
-        return Kache.NO_ID_TAG +
-                MethodStatus +
-                daoEnityName +
+    public String encode(String methodStatus, String daoEntityName, String methodName, String args) {
+        return Kache.CACHE_PREFIX +
+                Kache.NO_ID_TAG +
+                methodStatus +
+                daoEntityName +
                 methodName +
-                args ;
+                args;
     }
 
     @Override
@@ -55,7 +56,9 @@ public class BaseCacheEncoder extends CacheEncoder {
         //获取DAO方法签名
         if (methodStatus.equals(Status.BY_ID)) {
             //使Key为ID
-            return setKey2Id(point,types);
+            Object idArg = point.getArgs()[0];
+            assert idArg instanceof Serializable;
+            return setKey2Id(idArg.toString(),types);
         }else {
             String argsCode = argsEncode(args);
             //使Key为各个参数编码后的一个特殊值
@@ -63,10 +66,13 @@ public class BaseCacheEncoder extends CacheEncoder {
         }
     }
 
-    private String setKey2Id(MethodPoint point, String type) {
-        //使Key为ID
-        Object[] args = point.getArgs();
-        return type + args[0].toString();
+    @Override
+    public String getId2Key(String id, String type) {
+        return Kache.CACHE_PREFIX + type + id;
+    }
+
+    private String setKey2Id(String id, String type) {
+        return Kache.CACHE_PREFIX + type + id;
     }
 
     private Object readResolve() {

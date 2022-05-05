@@ -1,9 +1,8 @@
 package com.kould.core.impl;
 
-import com.kould.config.Kache;
 import com.kould.config.Status;
 import com.kould.core.CacheHandler;
-import com.kould.enity.NullValue;
+import com.kould.entity.NullValue;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
@@ -31,7 +30,7 @@ public class BaseCacheHandler extends CacheHandler {
         String lockKey = (types + methodName + Arrays.hashCode(daoArgs));
         //该PO领域的初始化
         try {
-            String key = Kache.CACHE_PREFIX + keyFunction.encode(point, methodName, daoMethod, daoArgs, types, methodStatus);
+            String key = keyFunction.encode(point, methodName, daoMethod, daoArgs, types, methodStatus);
             //获取缓存
             result = readFunction.read(key , types);
             if (result == null) {

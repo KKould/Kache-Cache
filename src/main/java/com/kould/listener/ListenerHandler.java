@@ -1,6 +1,6 @@
 package com.kould.listener;
 
-import com.kould.enity.KacheMessage;
+import com.kould.entity.KacheMessage;
 
 import java.util.HashMap;
 import java.util.List;

@@ -2,7 +2,7 @@ package com.kould.handler;
 
 import com.kould.config.DaoProperties;
 import com.kould.logic.CacheLogic;
-import com.kould.enity.KacheMessage;
+import com.kould.entity.KacheMessage;
 import com.kould.proxy.MethodPoint;
 
 //负责缓存删除/更新处理与缓存存活时间策略

@@ -1,19 +1,14 @@
 package com.kould.proxy;
 
-import net.sf.cglib.proxy.MethodProxy;
-
 import java.lang.reflect.Method;
 
 public class MethodPoint {
 
-    public MethodPoint(MethodProxy methodProxy, Object target, Object[] args, Method method) {
-        this.methodProxy = methodProxy;
+    public MethodPoint(Object target, Object[] args, Method method) {
         this.target = target;
         this.args = args;
         this.method = method;
     }
-
-    private final MethodProxy methodProxy;
 
     private final Object target;
 
@@ -33,7 +28,7 @@ public class MethodPoint {
         return target;
     }
 
-    public Object execute() throws Throwable {
-        return methodProxy.invoke(target, args);
+    public Object execute() throws Exception {
+        return method.invoke(target, args);
     }
 }

@@ -10,27 +10,14 @@ import io.lettuce.core.support.ConnectionPoolSupport;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-
 public class RedisService {
 
-    private final DaoProperties daoProperties;
-
     private final RedisClient redisClient;
-
-    private final RedisCodec<String, Object> redisCodec;
 
     GenericObjectPool<StatefulRedisConnection<String, Object>> redisConnectionPool;
 
     public RedisService(DaoProperties daoProperties, RedisClient redisClient, RedisCodec<String, Object> redisCodec) {
-        this.daoProperties = daoProperties;
         this.redisClient = redisClient;
-        this.redisCodec = redisCodec;
-    }
-
-    @PostConstruct
-    public void init() {
         GenericObjectPoolConfig<StatefulRedisConnection<String, Object>> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(daoProperties.getPoolMaxTotal());
         poolConfig.setMaxIdle(daoProperties.getPoolMaxIdle());
@@ -40,13 +27,12 @@ public class RedisService {
                 , poolConfig);
     }
 
-    @PreDestroy
     public void shutdown() {
         this.redisConnectionPool.close();
         this.redisClient.shutdown();
     }
 
-    public <T> T executeSync(SyncCommandCallback<T> callback) throws Throwable {
+    public <T> T executeSync(SyncCommandCallback<T> callback) throws Exception {
         try (StatefulRedisConnection<String, Object> connection = redisConnectionPool.borrowObject()) {
             connection.setAutoFlushCommands(true);
             RedisCommands<String, Object> commands = connection.sync();

@@ -3,7 +3,7 @@ package com.kould.handler.impl;
 import com.kould.config.DaoProperties;
 import com.kould.handler.AsyncHandler;
 import com.kould.logic.CacheLogic;
-import com.kould.enity.KacheMessage;
+import com.kould.entity.KacheMessage;
 import com.kould.proxy.MethodPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +19,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 缓存存活时间为：基本时间+随机区间时间
  */
 public class AmqpAsyncHandler extends AsyncHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(AmqpAsyncHandler.class) ;
 
     private final AmqpTemplate amqpTemplate;
 
@@ -56,7 +54,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
         return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
     }
 
-    private Object asyncChange(MethodPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Throwable {
+    private Object asyncChange(MethodPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Exception {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.execute();
         if (serviceMessage != null) {

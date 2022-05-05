@@ -5,18 +5,17 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
 import com.kould.config.Kache;
-import com.kould.enity.NullValue;
+import com.kould.entity.NullValue;
 import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.proxy.MethodPoint;
 import com.kould.service.RedisService;
-import io.lettuce.core.ScriptOutputType;
+import com.kould.utils.FieldUtils;
+import io.lettuce.core.*;
 import io.lettuce.core.api.sync.RedisCommands;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 /*
@@ -53,24 +52,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     "   return nil " +
                     "end " ;
 
-    //Lua脚本，用于在Reids中获取符合表达式的索引
-    private static final  String SCRIPT_LUA_CACHE_DEL_KEYS =
-                    "local cursor = 0 " +
-                    "repeat" +
-                    "   local resp = redis.call('SCAN',cursor,'MATCH',KEYS[1],'COUNT',10) " +
-                    "   cursor = tonumber(resp[1]) " +
-                    "   for key,value in pairs(resp[2]) do " +
-                    "      if (string.find('" + Kache.SERVICE_BY_FIELD + "',value) ~= nil) " +
-                    "      then " +
-                    "         redis.call('del',value) " +
-                    "      end " +
-                    "   end " +
-                    "until (cursor <= 0)" +
-                    "return true " ;
-
     private String scriptGetSHA1 ;
-
-    private String scriptDelKeysSHA1 ;
 
     private final RedisService redisService;
 
@@ -86,11 +68,10 @@ public class RedisCacheManager extends RemoteCacheManager {
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
      */
-    @PostConstruct
-    private void init() throws Throwable {
+    @Override
+    public void init() throws Exception {
         redisService.executeSync(commands -> {
             scriptGetSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_GET);
-            scriptDelKeysSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_DEL_KEYS);
             return true;
         });
     }
@@ -134,8 +115,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                             , keys.toArray(new String[keys.size()]), values.toArray(new Object[values.size()])) ;
                     kacheLock.unLock(writeLock);
                 } else if (result != null && isHasField(result.getClass(), recordsName)) {
-                    Field recordsField = getFieldByNameAndClass(result.getClass(), recordsName);
-                    Collection<Object> records = (Collection) recordsField.get(result) ;
+                    Field recordsField = FieldUtils.getFieldByNameAndClass(result.getClass(), recordsName);
+                    Collection records = (Collection) recordsField.get(result) ;
                     recordsField.set(result,Collections.emptyList());
                     collection2Lua(commands, key, types, lua, keys, values, records, result);
                     commands.eval(lua.toString(), ScriptOutputType.MULTI
@@ -152,7 +133,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         id = key ;
                     } else if (result != null) {
                         //获取条件方法单结果
-                        id = Kache.CACHE_PREFIX + getFieldByNameAndClass(result.getClass(), dataFieldProperties.getPrimaryKeyName()) ;
+                        id = Kache.CACHE_PREFIX + FieldUtils.getFieldByNameAndClass(result.getClass(), dataFieldProperties.getPrimaryKeyName()) ;
                     } else {
                         id = Kache.CACHE_PREFIX + getNullTag() ;
                     }
@@ -204,7 +185,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 count2Echo ++ ;
                 keys.add(Kache.CACHE_PREFIX
                         + types
-                        + getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName()).get(next));
+                        + FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName()).get(next));
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -325,7 +306,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                             return records;
                         } else {
                             //此时为包装类的情况
-                            getFieldByNameAndClass(first.getClass(), dataFieldProperties.getRecordsName())
+                            FieldUtils.getFieldByNameAndClass(first.getClass(), dataFieldProperties.getRecordsName())
                                     .set(first, records);
                             //跳过第一位数据的填充
                             for (int i = 1; i < list.size(); i++) {
@@ -347,9 +328,26 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Boolean delKeys(String pattern) throws Throwable {
-        return redisService.executeSync(
-                commands -> commands.evalsha(scriptDelKeysSHA1, ScriptOutputType.BOOLEAN, pattern));
+    public Long delKeys(String pattern) throws Throwable {
+        return redisService.executeSync(commands -> {
+            // SCAN参数
+            ScanArgs scanArgs = ScanArgs.Builder.limit(500).match(pattern);
+            // TEMP游标
+            ScanCursor cursor = ScanCursor.INITIAL;
+            long counter = 0L;
+            do {
+                KeyScanCursor<String> result = commands.scan(cursor, scanArgs);
+                // 重置TEMP游标
+                cursor = ScanCursor.of(result.getCursor());
+                cursor.setFinished(result.isFinished());
+                List<String> values = result.getKeys();
+                if (!values.isEmpty()) {
+                    commands.del(values.toArray(new String[values.size()]));
+                }
+                counter++;
+            } while (!(ScanCursor.FINISHED.getCursor().equals(cursor.getCursor()) && ScanCursor.FINISHED.isFinished() == cursor.isFinished()));
+            return counter;
+        });
     }
 
     @Override
@@ -381,29 +379,10 @@ public class RedisCacheManager extends RemoteCacheManager {
      */
     private boolean isHasField(Class<?> clazz, String field) {
         try {
-            getFieldByNameAndClass(clazz, field);
+            FieldUtils.getFieldByNameAndClass(clazz, field);
             return true;
-        } catch (ExecutionException | NoSuchFieldException e) {
+        } catch (NoSuchFieldException e) {
             return false ;
         }
-    }
-
-    /**
-     * 类反射获取属性方法并解除安全检查
-     * @param clazz 目标Class
-     * @param fieldName 属性名
-     * @return Field 去除安全检查的属性
-     * @throws ExecutionException 线程内异常
-     */
-    private static Field getFieldByNameAndClass(Class<?> clazz, String fieldName) throws ExecutionException, NoSuchFieldException {
-        Field field ;
-        try {
-            field = clazz.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            //此处用于解决继承导致的getDeclaredField不能直接获取父类属性的问题
-            field = clazz.getSuperclass().getDeclaredField(fieldName);
-        }
-        field.setAccessible(true);
-        return field;
     }
 }

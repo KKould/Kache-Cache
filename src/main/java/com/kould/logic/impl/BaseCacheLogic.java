@@ -1,24 +1,20 @@
 package com.kould.logic.impl;
 
+import com.kould.config.Kache;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.logic.CacheLogic;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import com.kould.enity.KacheMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.kould.entity.KacheMessage;
+import com.kould.utils.FieldUtils;
 
-import java.lang.reflect.Method;
+import java.io.Serializable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 //默认数据插入逻辑与数据删除逻辑一致
 public class BaseCacheLogic extends CacheLogic {
-
-    private static final Logger log = LoggerFactory.getLogger(BaseCacheLogic.class) ;
-
-    private static final String METHOD_GET_ID = "getId" ;
 
     public BaseCacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder
             , RemoteCacheManager remoteCacheManager, InterprocessCacheManager interprocessCacheManager) {
@@ -44,15 +40,15 @@ public class BaseCacheLogic extends CacheLogic {
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
             if (resultClass.isAssignableFrom(argClass)){
-                Method methodGetId = argClass.getMethod(METHOD_GET_ID, null);
-                log.info("\r\nKache:+++++++++Redis缓存更新缓存....");
-                remoteCacheManager.updateById(methodGetId.invoke(arg).toString(), type, arg) ;
+                String idStr = FieldUtils.getFieldByNameAndClass(argClass, dataFieldProperties.getPrimaryKeyName())
+                        .get(arg).toString();
+                remoteCacheManager.updateById(cacheEncoder.getId2Key(idStr, type), type, arg) ;
             }
             //==========下为重复代码
             remoteCacheManager.delKeys(cacheEncoder.getPattern(resultClass.getName()));
             kacheLock.unLock(writeLock);
         } catch (Exception e){
-            if (kacheLock.isLockedByThisThread(writeLock)) {
+            if (Boolean.TRUE.equals(kacheLock.isLockedByThisThread(writeLock))) {
                 kacheLock.unLock(writeLock);
             }
             e.printStackTrace();
@@ -78,22 +74,23 @@ public class BaseCacheLogic extends CacheLogic {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = msg.getCacheClazz().getTypeName();
         Object arg = msg.getArg()[0];
+        String type = msg.getTypes();
         Lock writeLock = null;
         try {
             writeLock = kacheLock.writeLock(lockKey);
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
-            log.info("\r\nKache:+++++++++Redis缓存删除检测....");
-            if (arg instanceof String) {
-                remoteCacheManager.del((String) arg);
+            if (arg instanceof Serializable) {
+                remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), type));
             } else if (resultClass.isAssignableFrom(arg.getClass())){
-                Method methodGetId = arg.getClass().getMethod(METHOD_GET_ID, null);
-                remoteCacheManager.del(methodGetId.invoke(arg).toString());
+                String idStr = FieldUtils.getFieldByNameAndClass(arg.getClass(), dataFieldProperties.getPrimaryKeyName())
+                        .get(arg).toString();
+                remoteCacheManager.del(cacheEncoder.getId2Key(idStr, type));
             }
-            remoteCacheManager.delKeys(cacheEncoder.getPattern(resultClass.getName()));
+            remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.SERVICE_BY_FIELD + resultClass.getName()));
             kacheLock.unLock(writeLock);
         } catch (Exception e){
-            if (kacheLock.isLockedByThisThread(writeLock)) {
+            if (Boolean.TRUE.equals(kacheLock.isLockedByThisThread(writeLock))) {
                 kacheLock.unLock(writeLock);
             }
             e.printStackTrace();
@@ -106,10 +103,10 @@ public class BaseCacheLogic extends CacheLogic {
         Lock writeLock = null ;
         try {
             writeLock = kacheLock.writeLock(lockKey);
-            interprocessCacheManager.clear(lockKey); ;
+            interprocessCacheManager.clear(lockKey);
             kacheLock.unLock(writeLock);
         } catch (Exception e) {
-            if (kacheLock.isLockedByThisThread(writeLock)) {
+            if (Boolean.TRUE.equals(kacheLock.isLockedByThisThread(writeLock))) {
                 kacheLock.unLock(writeLock);
             }
             e.printStackTrace();

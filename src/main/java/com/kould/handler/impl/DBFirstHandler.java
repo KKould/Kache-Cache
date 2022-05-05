@@ -3,7 +3,7 @@ package com.kould.handler.impl;
 import com.kould.config.DaoProperties;
 import com.kould.handler.SyncHandler;
 import com.kould.logic.CacheLogic;
-import com.kould.enity.KacheMessage;
+import com.kould.entity.KacheMessage;
 import com.kould.proxy.MethodPoint;
 
 public class DBFirstHandler extends SyncHandler {

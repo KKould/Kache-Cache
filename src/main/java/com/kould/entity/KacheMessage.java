@@ -1,4 +1,4 @@
-package com.kould.enity;
+package com.kould.entity;
 
 import java.io.Serializable;
 
