@@ -11,9 +11,11 @@ public class TestMapper {
 
     public static final String METHOD_NAME_SELECT_TEST = "selectTest";
 
-    public List<TestEntity> selectTest(String args) {
+    public List<TestEntity> selectTest(String args) throws InterruptedException {
         List<TestEntity> testEntities = new ArrayList<>();
         testEntities.add(new TestEntity(TEST_MESSAGE));
+        //模拟网络延迟
+        Thread.sleep(1);
         return testEntities;
     }
 }

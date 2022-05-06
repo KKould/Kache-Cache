@@ -18,11 +18,11 @@ public class CacheHandlerTest {
 
     private final TestMapper testMapper = new TestMapper();
 
-    private static final String TEST_ARGS_1 = "1111";
+    private static final String TEST_ARGS_1 = "“民族主义”在基本性质上已经彻底沦为反动派维护其统治的意识形态工具";
 
-    private static final String TEST_KEY_1 = "key1";
+    private static final String TEST_KEY_1 = "KACHE:$NI-$MSBFcom.kould.test.TestType141496750210321511";
 
-    private static final String TEST_TYPE_1 = "type1";
+    private static final String TEST_TYPE_1 = "com.kould.test.TestType";
 
     private static final int THREAD_NUM = 1000;
 
