@@ -8,19 +8,15 @@ import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
 import com.kould.listener.ListenerHandler;
 import com.kould.proxy.MethodPoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public class BaseCacheHandler extends CacheHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(BaseCacheHandler.class) ;
-
     @Override
     public Object load(MethodPoint point, boolean listenerEnable, ReadFunction readFunction
-            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status methodStatus) throws Throwable {
+            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status methodStatus) throws Exception {
         Object result;
         Method daoMethod = point.getMethod();
         String methodName = daoMethod.getName() ;
@@ -30,7 +26,7 @@ public class BaseCacheHandler extends CacheHandler {
         String lockKey = (types + methodName + Arrays.hashCode(daoArgs));
         //该PO领域的初始化
         try {
-            String key = keyFunction.encode(point, methodName, daoMethod, daoArgs, types, methodStatus);
+            String key = keyFunction.encode(point, methodName, types, methodStatus);
             //获取缓存
             result = readFunction.read(key , types);
             if (result == null) {
@@ -56,7 +52,6 @@ public class BaseCacheHandler extends CacheHandler {
                 result = null ;
             }
         }catch (Exception e) {
-            log.error(e.getMessage(),e);
             throw e ;
         }
         return result;

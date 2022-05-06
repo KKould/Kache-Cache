@@ -18,7 +18,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoWrite(String key, MethodPoint point, String types) throws Throwable {
+    public Object daoWrite(String key, MethodPoint point, String types) throws Exception {
         Object result = remoteCacheManager.put(key, types, point);
         if (interprocessCacheProperties.isEnable()) {
             interprocessCacheManager.put(key, result, types) ;
@@ -27,17 +27,15 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoRead(String key, String types) throws Throwable {
+    public Object daoRead(String key, String types) throws Exception {
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
             result =interprocessCacheManager.get(key, types) ;
         }
         if (result == null) {
             result = remoteCacheManager.get(key, types) ;
-            if (interprocessCacheProperties.isEnable()) {
-                if (result != null) {
-                    interprocessCacheManager.put(key, result, types) ;
-                }
+            if (interprocessCacheProperties.isEnable() && result != null) {
+                interprocessCacheManager.put(key, result, types) ;
             }
         }
         return result ;

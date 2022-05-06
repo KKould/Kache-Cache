@@ -23,8 +23,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <slf4j.ver>1.7.25</slf4j.ver>
+
     <redisson.ver>3.16.1</redisson.ver>
+    <junit.ver>4.10</junit.ver>
+    <mockito.ver>2.7.22</mockito.ver>
     <spring.ver>2.1.18.RELEASE</spring.ver>
     <apche.commons.ver>2.7.0</apche.commons.ver>
     <lettuce.ver>5.2.1.RELEASE</lettuce.ver>
@@ -37,9 +39,16 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.ver}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.ver}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.ver}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.redisson</groupId>

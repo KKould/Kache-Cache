@@ -23,8 +23,7 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private static final long HASH = 0L ;
 
-    @Override
-    public String encode(String methodStatus, String daoEntityName, String methodName, String args) {
+    private String keyJoint(String methodStatus, String daoEntityName, String methodName, String args) {
         return Kache.CACHE_PREFIX +
                 Kache.NO_ID_TAG +
                 methodStatus +
@@ -47,8 +46,7 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String getDaoKey(MethodPoint point, String methodName, Method method, Object args
-            , String types, Status methodStatus) {
+    public String getDaoKey(MethodPoint point, String methodName, String types, Status methodStatus) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
@@ -60,9 +58,9 @@ public class BaseCacheEncoder extends CacheEncoder {
             assert idArg instanceof Serializable;
             return setKey2Id(idArg.toString(),types);
         }else {
-            String argsCode = argsEncode(args);
+            String argsCode = argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
-            return encode(methodStatus.getValue(), types, methodName, argsCode) ;
+            return keyJoint(methodStatus.getValue(), types, methodName, argsCode) ;
         }
     }
 

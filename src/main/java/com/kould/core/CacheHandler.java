@@ -9,5 +9,5 @@ import com.kould.proxy.MethodPoint;
 public abstract class CacheHandler {
 
     public abstract Object load(MethodPoint point, boolean listenerEnable, ReadFunction readFunction
-            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status status) throws Throwable ;
+            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status status) throws Exception ;
 }

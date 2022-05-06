@@ -26,9 +26,9 @@ public abstract class IBaseCacheManager {
      * @param point 切点
      * @param types 类类型
      * @return 缓存具体数据
-     * @throws Throwable
+     * @throws Exception
      */
-    public abstract Object daoWrite(String key, MethodPoint point, String types) throws Throwable;
+    public abstract Object daoWrite(String key, MethodPoint point, String types) throws Exception;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
@@ -36,9 +36,7 @@ public abstract class IBaseCacheManager {
      * @param key 缓存Key
      * @param types 类类型
      * @return 缓存具体数据
-     * @throws ExecutionException
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
+     * @throws Exception
      */
-    public abstract Object daoRead(String key, String types) throws Throwable;
+    public abstract Object daoRead(String key, String types) throws Exception;
 }
