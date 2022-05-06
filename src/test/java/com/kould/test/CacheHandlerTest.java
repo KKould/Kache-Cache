@@ -37,9 +37,6 @@ public class CacheHandlerTest {
     public CacheHandlerTest() throws NoSuchMethodException {
     }
 
-    //        MethodPoint mockPoint = Mockito.mock(MethodPoint.class);
-    //        Mockito.when(mockPoint.execute()).thenReturn(testEntities);
-
     @Test
     public void loadWriteTest() throws Exception {
 
@@ -59,7 +56,7 @@ public class CacheHandlerTest {
                 e.printStackTrace();
             }
         });
-        //判断相同类型参数方法并发是否同步
+        // 判断相同类型参数方法并发是否同步
         Assert.assertEquals(THREAD_NUM, cacheHandlerTest.testCount);
     }
 
@@ -67,7 +64,7 @@ public class CacheHandlerTest {
     public void loadReadTest() throws Exception {
 
         CacheHandlerTest cacheHandlerTest = new CacheHandlerTest();
-        // 测试并发写时是否为同步操作
+        // 测试并发读时是否为同步操作
         cacheHandlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
             try {
                 cacheHandler.load(methodPoint, false
@@ -82,7 +79,7 @@ public class CacheHandlerTest {
                 e.printStackTrace();
             }
         });
-        //判断相同类型参数方法并发是否同步
+        // 判断并发读不应该同步
         Assert.assertFalse(THREAD_NUM == cacheHandlerTest.testCount);
     }
 
