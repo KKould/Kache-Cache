@@ -1,6 +1,6 @@
 package com.kould.config;
 
-import interceptor.CacheMethodInterceptor;
+import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;

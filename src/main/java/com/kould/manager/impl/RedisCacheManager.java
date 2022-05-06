@@ -367,7 +367,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Override
     public Object updateById(String id, String type, Object result) throws Exception {
        return redisService.executeSync(commands -> {
-           String key = Kache.CACHE_PREFIX + type + id; ;
+           String key = Kache.CACHE_PREFIX + type + id;
            Object target = commands.get(key);
            if (target != null) {
                BeanUtil.copyProperties(result, target,

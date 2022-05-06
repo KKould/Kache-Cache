@@ -1,4 +1,4 @@
-package interceptor;
+package com.kould.interceptor;
 
 import com.kould.annotation.*;
 import com.kould.config.ListenerProperties;
