@@ -298,7 +298,7 @@ public class Kache {
             }
             if (this.remoteCacheManager == null) {
                 this.remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
-                        , redisService, kacheLock);
+                        , redisService, kacheLock, cacheEncoder);
             }
             if (this.cacheLogic == null) {
                 this.cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager

@@ -17,10 +17,10 @@ public abstract class RemoteCacheManager {
 
     public abstract String getNullTag() ;
 
-    public abstract Object put(String key, String types, MethodPoint point) throws Throwable;
-    public abstract Long delKeys(String pattern) throws Throwable;
-    public abstract Long del(String... keys) throws Throwable;
-    public abstract Object updateById(String id,String type,Object result) throws Throwable;
-    public abstract Object get(String key, String lockKey) throws Throwable;
+    public abstract Object put(String key, String types, MethodPoint point) throws Exception;
+    public abstract Long delKeys(String pattern) throws Exception;
+    public abstract Long del(String... keys) throws Exception;
+    public abstract Object updateById(String id,String type,Object result) throws Exception;
+    public abstract Object get(String key, String lockKey) throws Exception;
     public abstract void init() throws Exception;
 }

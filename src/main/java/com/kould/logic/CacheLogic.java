@@ -27,15 +27,15 @@ public abstract class CacheLogic {
         this.interprocessCacheManager = interprocessCacheManager;
     }
 
-    public abstract void deleteRemoteCache(KacheMessage msg) throws Throwable;
+    public abstract void deleteRemoteCache(KacheMessage msg) throws Exception;
 
     public abstract void deleteInterprocessCache(KacheMessage msg) throws Exception;
 
-    public abstract void updateRemoteCache(KacheMessage msg) throws Exception, Throwable;
+    public abstract void updateRemoteCache(KacheMessage msg) throws Exception, Exception;
 
     public abstract void updateInterprocessCache(KacheMessage msg) throws Exception;
 
-    public abstract void insertRemoteCache(KacheMessage msg) throws Throwable;
+    public abstract void insertRemoteCache(KacheMessage msg) throws Exception;
 
     public abstract void insertInterprocessCache(KacheMessage msg) throws Exception;
 }

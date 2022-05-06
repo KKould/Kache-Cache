@@ -21,7 +21,7 @@ public class BaseCacheLogic extends CacheLogic {
         super(kacheLock, cacheEncoder, remoteCacheManager, interprocessCacheManager);
     }
 
-    public void deleteRemoteCache(KacheMessage msg) throws Throwable {
+    public void deleteRemoteCache(KacheMessage msg) throws Exception {
         deleteCacheByKey(msg);
     }
 
@@ -29,7 +29,7 @@ public class BaseCacheLogic extends CacheLogic {
         interprocessCacheClear(msg,kacheLock,interprocessCacheManager);
     }
 
-    public void updateRemoteCache(KacheMessage msg) throws Throwable {
+    public void updateRemoteCache(KacheMessage msg) throws Exception {
         Class<?> resultClass = msg.getCacheClazz();
         String type = resultClass.getTypeName();
         Object arg = msg.getArg()[0];
@@ -61,7 +61,7 @@ public class BaseCacheLogic extends CacheLogic {
     }
 
     @Override
-    public void insertRemoteCache(KacheMessage msg) throws Throwable {
+    public void insertRemoteCache(KacheMessage msg) throws Exception {
         deleteCacheByKey(msg);
     }
 
@@ -70,7 +70,7 @@ public class BaseCacheLogic extends CacheLogic {
         interprocessCacheClear(msg,kacheLock,interprocessCacheManager);
     }
 
-    private void deleteCacheByKey(KacheMessage msg) throws Throwable {
+    private void deleteCacheByKey(KacheMessage msg) throws Exception {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = msg.getCacheClazz().getTypeName();
         Object arg = msg.getArg()[0];

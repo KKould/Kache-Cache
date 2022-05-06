@@ -5,8 +5,6 @@ import com.kould.handler.AsyncHandler;
 import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;
 import com.kould.proxy.MethodPoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -40,17 +38,17 @@ public class AmqpAsyncHandler extends AsyncHandler {
     public static final String INTERPROCESS_INSERT_EXCHANGE_NAME = "KACHE_INTERPROCESS_INSERT_EXCHANGE" ;
 
     @Override
-    public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         return asyncChange(point,QUEUE_DELETE_CACHE,INTERPROCESS_DELETE_EXCHANGE_NAME,serviceMessage) ;
     }
 
     @Override
-    public Object update(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object update(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         return asyncChange(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,serviceMessage) ;
     }
 
     @Override
-    public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
     }
 
@@ -66,7 +64,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = {QUEUE_DELETE_CACHE})
-    public void listen2DeleteRemote(KacheMessage msg) throws Throwable {
+    public void listen2DeleteRemote(KacheMessage msg) throws Exception {
         cacheLogic.deleteRemoteCache(msg);
     }
 
@@ -81,7 +79,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
-    public void listen2UpdateRemote(KacheMessage msg) throws Throwable {
+    public void listen2UpdateRemote(KacheMessage msg) throws Exception {
         cacheLogic.updateRemoteCache(msg);
     }
 
@@ -96,7 +94,7 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     @Override
     @RabbitListener(queues = QUEUE_INSERT_CACHE)
-    public void listen2InsertRemote(KacheMessage msg) throws Throwable {
+    public void listen2InsertRemote(KacheMessage msg) throws Exception {
         cacheLogic.insertRemoteCache(msg);
     }
 
