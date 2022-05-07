@@ -62,20 +62,20 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         String methodName = method.getName();
         String typeName = mapperEntityClass.getTypeName();
 
-        if (method.isAnnotationPresent(DaoSelect.class) || Pattern.matches(regexEntity.getSelectRegex(),methodName)) {
+        if (method.isAnnotationPresent(DaoSelect.class) || regexEntity.selectRegexPatternMatch(methodName)) {
             return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
                     , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName
                     , getStatusForRegex(method, methodName));
         }
-        if (method.isAnnotationPresent(DaoInsert.class) || Pattern.matches(regexEntity.getInsertRegex(),methodName)) {
+        if (method.isAnnotationPresent(DaoInsert.class) || regexEntity.insertRegexPatternMatch(methodName)) {
             return strategyHandler.insert(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
-        if (method.isAnnotationPresent(DaoDelete.class) || Pattern.matches(regexEntity.getDeleteRegex(),methodName)) {
+        if (method.isAnnotationPresent(DaoDelete.class) || regexEntity.deleteRegexPatternMatch(methodName)) {
             return strategyHandler.delete(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
-        if (method.isAnnotationPresent(DaoUpdate.class) || Pattern.matches(regexEntity.getUpdateRegex(),methodName)) {
+        if (method.isAnnotationPresent(DaoUpdate.class) || regexEntity.updateRegexPatternMatch(methodName)) {
             return strategyHandler.update(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
@@ -102,7 +102,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         DaoSelect annotation = method.getAnnotation(DaoSelect.class);
         Status status;
         if (annotation == null) {
-            if (Pattern.matches(regexEntity.getSelectStatusByIdRegex(), methodName)) {
+            if (regexEntity.selectStatusByIdRegexPatternMatch(methodName)) {
                 status = Status.BY_ID;
             } else {
                 status = Status.BY_FIELD;

@@ -1,13 +1,12 @@
 package com.kould.encoder.impl;
 
-import com.kould.config.Kache;
+import com.kould.api.Kache;
 import com.kould.config.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.proxy.MethodPoint;
 import com.kould.utils.KryoUtil;
 
 import java.io.Serializable;
-import java.lang.reflect.Method;
 
 public class BaseCacheEncoder extends CacheEncoder {
 
@@ -23,10 +22,9 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private static final long HASH = 0L ;
 
-    private String keyJoint(String methodStatus, String daoEntityName, String methodName, String args) {
+    private String keyJoint(String daoEntityName, String methodName, String args) {
         return Kache.CACHE_PREFIX +
                 Kache.NO_ID_TAG +
-                methodStatus +
                 daoEntityName +
                 methodName +
                 args;
@@ -60,7 +58,7 @@ public class BaseCacheEncoder extends CacheEncoder {
         }else {
             String argsCode = argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
-            return keyJoint(methodStatus.getValue(), types, methodName, argsCode) ;
+            return keyJoint(types, methodName, argsCode) ;
         }
     }
 

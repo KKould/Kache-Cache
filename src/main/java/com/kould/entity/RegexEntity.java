@@ -1,42 +1,44 @@
 package com.kould.entity;
 
+import java.util.regex.Pattern;
+
 public class RegexEntity {
 
-    private final String selectRegex;
+    private final Pattern selectRegexPattern;
 
-    private final String insertRegex;
+    private final Pattern insertRegexPattern;
 
-    private final String deleteRegex;
+    private final Pattern deleteRegexPattern;
 
-    private final String updateRegex;
+    private final Pattern updateRegexPattern;
 
-    private final String selectStatusByIdRegex;
+    private final Pattern selectStatusByIdRegexPattern;
 
     public RegexEntity(String selectRegex, String insertRegex, String deleteRegex, String updateRegex, String selectStatusByIdRegex) {
-        this.selectRegex = selectRegex;
-        this.insertRegex = insertRegex;
-        this.deleteRegex = deleteRegex;
-        this.updateRegex = updateRegex;
-        this.selectStatusByIdRegex = selectStatusByIdRegex;
+        this.selectRegexPattern = Pattern.compile(selectRegex);
+        this.insertRegexPattern = Pattern.compile(insertRegex);
+        this.deleteRegexPattern = Pattern.compile(deleteRegex);
+        this.updateRegexPattern = Pattern.compile(updateRegex);
+        this.selectStatusByIdRegexPattern = Pattern.compile(selectStatusByIdRegex);
     }
 
-    public String getSelectRegex() {
-        return selectRegex;
+    public boolean selectRegexPatternMatch(String methodName) {
+        return selectRegexPattern.matcher(methodName).lookingAt();
     }
 
-    public String getInsertRegex() {
-        return insertRegex;
+    public boolean insertRegexPatternMatch(String methodName) {
+        return insertRegexPattern.matcher(methodName).lookingAt();
     }
 
-    public String getDeleteRegex() {
-        return deleteRegex;
+    public boolean deleteRegexPatternMatch(String methodName) {
+        return deleteRegexPattern.matcher(methodName).lookingAt();
     }
 
-    public String getUpdateRegex() {
-        return updateRegex;
+    public boolean updateRegexPatternMatch(String methodName) {
+        return updateRegexPattern.matcher(methodName).lookingAt();
     }
 
-    public String getSelectStatusByIdRegex() {
-        return selectStatusByIdRegex;
+    public boolean selectStatusByIdRegexPatternMatch(String methodName) {
+        return selectStatusByIdRegexPattern.matcher(methodName).lookingAt();
     }
 }
