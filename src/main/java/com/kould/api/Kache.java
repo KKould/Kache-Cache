@@ -1,5 +1,9 @@
-package com.kould.config;
+package com.kould.api;
 
+import com.kould.config.DaoProperties;
+import com.kould.config.DataFieldProperties;
+import com.kould.config.InterprocessCacheProperties;
+import com.kould.config.ListenerProperties;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
@@ -39,20 +43,10 @@ public class Kache {
 
     private final ListenerProperties listenerProperties;
 
-    //"METHOD_SERVICE_BY_ID "
-    public static final String SERVICE_BY_ID = "$MSBI" ;
-
-    //"METHOD_SERVICE_BY_FIELD"
-    public static final String SERVICE_BY_FIELD = "$MSBF" ;
-
     //"NO_ID-"
-    public static final String NO_ID_TAG = "$NI-" ;
+    public static final String NO_ID_TAG = "$NI:";
 
-    public static final String MAPPER_PATH_NULL = "Kache's mapperPackage is null!";
-
-    public static final String CACHE_PREFIX = "KACHE:" ;
-
-    private final String mapperPackage;
+    public static final String CACHE_PREFIX = "KACHE:";
 
     private final String selectRegex;
 
@@ -97,8 +91,6 @@ public class Kache {
         private String updateRegex;
 
         private String selectStatusByIdRegex;
-
-        private String mapperPackage;
 
         private RedisClient redisClient;
 
@@ -154,11 +146,6 @@ public class Kache {
 
         public Kache.Builder selectStatusByIdRegex(String selectStatusByIdRegex) {
             this.selectStatusByIdRegex = selectStatusByIdRegex;
-            return this;
-        }
-
-        public Kache.Builder mapperPackage(String mapperPackage) {
-            this.mapperPackage = mapperPackage;
             return this;
         }
 
@@ -254,9 +241,6 @@ public class Kache {
             if (this.selectStatusByIdRegex == null) {
                 this.selectStatusByIdRegex = "selectById";
             }
-            if (this.mapperPackage == null) {
-                throw new NullPointerException(MAPPER_PATH_NULL);
-            }
             if (this.redisClient == null) {
                 RedisURI redisUri = RedisURI.builder()                    // <1> 建立单机链接的链接信息
                         .withHost("localhost")
@@ -302,7 +286,7 @@ public class Kache {
             }
             if (this.cacheLogic == null) {
                 this.cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager
-                        , interprocessCacheManager);
+                        , interprocessCacheManager, dataFieldProperties);
             }
             if (this.strategyHandler == null) {
                 this.strategyHandler = new DBFirstHandler(daoProperties, cacheLogic);
@@ -325,7 +309,6 @@ public class Kache {
         this.deleteRegex = builder.deleteRegex;
         this.updateRegex = builder.updateRegex;
         this.selectStatusByIdRegex = builder.selectStatusByIdRegex;
-        this.mapperPackage = builder.mapperPackage;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
         this.cacheLogic = builder.cacheLogic;
@@ -370,10 +353,6 @@ public class Kache {
 
     public ListenerProperties getListenerProperties() {
         return listenerProperties;
-    }
-
-    public String getMapperPackage() {
-        return mapperPackage;
     }
 
     public CacheEncoder getCacheEncoder() {

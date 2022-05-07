@@ -1,6 +1,7 @@
 package com.kould.logic.impl;
 
-import com.kould.config.Kache;
+import com.kould.api.Kache;
+import com.kould.config.DataFieldProperties;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.logic.CacheLogic;
@@ -16,9 +17,9 @@ import java.util.concurrent.locks.Lock;
 //默认数据插入逻辑与数据删除逻辑一致
 public class BaseCacheLogic extends CacheLogic {
 
-    public BaseCacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder
-            , RemoteCacheManager remoteCacheManager, InterprocessCacheManager interprocessCacheManager) {
-        super(kacheLock, cacheEncoder, remoteCacheManager, interprocessCacheManager);
+    public BaseCacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder, RemoteCacheManager remoteCacheManager
+            , InterprocessCacheManager interprocessCacheManager , DataFieldProperties dataFieldProperties) {
+        super(kacheLock, cacheEncoder, remoteCacheManager, interprocessCacheManager, dataFieldProperties);
     }
 
     public void deleteRemoteCache(KacheMessage msg) throws Exception {
@@ -74,6 +75,7 @@ public class BaseCacheLogic extends CacheLogic {
         Class<?> resultClass = msg.getCacheClazz();
         String lockKey = msg.getCacheClazz().getTypeName();
         Object arg = msg.getArg()[0];
+        Class<?> argsClass = arg.getClass();
         String type = msg.getTypes();
         Lock writeLock = null;
         try {
@@ -82,12 +84,12 @@ public class BaseCacheLogic extends CacheLogic {
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
             if (arg instanceof Serializable) {
                 remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), type));
-            } else if (resultClass.isAssignableFrom(arg.getClass())){
-                String idStr = FieldUtils.getFieldByNameAndClass(arg.getClass(), dataFieldProperties.getPrimaryKeyName())
+            } else if (resultClass.isAssignableFrom(argsClass)){
+                String idStr = FieldUtils.getFieldByNameAndClass(argsClass, dataFieldProperties.getPrimaryKeyName())
                         .get(arg).toString();
                 remoteCacheManager.del(cacheEncoder.getId2Key(idStr, type));
             }
-            remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.SERVICE_BY_FIELD + resultClass.getName()));
+            remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.NO_ID_TAG + resultClass.getName()));
             kacheLock.unLock(writeLock);
         } catch (Exception e){
             if (Boolean.TRUE.equals(kacheLock.isLockedByThisThread(writeLock))) {

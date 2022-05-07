@@ -9,22 +9,23 @@ import com.kould.entity.KacheMessage;
 
 public abstract class CacheLogic {
 
-    protected KacheLock kacheLock ;
+    protected final KacheLock kacheLock ;
 
-    protected CacheEncoder cacheEncoder ;
+    protected final CacheEncoder cacheEncoder ;
 
-    protected RemoteCacheManager remoteCacheManager;
+    protected final RemoteCacheManager remoteCacheManager;
 
-    protected InterprocessCacheManager interprocessCacheManager ;
+    protected final InterprocessCacheManager interprocessCacheManager ;
 
-    protected DataFieldProperties dataFieldProperties;
+    protected final DataFieldProperties dataFieldProperties;
 
     protected CacheLogic(KacheLock kacheLock, CacheEncoder cacheEncoder, RemoteCacheManager remoteCacheManager,
-                      InterprocessCacheManager interprocessCacheManager) {
+                         InterprocessCacheManager interprocessCacheManager, DataFieldProperties dataFieldProperties) {
         this.kacheLock = kacheLock;
         this.cacheEncoder = cacheEncoder;
         this.remoteCacheManager = remoteCacheManager;
         this.interprocessCacheManager = interprocessCacheManager;
+        this.dataFieldProperties = dataFieldProperties;
     }
 
     public abstract void deleteRemoteCache(KacheMessage msg) throws Exception;

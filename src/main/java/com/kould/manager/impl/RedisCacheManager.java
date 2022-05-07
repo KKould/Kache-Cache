@@ -4,7 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.config.DaoProperties;
 import com.kould.config.DataFieldProperties;
-import com.kould.config.Kache;
+import com.kould.api.Kache;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.NullValue;
 import com.kould.lock.KacheLock;
@@ -18,6 +18,8 @@ import io.lettuce.core.api.sync.RedisCommands;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /*
 使用Redis进行缓存存取的CacheManager
@@ -42,10 +44,10 @@ public class RedisCacheManager extends RemoteCacheManager {
                      "then " +
                     "   return keys " +
                     "end " +
-                    "local keyFirst = keys[1] " +
+                    "local container = keys[1] " +
                     "table.remove(keys,1) " +
                     "local result = redis.call('mget',unpack(keys)) " +
-                    "table.insert(result,1,keyFirst) " +
+                    "table.insert(result,1,container) " +
                     "if(keySize == table.getn(result)) " +
                     "then " +
                     "   return result " +
@@ -60,6 +62,8 @@ public class RedisCacheManager extends RemoteCacheManager {
     private final KacheLock kacheLock ;
 
     private final CacheEncoder cacheEncoder;
+
+    private static final Pattern NO_ID_TAG_PATTERN = Pattern.compile("^" + Kache.CACHE_PREFIX  + "\\" + Kache.NO_ID_TAG + ".*");
 
     public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties, RedisService redisService, KacheLock kacheLock, CacheEncoder cacheEncoder) {
         super(dataFieldProperties, daoProperties);
@@ -127,7 +131,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     lua.append("redis.call('setex',KEYS[1],")
                             .append(daoProperties.getCacheTime())
                             .append(",ARGV[1]);");
-                    if (!key.contains(Kache.NO_ID_TAG)) {
+                    if (!NO_ID_TAG_PATTERN.matcher(key).lookingAt()) {
                         //若为ID方法，则直接将key赋值给id
                         keys[0] = cacheEncoder.getId2Key(key, types);
                     } else if (result != null) {
@@ -213,7 +217,6 @@ public class RedisCacheManager extends RemoteCacheManager {
                 count++;
                 //保证echoIds的总数大于于used，并筛选其中Redis没有的数据加以存储到Redis之中
                 if (echoIds.size() > used && echoIds.get(used) == count.longValue()) {
-                    used++;
                     //单条数据缓存
                     lua.append("redis.call('setex',KEYS[")
                             .append(count)
@@ -223,6 +226,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                             .append(count - delCount)
                             .append("]);");
                     values[used] = next;
+                    used++;
                 } else {
                     delCount++;
                 }
@@ -249,7 +253,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     .append(daoProperties.getCacheTime())
                     .append(");");
             for (int i = 0; i < keys.length - 1; i++) {
-                values[used + i + 1] = keys[i];
+                values[used + i] = keys[i];
             }
             if (page != null) {
                 values[valuesSize - 1] = page;
@@ -288,7 +292,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             Lock readLock = null ;
             try {
                 //判断是否为直接通过ID获取单条方法
-                if (!key.contains(Kache.NO_ID_TAG)) {
+                if (!NO_ID_TAG_PATTERN.matcher(key).lookingAt()) {
                     readLock = kacheLock.readLock(lockKey);
                     Object result = commands.get(key);
                     kacheLock.unLock(readLock);
