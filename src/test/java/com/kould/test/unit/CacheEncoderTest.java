@@ -1,9 +1,10 @@
-package com.kould.test;
+package com.kould.test.unit;
 
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import org.junit.Assert;
 import org.junit.Test;
+
 
 public class CacheEncoderTest {
 

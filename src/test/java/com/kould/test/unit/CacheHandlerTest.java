@@ -1,10 +1,11 @@
-package com.kould.test;
+package com.kould.test.unit;
 
 import com.kould.config.Status;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.proxy.MethodPoint;
 import com.kould.test.mapper.TestMapper;
+import com.kould.test.mapper.impl.TestMapperImpl;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,18 +17,18 @@ public class CacheHandlerTest {
 
     private final CacheHandler cacheHandler = new BaseCacheHandler();
 
-    private final TestMapper testMapper = new TestMapper();
+    private final TestMapper testMapper = new TestMapperImpl();
 
     private static final String TEST_ARGS_1 = "“民族主义”在基本性质上已经彻底沦为反动派维护其统治的意识形态工具";
 
-    private static final String TEST_KEY_1 = "KACHE:$NI-$MSBFcom.kould.test.TestType141496750210321511";
+    private static final String TEST_KEY_1 = "KACHE:$NI:com.kould.test.TestType141496750210321511";
 
     private static final String TEST_TYPE_1 = "com.kould.test.TestType";
 
     private static final int THREAD_NUM = 1000;
 
     private final Method selectTest = testMapper.getClass()
-            .getDeclaredMethod(TestMapper.METHOD_NAME_SELECT_TEST, String.class);
+            .getDeclaredMethod(TestMapperImpl.METHOD_NAME_SELECT_TEST, Long.class);
 
     private final MethodPoint methodPoint = new MethodPoint(testMapper, new Object[]{TEST_ARGS_1},selectTest);
 
@@ -48,7 +49,7 @@ public class CacheHandlerTest {
                         , (key, types) -> null
                         , (key, point, types) -> {
                             cacheHandlerTest.testCount ++;
-                            return testMapper.selectTest(TEST_ARGS_1);
+                            return testMapper.selectTestById(0L);
                         }
                         , (point, methodName, types, methodStatus) -> TEST_KEY_1
                         , TEST_TYPE_1, Status.BY_FIELD);
@@ -64,15 +65,15 @@ public class CacheHandlerTest {
     public void loadReadTest() throws Exception {
 
         CacheHandlerTest cacheHandlerTest = new CacheHandlerTest();
-        // 测试并发读时是否为同步操作
+        // 测试并发读时是否为非同步操作
         cacheHandlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
             try {
                 cacheHandler.load(methodPoint, false
                         , (key, types) -> {
                             cacheHandlerTest.testCount ++;
-                            return testMapper.selectTest(TEST_ARGS_1);
+                            return testMapper.selectTestById(0L);
                         }
-                        , (key, point, types) -> testMapper.selectTest(TEST_ARGS_1)
+                        , (key, point, types) -> testMapper.selectTestById(0L)
                         , (point, methodName, types, methodStatus) -> TEST_KEY_1
                         , TEST_TYPE_1, Status.BY_FIELD);
             } catch (Exception e) {

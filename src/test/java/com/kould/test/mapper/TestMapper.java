@@ -2,20 +2,16 @@ package com.kould.test.mapper;
 
 import com.kould.test.entity.TestEntity;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class TestMapper {
+public interface TestMapper {
+    TestEntity selectTestById(Long id) throws InterruptedException;
 
-    private static final String TEST_MESSAGE = "Hello World";
+    List<TestEntity> selectTestAll() throws InterruptedException;
 
-    public static final String METHOD_NAME_SELECT_TEST = "selectTest";
+    TestEntity insertTest(TestEntity testEntity) throws InterruptedException;
 
-    public List<TestEntity> selectTest(String args) throws InterruptedException {
-        List<TestEntity> testEntities = new ArrayList<>();
-        testEntities.add(new TestEntity(TEST_MESSAGE));
-        //模拟网络延迟
-        Thread.sleep(1);
-        return testEntities;
-    }
+    Long deleteTest(TestEntity testEntity) throws InterruptedException;
+
+    TestEntity updateTest(TestEntity testEntity) throws InterruptedException;
 }
