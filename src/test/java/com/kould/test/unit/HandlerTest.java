@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
 
 
-public class CacheHandlerTest {
+public class HandlerTest {
 
     private final CacheHandler cacheHandler = new BaseCacheHandler();
 
@@ -35,20 +35,20 @@ public class CacheHandlerTest {
     //线程不安全变量，用于模拟数据库修改
     public int testCount = 0;
 
-    public CacheHandlerTest() throws NoSuchMethodException {
+    public HandlerTest() throws NoSuchMethodException {
     }
 
     @Test
     public void loadWriteTest() throws Exception {
 
-        CacheHandlerTest cacheHandlerTest = new CacheHandlerTest();
+        HandlerTest handlerTest = new HandlerTest();
         // 测试并发写时是否为同步操作
-        cacheHandlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
+        handlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
             try {
                 cacheHandler.load(methodPoint, false
                         , (key, types) -> null
                         , (key, point, types) -> {
-                            cacheHandlerTest.testCount ++;
+                            handlerTest.testCount ++;
                             return testMapper.selectTestById(0L);
                         }
                         , (point, methodName, types, methodStatus) -> TEST_KEY_1
@@ -58,19 +58,19 @@ public class CacheHandlerTest {
             }
         });
         // 判断相同类型参数方法并发是否同步
-        Assert.assertEquals(THREAD_NUM, cacheHandlerTest.testCount);
+        Assert.assertEquals(THREAD_NUM, handlerTest.testCount);
     }
 
     @Test
     public void loadReadTest() throws Exception {
 
-        CacheHandlerTest cacheHandlerTest = new CacheHandlerTest();
+        HandlerTest handlerTest = new HandlerTest();
         // 测试并发读时是否为非同步操作
-        cacheHandlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
+        handlerTest.startTaskAllInOnce(THREAD_NUM, () -> {
             try {
                 cacheHandler.load(methodPoint, false
                         , (key, types) -> {
-                            cacheHandlerTest.testCount ++;
+                            handlerTest.testCount ++;
                             return testMapper.selectTestById(0L);
                         }
                         , (key, point, types) -> testMapper.selectTestById(0L)
@@ -81,7 +81,7 @@ public class CacheHandlerTest {
             }
         });
         // 判断并发读不应该同步
-        Assert.assertFalse(THREAD_NUM == cacheHandlerTest.testCount);
+        Assert.assertFalse(THREAD_NUM == handlerTest.testCount);
     }
 
     public void startTaskAllInOnce(int threadNums, final Runnable task) throws InterruptedException {

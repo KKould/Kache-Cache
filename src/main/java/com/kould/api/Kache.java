@@ -48,6 +48,16 @@ public class Kache {
 
     public static final String CACHE_PREFIX = "KACHE:";
 
+    public static final String DEFAULT_SELECT_REGEX = "^select.*";
+
+    public static final String DEFAULT_INSERT_REGEX = "^insert.*";
+
+    public static final String DEFAULT_DELETE_REGEX = "^delete.*";
+
+    public static final String DEFAULT_UPDATE_REGEX = "^update.*";
+
+    public static final String DEFAULT_SELECT_BY_ID_REGEX = "selectById";
+
     private final String selectRegex;
 
     private final String insertRegex;
@@ -227,19 +237,19 @@ public class Kache {
         @Override
         public Kache build() {
             if (this.selectRegex == null) {
-                this.selectRegex = "^select.*";
+                this.selectRegex = Kache.DEFAULT_SELECT_REGEX;
             }
             if (this.insertRegex == null) {
-                this.insertRegex = "^insert.*";
+                this.insertRegex = Kache.DEFAULT_INSERT_REGEX;
             }
             if (this.deleteRegex == null) {
-                this.deleteRegex = "^delete.*";
+                this.deleteRegex = Kache.DEFAULT_DELETE_REGEX;
             }
             if (this.updateRegex == null) {
-                this.updateRegex = "^update.*";
+                this.updateRegex = Kache.DEFAULT_UPDATE_REGEX;
             }
             if (this.selectStatusByIdRegex == null) {
-                this.selectStatusByIdRegex = "selectById";
+                this.selectStatusByIdRegex = DEFAULT_SELECT_BY_ID_REGEX;
             }
             if (this.redisClient == null) {
                 RedisURI redisUri = RedisURI.builder()                    // <1> 建立单机链接的链接信息

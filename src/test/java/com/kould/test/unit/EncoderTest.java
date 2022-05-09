@@ -6,7 +6,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 
-public class CacheEncoderTest {
+public class EncoderTest {
 
     private final CacheEncoder cacheEncoder = BaseCacheEncoder.getInstance();
 
@@ -24,6 +24,9 @@ public class CacheEncoderTest {
 
     private static final Object TEST_NULL = null;
 
+    /**
+     * 参数边缘测试
+     */
     @Test
     public void argsEncodeTest() {
         String keyStr1 = cacheEncoder.argsEncode(TEST_STRING).intern();

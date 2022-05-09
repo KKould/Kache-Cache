@@ -13,7 +13,6 @@ import com.kould.proxy.MethodPoint;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.regex.Pattern;
 
 public final class CacheMethodInterceptor implements InvocationHandler {
 

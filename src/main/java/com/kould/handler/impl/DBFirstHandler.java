@@ -13,7 +13,7 @@ public class DBFirstHandler extends SyncHandler {
     }
 
     @Override
-    public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         Object proceed = point.execute();
         cacheLogic.deleteRemoteCache(serviceMessage);
         cacheLogic.deleteInterprocessCache(serviceMessage);
@@ -21,7 +21,7 @@ public class DBFirstHandler extends SyncHandler {
     }
 
     @Override
-    public Object update(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object update(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         Object proceed = point.execute();
         cacheLogic.updateRemoteCache(serviceMessage);
         cacheLogic.updateInterprocessCache(serviceMessage);
@@ -29,7 +29,7 @@ public class DBFirstHandler extends SyncHandler {
     }
 
     @Override
-    public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Throwable {
+    public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Exception {
         Object proceed = point.execute();
         cacheLogic.insertRemoteCache(serviceMessage);
         cacheLogic.insertInterprocessCache(serviceMessage);

@@ -17,7 +17,7 @@ public abstract class StrategyHandler {
 
     protected CacheLogic cacheLogic;
 
-    public abstract Object delete(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
-    public abstract Object update(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
-    public abstract Object insert(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
+    public abstract Object delete(MethodPoint point, KacheMessage serviceMessage) throws Exception;
+    public abstract Object update(MethodPoint point, KacheMessage serviceMessage) throws Exception;
+    public abstract Object insert(MethodPoint point, KacheMessage serviceMessage) throws Exception;
 }

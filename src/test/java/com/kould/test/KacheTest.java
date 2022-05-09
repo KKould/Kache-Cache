@@ -27,6 +27,10 @@ public class KacheTest {
 
     public static final TestEntity INSERT_ENTITY_TEST = new TestEntity(3L,"$4");
 
+    /**
+     * 测试前对该框架进行初始化
+     * @throws Exception
+     */
     @Before
     public void init() throws Exception {
         kache.init();
@@ -55,6 +59,10 @@ public class KacheTest {
         Assert.assertEquals(gson.toJson(testMapperTarget.selectTestAll()), gson.toJson(testMapperProxy.selectTestAll()));
     }
 
+    /**
+     * 测试后该框架进行资源关闭
+     * @throws Exception
+     */
     @After
     public void destroy() throws Exception {
         kache.destroy();
