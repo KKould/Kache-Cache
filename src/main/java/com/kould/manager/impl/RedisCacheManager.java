@@ -18,7 +18,6 @@ import io.lettuce.core.api.sync.RedisCommands;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*
@@ -27,8 +26,6 @@ import java.util.regex.Pattern;
 实现散列化的形式进行缓存存储
  */
 public class RedisCacheManager extends RemoteCacheManager {
-
-    private static final NullValue NULL_VALUE = new NullValue();
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
@@ -144,7 +141,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                         keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
                     }
                     if (result == null) {
-                        values[0] = NULL_VALUE;
+                        values[0] = NullValue.NULL_VALUE;
                     } else {
                         values[0] = result;
                     }
@@ -252,8 +249,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                     .append("],")
                     .append(daoProperties.getCacheTime())
                     .append(");");
-            for (int i = 0; i < keys.length - 1; i++) {
-                values[used + i] = keys[i];
+            if (keys.length - 1 >= 0) {
+                System.arraycopy(keys, 0, values, used, keys.length - 1);
             }
             if (page != null) {
                 values[valuesSize - 1] = page;

@@ -5,11 +5,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.kould.config.DaoProperties;
 import com.kould.config.InterprocessCacheProperties;
-import com.kould.handler.StrategyHandler;
+import com.kould.entity.NullValue;
 import com.kould.manager.InterprocessCacheManager;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -30,23 +29,17 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
 
     @Override
-    public <T> T update(String key, T result, String types) {
-
-        return result;
-    }
-
-    @Override
-    public Object get(String key, String types) {
+    public Object get(String key, String types) throws ExecutionException {
         Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
-        if (cache == null) {
-            return null ;
-        } else {
-            try {
-                return cache.get(key, () -> null) ;
-            } catch (Exception e) {
-                return null ;
+        if (cache != null) {
+            Object result = cache.get(key, () -> NullValue.NULL_VALUE);
+            if (result instanceof NullValue) {
+                return null;
+            } else {
+                return result;
             }
         }
+        return null;
     }
 
     @Override
@@ -58,19 +51,12 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
 
     @Override
-    public <T> T put(String key, T result,String types) {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
-        if (cache == null) {
-            cache = CacheBuilder.newBuilder()
-                    .weakValues()
-                    .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
-                    .maximumSize(interprocessCacheProperties.getSize())
-                    .build() ;
-            GUAVA_CACHE_MAP.put(types, cache);
-        }
-        if (result != null) {
-            cache.put(key,result);
-        }
-        return result;
+    public void put(String key, Object result,String types) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(types, (k) -> CacheBuilder.newBuilder()
+                .weakValues()
+                .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
+                .maximumSize(interprocessCacheProperties.getSize())
+                .build());
+        cache.put(key,result);
     }
 }
