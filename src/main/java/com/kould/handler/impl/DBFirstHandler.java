@@ -1,6 +1,6 @@
 package com.kould.handler.impl;
 
-import com.kould.config.DaoProperties;
+import com.kould.properties.DaoProperties;
 import com.kould.handler.SyncHandler;
 import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;

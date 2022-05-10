@@ -1,9 +1,8 @@
 package com.kould.manager;
 
-import com.kould.config.InterprocessCacheProperties;
+import com.kould.properties.InterprocessCacheProperties;
 import com.kould.proxy.MethodPoint;
 
-import java.util.concurrent.ExecutionException;
 
 public abstract class IBaseCacheManager {
 

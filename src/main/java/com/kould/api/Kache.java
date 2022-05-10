@@ -1,9 +1,9 @@
 package com.kould.api;
 
-import com.kould.config.DaoProperties;
-import com.kould.config.DataFieldProperties;
-import com.kould.config.InterprocessCacheProperties;
-import com.kould.config.ListenerProperties;
+import com.kould.properties.DaoProperties;
+import com.kould.properties.DataFieldProperties;
+import com.kould.properties.InterprocessCacheProperties;
+import com.kould.properties.ListenerProperties;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
@@ -43,8 +43,7 @@ public class Kache {
 
     private final ListenerProperties listenerProperties;
 
-    //"NO_ID-"
-    public static final String NO_ID_TAG = "$NI:";
+    public static final String INDEX_TAG = "$INDEX:";
 
     public static final String CACHE_PREFIX = "KACHE:";
 
@@ -92,45 +91,53 @@ public class Kache {
 
     public static class Builder implements com.kould.type.Builder<Kache> {
 
-        private String selectRegex;
+        private String selectRegex = Kache.DEFAULT_SELECT_REGEX;
 
-        private String insertRegex;
+        private String insertRegex = Kache.DEFAULT_INSERT_REGEX;
 
-        private String deleteRegex;
+        private String deleteRegex = Kache.DEFAULT_DELETE_REGEX;
 
-        private String updateRegex;
+        private String updateRegex = Kache.DEFAULT_UPDATE_REGEX;
 
-        private String selectStatusByIdRegex;
+        private String selectStatusByIdRegex = Kache.DEFAULT_SELECT_BY_ID_REGEX;
 
-        private RedisClient redisClient;
+        private RedisClient redisClient = RedisClient.create(RedisURI.builder()
+                .withHost("localhost")
+                .withPort(6379)
+                .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
+                .build());
 
-        private CacheEncoder cacheEncoder;
+        private CacheEncoder cacheEncoder = BaseCacheEncoder.getInstance();
 
-        private KacheLock kacheLock;
+        private KacheLock kacheLock = new LocalLock();
 
-        private CacheHandler cacheHandler;
+        private CacheHandler cacheHandler = new BaseCacheHandler();
 
-        private RedisCodec<String, Object> redisCodec;
+        private RedisCodec<String, Object> redisCodec = new KryoRedisCodec();
 
-        private DaoProperties daoProperties;
+        private DaoProperties daoProperties = new DaoProperties();
 
-        private DataFieldProperties dataFieldProperties;
+        private DataFieldProperties dataFieldProperties = new DataFieldProperties();
 
-        private InterprocessCacheProperties interprocessCacheProperties;
+        private InterprocessCacheProperties interprocessCacheProperties = new InterprocessCacheProperties();
 
-        private ListenerProperties listenerProperties;
+        private ListenerProperties listenerProperties = new ListenerProperties();
 
-        private InterprocessCacheManager interprocessCacheManager;
+        private InterprocessCacheManager interprocessCacheManager = new GuavaCacheManager(daoProperties
+                , interprocessCacheProperties);
 
-        private RemoteCacheManager remoteCacheManager;
+        private RedisService redisService = new RedisService(daoProperties, redisClient, redisCodec);
 
-        private CacheLogic cacheLogic;
+        private RemoteCacheManager remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
+                , redisService, kacheLock, cacheEncoder);
 
-        private StrategyHandler strategyHandler;
+        private CacheLogic cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager
+                , interprocessCacheManager, dataFieldProperties);
 
-        private IBaseCacheManager iBaseCacheManager;
+        private StrategyHandler strategyHandler = new DBFirstHandler(daoProperties, cacheLogic);
 
-        private RedisService redisService;
+        private IBaseCacheManager iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
+                , remoteCacheManager, interprocessCacheProperties);
 
         public Builder() { }
 
@@ -236,75 +243,6 @@ public class Kache {
 
         @Override
         public Kache build() {
-            if (this.selectRegex == null) {
-                this.selectRegex = Kache.DEFAULT_SELECT_REGEX;
-            }
-            if (this.insertRegex == null) {
-                this.insertRegex = Kache.DEFAULT_INSERT_REGEX;
-            }
-            if (this.deleteRegex == null) {
-                this.deleteRegex = Kache.DEFAULT_DELETE_REGEX;
-            }
-            if (this.updateRegex == null) {
-                this.updateRegex = Kache.DEFAULT_UPDATE_REGEX;
-            }
-            if (this.selectStatusByIdRegex == null) {
-                this.selectStatusByIdRegex = DEFAULT_SELECT_BY_ID_REGEX;
-            }
-            if (this.redisClient == null) {
-                RedisURI redisUri = RedisURI.builder()                    // <1> 建立单机链接的链接信息
-                        .withHost("localhost")
-                        .withPort(6379)
-                        .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
-                        .build();
-                this.redisClient = RedisClient.create(redisUri);
-            }
-            if (this.cacheEncoder == null) {
-                this.cacheEncoder = BaseCacheEncoder.getInstance();
-            }
-            if (this.kacheLock == null) {
-                this.kacheLock = new LocalLock();
-            }
-            if (this.cacheHandler == null) {
-                this.cacheHandler = new BaseCacheHandler();
-            }
-            if (this.redisCodec == null) {
-                this.redisCodec = new KryoRedisCodec();
-            }
-            if (this.daoProperties == null) {
-                this.daoProperties = new DaoProperties();
-            }
-            if (this.dataFieldProperties == null) {
-                this.dataFieldProperties = new DataFieldProperties();
-            }
-            if (this.interprocessCacheProperties == null) {
-                this.interprocessCacheProperties = new InterprocessCacheProperties();
-            }
-            if (this.listenerProperties == null) {
-                this.listenerProperties = new ListenerProperties();
-            }
-            if (this.interprocessCacheManager == null) {
-                this.interprocessCacheManager = new GuavaCacheManager(daoProperties
-                        , interprocessCacheProperties);
-            }
-            if (this.redisService == null) {
-                this.redisService = new RedisService(daoProperties, redisClient, redisCodec);
-            }
-            if (this.remoteCacheManager == null) {
-                this.remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
-                        , redisService, kacheLock, cacheEncoder);
-            }
-            if (this.cacheLogic == null) {
-                this.cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager
-                        , interprocessCacheManager, dataFieldProperties);
-            }
-            if (this.strategyHandler == null) {
-                this.strategyHandler = new DBFirstHandler(daoProperties, cacheLogic);
-            }
-            if (this.iBaseCacheManager == null) {
-                this.iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
-                        , remoteCacheManager, interprocessCacheProperties);
-            }
             return new Kache(this) ;
         }
     }
@@ -345,7 +283,7 @@ public class Kache {
         remoteCacheManager.init();
     }
 
-    public void destroy() throws Exception{
+    public void destroy() {
         redisService.shutdown();
     }
 

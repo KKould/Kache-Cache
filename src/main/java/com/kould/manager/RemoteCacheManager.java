@@ -1,7 +1,7 @@
 package com.kould.manager;
 
-import com.kould.config.DaoProperties;
-import com.kould.config.DataFieldProperties;
+import com.kould.properties.DaoProperties;
+import com.kould.properties.DataFieldProperties;
 import com.kould.proxy.MethodPoint;
 
 public abstract class RemoteCacheManager {

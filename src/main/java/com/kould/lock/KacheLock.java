@@ -1,6 +1,6 @@
 package com.kould.lock;
 
-import com.kould.config.DaoProperties;
+import com.kould.properties.DaoProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.locks.Lock;

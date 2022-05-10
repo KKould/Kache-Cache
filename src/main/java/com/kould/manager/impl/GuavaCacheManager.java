@@ -3,8 +3,8 @@ package com.kould.manager.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.kould.config.DaoProperties;
-import com.kould.config.InterprocessCacheProperties;
+import com.kould.properties.DaoProperties;
+import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.NullValue;
 import com.kould.manager.InterprocessCacheManager;
 

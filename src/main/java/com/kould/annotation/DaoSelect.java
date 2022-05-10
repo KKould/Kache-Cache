@@ -1,6 +1,6 @@
 package com.kould.annotation;
 
-import com.kould.config.Status;
+import com.kould.entity.Status;
 
 import java.lang.annotation.*;
 

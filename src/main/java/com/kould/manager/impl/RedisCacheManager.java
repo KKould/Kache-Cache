@@ -2,8 +2,8 @@ package com.kould.manager.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import com.kould.config.DaoProperties;
-import com.kould.config.DataFieldProperties;
+import com.kould.properties.DaoProperties;
+import com.kould.properties.DataFieldProperties;
 import com.kould.api.Kache;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.NullValue;
@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 实现散列化的形式进行缓存存储
  */
 public class RedisCacheManager extends RemoteCacheManager {
+
+    private static final Pattern INDEX_TAG_PATTERN = Pattern.compile("^" + Kache.CACHE_PREFIX  + "\\" + Kache.INDEX_TAG + ".*");
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
@@ -59,8 +61,6 @@ public class RedisCacheManager extends RemoteCacheManager {
     private final KacheLock kacheLock ;
 
     private final CacheEncoder cacheEncoder;
-
-    private static final Pattern NO_ID_TAG_PATTERN = Pattern.compile("^" + Kache.CACHE_PREFIX  + "\\" + Kache.NO_ID_TAG + ".*");
 
     public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties, RedisService redisService, KacheLock kacheLock, CacheEncoder cacheEncoder) {
         super(dataFieldProperties, daoProperties);
@@ -128,7 +128,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     lua.append("redis.call('setex',KEYS[1],")
                             .append(daoProperties.getCacheTime())
                             .append(",ARGV[1]);");
-                    if (!NO_ID_TAG_PATTERN.matcher(key).lookingAt()) {
+                    if (!INDEX_TAG_PATTERN.matcher(key).lookingAt()) {
                         //若为ID方法，则直接将key赋值给id
                         keys[0] = cacheEncoder.getId2Key(key, types);
                     } else if (result != null) {
@@ -289,7 +289,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             Lock readLock = null ;
             try {
                 //判断是否为直接通过ID获取单条方法
-                if (!NO_ID_TAG_PATTERN.matcher(key).lookingAt()) {
+                if (!INDEX_TAG_PATTERN.matcher(key).lookingAt()) {
                     readLock = kacheLock.readLock(lockKey);
                     Object result = commands.get(key);
                     kacheLock.unLock(readLock);

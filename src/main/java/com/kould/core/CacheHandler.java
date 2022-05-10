@@ -1,6 +1,6 @@
 package com.kould.core;
 
-import com.kould.config.Status;
+import com.kould.entity.Status;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;

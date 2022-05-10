@@ -1,6 +1,6 @@
 package com.kould.manager.impl;
 
-import com.kould.config.InterprocessCacheProperties;
+import com.kould.properties.InterprocessCacheProperties;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;

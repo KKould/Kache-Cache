@@ -1,6 +1,6 @@
 package com.kould.service;
 
-import com.kould.config.DaoProperties;
+import com.kould.properties.DaoProperties;
 import com.kould.function.SyncCommandCallback;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;

@@ -1,7 +1,7 @@
 package com.kould.encoder.impl;
 
 import com.kould.api.Kache;
-import com.kould.config.Status;
+import com.kould.entity.Status;
 import com.kould.encoder.CacheEncoder;
 import com.kould.proxy.MethodPoint;
 import com.kould.utils.KryoUtil;
@@ -24,7 +24,7 @@ public class BaseCacheEncoder extends CacheEncoder {
 
     private String keyJoint(String daoEntityName, String methodName, String args) {
         return Kache.CACHE_PREFIX +
-                Kache.NO_ID_TAG +
+                Kache.INDEX_TAG +
                 daoEntityName +
                 methodName +
                 args;

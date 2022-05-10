@@ -1,7 +1,7 @@
 package com.kould.manager;
 
-import com.kould.config.DaoProperties;
-import com.kould.config.InterprocessCacheProperties;
+import com.kould.properties.DaoProperties;
+import com.kould.properties.InterprocessCacheProperties;
 
 import java.util.concurrent.ExecutionException;
 

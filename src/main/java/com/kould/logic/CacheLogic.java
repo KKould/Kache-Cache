@@ -1,6 +1,6 @@
 package com.kould.logic;
 
-import com.kould.config.DataFieldProperties;
+import com.kould.properties.DataFieldProperties;
 import com.kould.encoder.CacheEncoder;
 import com.kould.lock.KacheLock;
 import com.kould.manager.InterprocessCacheManager;

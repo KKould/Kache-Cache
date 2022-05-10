@@ -1,6 +1,6 @@
 package com.kould.function;
 
-import com.kould.config.Status;
+import com.kould.entity.Status;
 import com.kould.proxy.MethodPoint;
 
 @FunctionalInterface

@@ -1,7 +1,7 @@
 package com.kould.test.unit;
 
 import com.kould.api.Kache;
-import com.kould.config.ListenerProperties;
+import com.kould.properties.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.RegexEntity;

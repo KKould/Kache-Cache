@@ -1,8 +1,8 @@
 package com.kould.interceptor;
 
 import com.kould.annotation.*;
-import com.kould.config.ListenerProperties;
-import com.kould.config.Status;
+import com.kould.properties.ListenerProperties;
+import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.RegexEntity;

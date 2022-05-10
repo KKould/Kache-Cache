@@ -1,4 +1,4 @@
-package com.kould.config;
+package com.kould.properties;
 
 public class InterprocessCacheProperties {
 

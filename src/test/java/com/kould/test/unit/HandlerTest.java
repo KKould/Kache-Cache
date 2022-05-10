@@ -1,6 +1,6 @@
 package com.kould.test.unit;
 
-import com.kould.config.Status;
+import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.proxy.MethodPoint;
