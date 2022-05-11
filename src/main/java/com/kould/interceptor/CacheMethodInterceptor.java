@@ -5,7 +5,7 @@ import com.kould.properties.ListenerProperties;
 import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
-import com.kould.entity.RegexEntity;
+import com.kould.entity.KeyEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.entity.KacheMessage;
@@ -30,10 +30,10 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final CacheEncoder cacheEncoder;
 
-    private final RegexEntity regexEntity;
+    private final KeyEntity keyEntity;
 
     public CacheMethodInterceptor(Object target, Class<?> entityClass, IBaseCacheManager baseCacheManager, StrategyHandler strategyHandler,
-                                  ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder, RegexEntity regexEntity) {
+                                  ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder, KeyEntity keyEntity) {
         this.target = target;
         this.entityClass = entityClass;
         this.baseCacheManager = baseCacheManager;
@@ -41,7 +41,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         this.listenerProperties = listenerProperties;
         this.cacheHandler = cacheHandler;
         this.cacheEncoder = cacheEncoder;
-        this.regexEntity = regexEntity;
+        this.keyEntity = keyEntity;
     }
 
 
@@ -61,20 +61,20 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         String methodName = method.getName();
         String typeName = mapperEntityClass.getTypeName();
 
-        if (method.isAnnotationPresent(DaoSelect.class) || regexEntity.selectRegexPatternMatch(methodName)) {
+        if (method.isAnnotationPresent(DaoSelect.class) || keyEntity.selectKeyMatch(methodName)) {
             return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
                     , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName
                     , getStatusForRegex(method, methodName));
         }
-        if (method.isAnnotationPresent(DaoInsert.class) || regexEntity.insertRegexPatternMatch(methodName)) {
+        if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
             return strategyHandler.insert(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
-        if (method.isAnnotationPresent(DaoDelete.class) || regexEntity.deleteRegexPatternMatch(methodName)) {
+        if (method.isAnnotationPresent(DaoDelete.class) || keyEntity.deleteKeyMatch(methodName)) {
             return strategyHandler.delete(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
-        if (method.isAnnotationPresent(DaoUpdate.class) || regexEntity.updateRegexPatternMatch(methodName)) {
+        if (method.isAnnotationPresent(DaoUpdate.class) || keyEntity.updateKeyMatch(methodName)) {
             return strategyHandler.update(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
@@ -101,7 +101,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         DaoSelect annotation = method.getAnnotation(DaoSelect.class);
         Status status;
         if (annotation == null) {
-            if (regexEntity.selectStatusByIdRegexPatternMatch(methodName)) {
+            if (keyEntity.selectByIdKeyEquals(methodName)) {
                 status = Status.BY_ID;
             } else {
                 status = Status.BY_FIELD;

@@ -1,5 +1,6 @@
 package com.kould.api;
 
+import com.kould.entity.KeyEntity;
 import com.kould.properties.DaoProperties;
 import com.kould.properties.DataFieldProperties;
 import com.kould.properties.InterprocessCacheProperties;
@@ -10,7 +11,6 @@ import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
-import com.kould.entity.RegexEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.handler.impl.DBFirstHandler;
 import com.kould.listener.CacheListener;
@@ -47,25 +47,25 @@ public class Kache {
 
     public static final String CACHE_PREFIX = "KACHE:";
 
-    public static final String DEFAULT_SELECT_REGEX = "^select.*";
+    public static final String DEFAULT_SELECT_KEY = "select";
 
-    public static final String DEFAULT_INSERT_REGEX = "^insert.*";
+    public static final String DEFAULT_INSERT_KEY = "insert";
 
-    public static final String DEFAULT_DELETE_REGEX = "^delete.*";
+    public static final String DEFAULT_DELETE_KEY = "delete";
 
-    public static final String DEFAULT_UPDATE_REGEX = "^update.*";
+    public static final String DEFAULT_UPDATE_KEY = "update";
 
-    public static final String DEFAULT_SELECT_BY_ID_REGEX = "selectById";
+    public static final String DEFAULT_SELECT_BY_ID_KEY = "selectById";
 
-    private final String selectRegex;
+    private final String selectKey;
 
-    private final String insertRegex;
+    private final String insertKey;
 
-    private final String deleteRegex;
+    private final String deleteKey;
 
-    private final String updateRegex;
+    private final String updateKey;
 
-    private final String selectStatusByIdRegex;
+    private final String selectStatusByIdKey;
 
     private final CacheEncoder cacheEncoder;
 
@@ -91,15 +91,15 @@ public class Kache {
 
     public static class Builder implements com.kould.type.Builder<Kache> {
 
-        private String selectRegex = Kache.DEFAULT_SELECT_REGEX;
+        private String selectKey = Kache.DEFAULT_SELECT_KEY;
 
-        private String insertRegex = Kache.DEFAULT_INSERT_REGEX;
+        private String insertKey = Kache.DEFAULT_INSERT_KEY;
 
-        private String deleteRegex = Kache.DEFAULT_DELETE_REGEX;
+        private String deleteKey = Kache.DEFAULT_DELETE_KEY;
 
-        private String updateRegex = Kache.DEFAULT_UPDATE_REGEX;
+        private String updateKey = Kache.DEFAULT_UPDATE_KEY;
 
-        private String selectStatusByIdRegex = Kache.DEFAULT_SELECT_BY_ID_REGEX;
+        private String selectStatusByIdKey = Kache.DEFAULT_SELECT_BY_ID_KEY;
 
         private RedisClient redisClient = RedisClient.create(RedisURI.builder()
                 .withHost("localhost")
@@ -141,28 +141,28 @@ public class Kache {
 
         public Builder() { }
 
-        public Kache.Builder selectRegex(String selectRegex) {
-            this.selectRegex = selectRegex;
+        public Kache.Builder selectKey(String selectKey) {
+            this.selectKey = selectKey;
             return this;
         }
 
-        public Kache.Builder insertRegex(String insertRegex) {
-            this.insertRegex = insertRegex;
+        public Kache.Builder insertKey(String insertKey) {
+            this.insertKey = insertKey;
             return this;
         }
 
-        public Kache.Builder deleteRegex(String deleteRegex) {
-            this.deleteRegex = deleteRegex;
+        public Kache.Builder deleteKey(String deleteKey) {
+            this.deleteKey = deleteKey;
             return this;
         }
 
-        public Kache.Builder updateRegex(String updateRegex) {
-            this.updateRegex = updateRegex;
+        public Kache.Builder updateKey(String updateKey) {
+            this.updateKey = updateKey;
             return this;
         }
 
-        public Kache.Builder selectStatusByIdRegex(String selectStatusByIdRegex) {
-            this.selectStatusByIdRegex = selectStatusByIdRegex;
+        public Kache.Builder selectStatusByIdKey(String selectStatusByIdKey) {
+            this.selectStatusByIdKey = selectStatusByIdKey;
             return this;
         }
 
@@ -252,11 +252,11 @@ public class Kache {
     }
 
     public Kache(Builder builder) {
-        this.selectRegex = builder.selectRegex;
-        this.insertRegex = builder.insertRegex;
-        this.deleteRegex = builder.deleteRegex;
-        this.updateRegex = builder.updateRegex;
-        this.selectStatusByIdRegex = builder.selectStatusByIdRegex;
+        this.selectKey = builder.selectKey;
+        this.insertKey = builder.insertKey;
+        this.deleteKey = builder.deleteKey;
+        this.updateKey = builder.updateKey;
+        this.selectStatusByIdKey = builder.selectStatusByIdKey;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
         this.cacheLogic = builder.cacheLogic;
@@ -276,7 +276,7 @@ public class Kache {
     public <T> T getProxy(T target,Class<?> entityClass) {
         return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
                 , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder
-                , new RegexEntity(selectRegex ,insertRegex ,deleteRegex ,updateRegex, selectStatusByIdRegex)));
+                , new KeyEntity(selectKey ,insertKey ,deleteKey ,updateKey, selectStatusByIdKey)));
     }
 
     public void init() throws Exception {

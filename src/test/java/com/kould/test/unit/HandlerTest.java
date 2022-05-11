@@ -25,7 +25,7 @@ public class HandlerTest {
 
     private static final String TEST_TYPE_1 = "com.kould.test.TestType";
 
-    private static final int THREAD_NUM = 1000;
+    private static final int THREAD_NUM = 3000;
 
     private final Method selectTest = testMapper.getClass()
             .getDeclaredMethod(TestMapperImpl.METHOD_NAME_SELECT_TEST, Long.class);

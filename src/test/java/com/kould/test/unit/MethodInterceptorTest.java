@@ -4,7 +4,7 @@ import com.kould.api.Kache;
 import com.kould.properties.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
-import com.kould.entity.RegexEntity;
+import com.kould.entity.KeyEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.manager.IBaseCacheManager;
@@ -20,13 +20,13 @@ import java.lang.reflect.Proxy;
 
 public class MethodInterceptorTest {
 
-    private static final TestEntity MOCK_SELECT_VALUE = new TestEntity(1L,"1");
+    private static final TestEntity MOCK_SELECT_VALUE = new TestEntity(10L,"1");
 
-    private static final TestEntity MOCK_INSERT_VALUE = new TestEntity(2L,"2");
+    private static final TestEntity MOCK_INSERT_VALUE = new TestEntity(20L,"2");
 
-    private static final Long MOCK_DELETE_VALUE = 3L;
+    private static final Long MOCK_DELETE_VALUE = 30L;
 
-    private static final TestEntity MOCK_UPDATE_VALUE = new TestEntity(4L,"4");
+    private static final TestEntity MOCK_UPDATE_VALUE = new TestEntity(40L,"4");
 
     private final TestMapper testMapper = new TestMapperImpl();
 
@@ -64,8 +64,8 @@ public class MethodInterceptorTest {
     public void regexTest() throws Exception {
         CacheMethodInterceptor methodInterceptor = new CacheMethodInterceptor(testMapper, TestEntity.class
                 ,managerMock,strategyHandlerMock,new ListenerProperties(),handlerMock,encoderMock
-                , new RegexEntity(Kache.DEFAULT_SELECT_REGEX,Kache.DEFAULT_INSERT_REGEX,Kache.DEFAULT_DELETE_REGEX
-                , Kache.DEFAULT_UPDATE_REGEX,Kache.DEFAULT_SELECT_BY_ID_REGEX));
+                , new KeyEntity(Kache.DEFAULT_SELECT_KEY,Kache.DEFAULT_INSERT_KEY,Kache.DEFAULT_DELETE_KEY
+                , Kache.DEFAULT_UPDATE_KEY,Kache.DEFAULT_SELECT_BY_ID_KEY));
         TestMapper testMapperProxy = (TestMapper) Proxy.newProxyInstance(testMapper.getClass().getClassLoader(), testMapper.getClass().getInterfaces(), methodInterceptor);
         TestEntity testEntitySelect = testMapperProxy.selectTestById(1L);
         TestEntity testEntityInsert = testMapperProxy.insertTest(this.testEntity);
