@@ -18,7 +18,6 @@ import io.lettuce.core.api.sync.RedisCommands;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
-import java.util.regex.Pattern;
 
 /*
 使用Redis进行缓存存取的CacheManager
@@ -27,7 +26,7 @@ import java.util.regex.Pattern;
  */
 public class RedisCacheManager extends RemoteCacheManager {
 
-    private static final Pattern INDEX_TAG_PATTERN = Pattern.compile("^" + Kache.CACHE_PREFIX  + "\\" + Kache.INDEX_TAG + ".*");
+    private static final String INDEX_TAG_KEY = Kache.CACHE_PREFIX  + Kache.INDEX_TAG;
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
@@ -40,7 +39,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     "then " +
                     "   return nil " +
                     "elseif(keySize == 1) " +
-                     "then " +
+                    "then " +
                     "   return keys " +
                     "end " +
                     "local container = keys[1] " +
@@ -128,7 +127,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                     lua.append("redis.call('setex',KEYS[1],")
                             .append(daoProperties.getCacheTime())
                             .append(",ARGV[1]);");
-                    if (!INDEX_TAG_PATTERN.matcher(key).lookingAt()) {
+                    if (!key.contains(INDEX_TAG_KEY)) {
                         //若为ID方法，则直接将key赋值给id
                         keys[0] = cacheEncoder.getId2Key(key, types);
                     } else if (result != null) {
@@ -289,7 +288,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             Lock readLock = null ;
             try {
                 //判断是否为直接通过ID获取单条方法
-                if (!INDEX_TAG_PATTERN.matcher(key).lookingAt()) {
+                if (!key.contains(INDEX_TAG_KEY)) {
                     readLock = kacheLock.readLock(lockKey);
                     Object result = commands.get(key);
                     kacheLock.unLock(readLock);
