@@ -43,7 +43,7 @@ public class Kache {
 
     private final ListenerProperties listenerProperties;
 
-    public static final String INDEX_TAG = "$INDEX:";
+    public static final String INDEX_TAG = "#INDEX:";
 
     public static final String CACHE_PREFIX = "KACHE:";
 
@@ -285,65 +285,5 @@ public class Kache {
 
     public void destroy() {
         redisService.shutdown();
-    }
-
-    public DaoProperties getDaoProperties() {
-        return daoProperties;
-    }
-
-    public DataFieldProperties getDataFieldProperties() {
-        return dataFieldProperties;
-    }
-
-    public InterprocessCacheProperties getInterprocessCacheProperties() {
-        return interprocessCacheProperties;
-    }
-
-    public ListenerProperties getListenerProperties() {
-        return listenerProperties;
-    }
-
-    public CacheEncoder getCacheEncoder() {
-        return cacheEncoder;
-    }
-
-    public IBaseCacheManager getiBaseCacheManager() {
-        return iBaseCacheManager;
-    }
-
-    public RemoteCacheManager getRemoteCacheManager() {
-        return remoteCacheManager;
-    }
-
-    public RedisService getRedisService() {
-        return redisService;
-    }
-
-    public InterprocessCacheManager getInterprocessCacheManager() {
-        return interprocessCacheManager;
-    }
-
-    public KacheLock getKacheLock() {
-        return kacheLock;
-    }
-
-    public StrategyHandler getStrategyHandler() {
-        return strategyHandler;
-    }
-
-    public CacheLogic getCacheLogic() {
-        return cacheLogic;
-    }
-
-    public CacheHandler getCacheHandler() {
-        return cacheHandler;
-    }
-
-    public RedisCodec<String, Object> getRedisCodec() {
-        return redisCodec;
-    }
-
-    public CacheListener getCacheListener() {
-        return cacheListener;
     }
 }
