@@ -3,7 +3,7 @@ package com.kould.encoder.impl;
 import com.kould.api.Kache;
 import com.kould.entity.Status;
 import com.kould.encoder.CacheEncoder;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 import com.kould.utils.KryoUtil;
 
 import java.io.Serializable;

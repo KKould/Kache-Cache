@@ -33,7 +33,7 @@ public class StatisticsListener extends CacheListener {
     public void hit(String key, KacheMessage msg) {
         MethodStatistic methodStatistic = getMethodStatistic(key, msg);
         methodStatistic.hitIncrement();
-        SUM_HIT.increment(); ;
+        SUM_HIT.increment();
     }
 
     @Override
@@ -51,7 +51,7 @@ public class StatisticsListener extends CacheListener {
     private MethodStatistic getMethodStatistic(String key, KacheMessage msg) {
         String fullName = msg.getTypes() + "."+ msg.getMethodName();
         MethodStatistic methodStatistic = STATISTIC_MAP.computeIfAbsent(fullName, k -> new MethodStatistic());
-        methodStatistic.getKey_set().add(key);
+        methodStatistic.addKey(key);
         return methodStatistic;
     }
 }

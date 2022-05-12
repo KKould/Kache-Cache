@@ -9,7 +9,7 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.entity.NullValue;
 import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 import com.kould.service.RedisService;
 import com.kould.utils.FieldUtils;
 import io.lettuce.core.*;

@@ -4,7 +4,7 @@ import com.kould.properties.DaoProperties;
 import com.kould.handler.AsyncHandler;
 import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;

@@ -4,7 +4,7 @@ import com.kould.entity.Status;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 public abstract class CacheHandler {
 

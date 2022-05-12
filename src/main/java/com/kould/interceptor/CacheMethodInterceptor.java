@@ -9,7 +9,7 @@ import com.kould.entity.KeyEntity;
 import com.kould.handler.StrategyHandler;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.entity.KacheMessage;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

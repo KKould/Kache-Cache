@@ -4,7 +4,7 @@ import com.kould.properties.DaoProperties;
 import com.kould.handler.SyncHandler;
 import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 public class DBFirstHandler extends SyncHandler {
 

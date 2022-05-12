@@ -3,7 +3,7 @@ package com.kould.handler;
 import com.kould.properties.DaoProperties;
 import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 //负责缓存删除/更新处理与缓存存活时间策略
 public abstract class StrategyHandler {

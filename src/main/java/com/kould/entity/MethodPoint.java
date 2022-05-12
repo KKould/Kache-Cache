@@ -1,4 +1,4 @@
-package com.kould.proxy;
+package com.kould.entity;
 
 import java.lang.reflect.Method;
 

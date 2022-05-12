@@ -3,7 +3,7 @@ package com.kould.test.unit;
 import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 import com.kould.test.mapper.TestMapper;
 import com.kould.test.mapper.impl.TestMapperImpl;
 import org.junit.Assert;

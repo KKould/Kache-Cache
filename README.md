@@ -100,8 +100,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
   - 将对应的参数通过编码器获取索引缓存的Key
   - 通过Lua脚本在获取对应的索引缓存时，使用Redis的mget指令批量获取对应的元数据并进行填充，然后返回加工好的索引缓存（完整的序列化数据）
 
-
-
 这样类型的缓存所能带来的特点：
 
 - 数据集与单个数据分离
@@ -122,8 +120,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
   
   - 多个索引缓存共享一致的元缓存数据，去除数据冗余
 
-
-
 #### 因此可得其适用场景：
 
 - 对缓存依赖性较强，且数据变动较为频繁
@@ -142,8 +138,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 
 - 数据体量大
 
-
-
 **若是满足以上大多数情况，则该缓存结构能给你带来相较于传统框架而言更为理想的性能。**
 
 **该框架仅是此结构的一种实现，未经实际生产环境磨练。欢迎尝鲜**
@@ -159,26 +153,82 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 ### 结构 | Structure
 
 ```
-|-com.kould
-    |-annotaion    缓存注解
-    |-aspect    操作拦截Aop
-    |-codec    序列化编码器
-    |-config    spring-starter与yml解析配置
-    |-core    缓存读写处理逻辑
-    |-encoder    缓存命名编码器
-    |-endpoint    spring-actuate端点
-    |-enity    缓存实体类
-    |-function    函数式接口
-    |-handler    缓存策略处理
-    |-listener    缓存监听器
-    |-locator    初始化加载器
-    |-lock    缓存锁
-    |-logic    缓存更新处理逻辑
-    |-manager    缓存操纵管理器
-    |-message    缓存信息封装
-    |-service    Redis操作客户端
-    |-type    结构化接口
-    |-utils    工具
+|- com.kould
+    |- annotaion  操作注解
+        |- DaoDelete    标记删除注解
+        |- DaoInsert    标记新增注解
+        |- DaoSelect    标记搜索注解
+        |- DaoUpdate    标记更新注解
+    |- api        对外调用接口
+        |- Kache    控制面板
+    |- codec      序列化编码器
+        |- KryoRedisCodec   Kryo序列化编码器
+        |- ProtostuffRedisCodec    Ptotostuff序列化编码器
+    |- core       读写处理逻辑
+        |- impl    实现
+            |- BaseCacheHandler    基础读写处理逻辑实现
+        |- CacheHandler    读写处理逻辑定义接口
+    |- encoder    键名编码器
+        |- impl    实现
+            |- BaseCacheEncoder    基础键名编码器实现
+        |- CacheEncoder    键名编码器定义接口
+    |- entity     包装实体
+        |- KacheMessage    摘要信息封装实体
+        |- KeyEntity       方法名摘要匹配实体
+        |- MethodPoint     方法代理封装实体
+        |- NullValue       空值实体
+        |- Status          方法状态枚举
+    |- function   函数式接口
+        |- KeyFunction     取键函数
+        |- ReadFunction    读取函数
+        |- SyncCommandCallback 同步命令函数
+        |- WriteFunction   写入函数
+    |- handler    删改策略
+        |- impl    实现
+            |- AmqpAsyncHandler  基于AMQP的异步策略实现
+            |- DBFristHandler    数据库优先同步策略实现
+        |- AsyncHandler    异步策略接口定义
+        |- StrategyHandler 策略接口定义
+        |- SyncHandler     同步策略接口定义
+    |- inerceptor 拦截器
+        |- CacheMethodInerceptor 缓存方法代理拦截器
+    |- listener   监听器
+        |- impl 实现
+            |- MethodStatistic    方法统计计数器
+            |- StatisticsListener 统计监听器
+            |- StatisticsSnapshot 统计计数快照
+        |- CacheListener   缓存监听器定义
+        |- ListenerHandler 缓存监听处理器
+    |- lock       并发锁封装
+        |- impl   实现
+            |- LocalLock   本地锁实现
+            |- RedissonLock   基于Redisson实现分布式锁
+        |- KacheLock   并发锁封装定义
+    |- logic      更新处理逻辑
+        |- impl   实现
+            |- BaseCacheLogic    基本更新处理逻辑实现
+        |- CacheLogic   更新处理逻辑定义接口
+    |- manager    操纵管理器
+        |- impl    实现
+            |- BaseCacheManagerImpl    基础二级缓存封装操作实现
+            |- GuavaCacheManagerImpl   基于GuavaCache的进程缓存实现
+            |- RedisCacheManagerImpl   基于Redis的远程缓存实现
+        |- IBaseCacheManager         二级缓存封装操作接口定义
+        |- InterprocessCacheManager  进程缓存操作接口定义
+        |- RemoteCacheManager        远程缓存操作接口定义
+    |- properties 配置信息包装
+        |- DaoProperties                Dao层配置
+        |- DataFieldProperties          数据名定义配置
+        |- InterprocessCacheProperties  进程缓存配置
+        |- ListenerProperties           监听器配置
+    |- service    Redis操作客户端
+        |- RedisService    Redis封装实现
+    |- type    结构化接口
+        |- Builder    建造者接口
+    |- utils    工具
+        |- FieldUtils      属性反射工具
+        |- KryoUtils       Kryo序列化工具
+        |- ProtostuffUtils Protostuff序列化工具
 ```
 
 ### 优势 | Advantage

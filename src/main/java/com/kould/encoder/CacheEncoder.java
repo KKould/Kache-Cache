@@ -1,7 +1,7 @@
 package com.kould.encoder;
 
 import com.kould.entity.Status;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 public abstract class CacheEncoder {
 

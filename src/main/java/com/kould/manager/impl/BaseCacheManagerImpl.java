@@ -4,7 +4,7 @@ import com.kould.properties.InterprocessCacheProperties;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
-import com.kould.proxy.MethodPoint;
+import com.kould.entity.MethodPoint;
 
 /*
 此处进程间缓存并不与远程缓存做同一读写操作锁，通过牺牲一部分数据一致性换取最小的网络IO消耗
