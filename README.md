@@ -193,23 +193,23 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
     |- inerceptor 拦截器
         |- CacheMethodInerceptor 缓存方法代理拦截器
     |- listener   监听器
-        |- impl 实现
+        |- impl    实现
             |- MethodStatistic    方法统计计数器
             |- StatisticsListener 统计监听器
             |- StatisticsSnapshot 统计计数快照
         |- CacheListener   缓存监听器定义
         |- ListenerHandler 缓存监听处理器
     |- lock       并发锁封装
-        |- impl   实现
+        |- impl    实现
             |- LocalLock   本地锁实现
             |- RedissonLock   基于Redisson实现分布式锁
         |- KacheLock   并发锁封装定义
     |- logic      更新处理逻辑
-        |- impl   实现
+        |- impl    实现
             |- BaseCacheLogic    基本更新处理逻辑实现
         |- CacheLogic   更新处理逻辑定义接口
     |- manager    操纵管理器
-        |- impl    实现
+        |- impl    实现
             |- BaseCacheManagerImpl    基础二级缓存封装操作实现
             |- GuavaCacheManagerImpl   基于GuavaCache的进程缓存实现
             |- RedisCacheManagerImpl   基于Redis的远程缓存实现
