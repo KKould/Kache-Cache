@@ -1,15 +1,14 @@
-package com.kould.handler.impl;
+package com.kould.strategy.impl;
 
 import com.kould.manager.IBaseCacheManager;
-import com.kould.properties.DaoProperties;
-import com.kould.handler.SyncHandler;
+import com.kould.strategy.SyncStrategy;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
 
-public class DBFirstHandler extends SyncHandler {
+public class DBFirst extends SyncStrategy {
 
-    public DBFirstHandler(DaoProperties daoProperties, IBaseCacheManager baseCacheManager) {
-        super(daoProperties, baseCacheManager);
+    public DBFirst(IBaseCacheManager baseCacheManager) {
+        super(baseCacheManager);
     }
 
     @Override

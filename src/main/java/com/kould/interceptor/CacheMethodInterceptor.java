@@ -6,7 +6,7 @@ import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.KeyEntity;
-import com.kould.handler.StrategyHandler;
+import com.kould.strategy.Strategy;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
@@ -22,7 +22,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final IBaseCacheManager baseCacheManager;
 
-    private final StrategyHandler strategyHandler;
+    private final Strategy strategy;
 
     private final ListenerProperties listenerProperties;
 
@@ -32,12 +32,12 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final KeyEntity keyEntity;
 
-    public CacheMethodInterceptor(Object target, Class<?> entityClass, IBaseCacheManager baseCacheManager, StrategyHandler strategyHandler,
+    public CacheMethodInterceptor(Object target, Class<?> entityClass, IBaseCacheManager baseCacheManager, Strategy strategy,
                                   ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder, KeyEntity keyEntity) {
         this.target = target;
         this.entityClass = entityClass;
         this.baseCacheManager = baseCacheManager;
-        this.strategyHandler = strategyHandler;
+        this.strategy = strategy;
         this.listenerProperties = listenerProperties;
         this.cacheHandler = cacheHandler;
         this.cacheEncoder = cacheEncoder;
@@ -67,15 +67,15 @@ public final class CacheMethodInterceptor implements InvocationHandler {
                     , getStatusForRegex(method, methodName));
         }
         if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
-            return strategyHandler.insert(methodPoint
+            return strategy.insert(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         if (method.isAnnotationPresent(DaoDelete.class) || keyEntity.deleteKeyMatch(methodName)) {
-            return strategyHandler.delete(methodPoint
+            return strategy.delete(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         if (method.isAnnotationPresent(DaoUpdate.class) || keyEntity.updateKeyMatch(methodName)) {
-            return strategyHandler.update(methodPoint
+            return strategy.update(methodPoint
                     ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         return methodPoint.execute();

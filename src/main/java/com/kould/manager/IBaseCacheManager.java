@@ -7,7 +7,11 @@ import com.kould.properties.DataFieldProperties;
 import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.MethodPoint;
 
-
+/**
+ * 二级缓存管理器
+ *
+ * 使用异步消息队列策略实现删改逻辑时请让增删改逻辑能保证幂等性
+ */
 public abstract class IBaseCacheManager {
 
     public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties, KacheLock kacheLock, CacheEncoder cacheEncoder, DataFieldProperties dataFieldProperties) {

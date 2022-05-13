@@ -1,24 +1,22 @@
-package com.kould.handler.impl;
+package com.kould.strategy.impl;
 
 import com.kould.manager.IBaseCacheManager;
-import com.kould.properties.DaoProperties;
-import com.kould.handler.AsyncHandler;
+import com.kould.strategy.ASyncStrategy;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
-/*
-基于AMQP协议的异步处理器
-删除/更新策略为：先通过数据库删除，随后发送消息异步进行缓存删除
-缓存存活时间为：基本时间+随机区间时间
+/**
+ * 基于AMQP协议的异步处理器
+ * 删除/更新策略为：先通过数据库删除，随后发送消息异步进行缓存删除
  */
-public class AmqpAsyncHandler extends AsyncHandler {
+public class AmqpASyncStrategy extends ASyncStrategy {
 
     private final AmqpTemplate amqpTemplate;
 
-    public AmqpAsyncHandler(DaoProperties daoProperties, IBaseCacheManager baseCacheManager, AmqpTemplate amqpTemplate) {
-        super(daoProperties, baseCacheManager);
+    public AmqpASyncStrategy(IBaseCacheManager baseCacheManager, AmqpTemplate amqpTemplate) {
+        super(baseCacheManager);
         this.amqpTemplate = amqpTemplate;
     }
 
@@ -52,19 +50,16 @@ public class AmqpAsyncHandler extends AsyncHandler {
         return proceed ;
     }
 
-    @Override
     @RabbitListener(queues = {QUEUE_DELETE_CACHE})
     public void listen2Delete(KacheMessage msg) throws Exception {
         baseCacheManager.deleteCache(msg);
     }
 
-    @Override
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
     public void listen2Update(KacheMessage msg) throws Exception {
         baseCacheManager.updateCache(msg);
     }
 
-    @Override
     @RabbitListener(queues = QUEUE_INSERT_CACHE)
     public void listen2Insert(KacheMessage msg) throws Exception {
         baseCacheManager.insertCache(msg);

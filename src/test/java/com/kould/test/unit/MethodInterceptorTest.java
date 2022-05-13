@@ -5,7 +5,7 @@ import com.kould.properties.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.KeyEntity;
-import com.kould.handler.StrategyHandler;
+import com.kould.strategy.Strategy;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.test.entity.TestEntity;
@@ -38,7 +38,7 @@ public class MethodInterceptorTest {
 
     private final CacheEncoder encoderMock = Mockito.mock(CacheEncoder.class);
 
-    private final StrategyHandler strategyHandlerMock = Mockito.mock(StrategyHandler.class);
+    private final Strategy strategyMock = Mockito.mock(Strategy.class);
 
     @Before
     public void init() throws Exception {
@@ -51,11 +51,11 @@ public class MethodInterceptorTest {
                 .thenReturn(null);
         Mockito.when(encoderMock.getDaoKey(Mockito.any(),Mockito.anyString(),Mockito.anyString(),Mockito.any()))
                 .thenReturn(null);
-        Mockito.when(strategyHandlerMock.insert(Mockito.any(), Mockito.any()))
+        Mockito.when(strategyMock.insert(Mockito.any(), Mockito.any()))
                 .thenReturn(MOCK_INSERT_VALUE);
-        Mockito.when(strategyHandlerMock.delete(Mockito.any(),Mockito.any()))
+        Mockito.when(strategyMock.delete(Mockito.any(),Mockito.any()))
                 .thenReturn(MOCK_DELETE_VALUE);
-        Mockito.when(strategyHandlerMock.update(Mockito.any(),Mockito.any()))
+        Mockito.when(strategyMock.update(Mockito.any(),Mockito.any()))
                 .thenReturn(MOCK_UPDATE_VALUE);
     }
 
@@ -63,7 +63,7 @@ public class MethodInterceptorTest {
     @Test
     public void regexTest() throws Exception {
         CacheMethodInterceptor methodInterceptor = new CacheMethodInterceptor(testMapper, TestEntity.class
-                ,managerMock,strategyHandlerMock,new ListenerProperties(),handlerMock,encoderMock
+                ,managerMock, strategyMock,new ListenerProperties(),handlerMock,encoderMock
                 , new KeyEntity(Kache.DEFAULT_SELECT_KEY,Kache.DEFAULT_INSERT_KEY,Kache.DEFAULT_DELETE_KEY
                 , Kache.DEFAULT_UPDATE_KEY,Kache.DEFAULT_SELECT_BY_ID_KEY));
         TestMapper testMapperProxy = (TestMapper) Proxy.newProxyInstance(testMapper.getClass().getClassLoader(), testMapper.getClass().getInterfaces(), methodInterceptor);

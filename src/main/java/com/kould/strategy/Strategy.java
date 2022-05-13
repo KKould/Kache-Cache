@@ -1,19 +1,15 @@
-package com.kould.handler;
+package com.kould.strategy;
 
 import com.kould.manager.IBaseCacheManager;
-import com.kould.properties.DaoProperties;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
 
 //负责缓存删除/更新处理与缓存存活时间策略
-public abstract class StrategyHandler {
+public abstract class Strategy {
 
-    public StrategyHandler(DaoProperties daoProperties, IBaseCacheManager baseCacheManager) {
-        this.daoProperties = daoProperties;
+    public Strategy(IBaseCacheManager baseCacheManager) {
         this.baseCacheManager = baseCacheManager;
     }
-
-    protected DaoProperties daoProperties;
 
     protected IBaseCacheManager baseCacheManager;
 

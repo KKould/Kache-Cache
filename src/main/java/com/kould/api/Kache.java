@@ -11,8 +11,8 @@ import com.kould.core.CacheHandler;
 import com.kould.core.impl.BaseCacheHandler;
 import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
-import com.kould.handler.StrategyHandler;
-import com.kould.handler.impl.DBFirstHandler;
+import com.kould.strategy.Strategy;
+import com.kould.strategy.impl.DBFirst;
 import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
@@ -77,7 +77,7 @@ public class Kache {
 
     private final KacheLock kacheLock;
 
-    private final StrategyHandler strategyHandler;
+    private final Strategy strategy;
 
     private final CacheHandler cacheHandler;
 
@@ -130,7 +130,7 @@ public class Kache {
         private IBaseCacheManager iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
                 , remoteCacheManager, interprocessCacheProperties,kacheLock,cacheEncoder,dataFieldProperties);
 
-        private StrategyHandler strategyHandler = new DBFirstHandler(daoProperties, iBaseCacheManager);
+        private Strategy strategy = new DBFirst(iBaseCacheManager);
 
         public Builder() { }
 
@@ -194,8 +194,8 @@ public class Kache {
             return this;
         }
 
-        public Kache.Builder strategyHandler(StrategyHandler strategyHandler) {
-            this.strategyHandler = strategyHandler;
+        public Kache.Builder strategyHandler(Strategy strategy) {
+            this.strategy = strategy;
             return this;
         }
 
@@ -257,12 +257,12 @@ public class Kache {
         this.redisCodec = builder.redisCodec;
         this.redisService = builder.redisService;
         this.remoteCacheManager = builder.remoteCacheManager;
-        this.strategyHandler = builder.strategyHandler;
+        this.strategy = builder.strategy;
     }
 
     public <T> T getProxy(T target,Class<?> entityClass) {
         return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
-                , this.strategyHandler, this.listenerProperties, this.cacheHandler, this.cacheEncoder
+                , this.strategy, this.listenerProperties, this.cacheHandler, this.cacheEncoder
                 , new KeyEntity(selectKey ,insertKey ,deleteKey ,updateKey, selectStatusByIdKey)));
     }
 

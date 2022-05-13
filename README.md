@@ -183,13 +183,13 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
         |- ReadFunction    读取函数
         |- SyncCommandCallback 同步命令函数
         |- WriteFunction   写入函数
-    |- handler    删改策略
+    |- Strategy    删改策略
         |- impl    实现
-            |- AmqpAsyncHandler  基于AMQP的异步策略实现
-            |- DBFristHandler    数据库优先同步策略实现
-        |- AsyncHandler    异步策略接口定义
-        |- StrategyHandler 策略接口定义
-        |- SyncHandler     同步策略接口定义
+            |- AmqpAsyncStrategy  基于AMQP的异步策略实现
+            |- DBFristStrategy    数据库优先同步策略实现
+        |- AsyncStrategy    异步策略接口定义
+        |- Strategy 策略接口定义
+        |- SyncStrategy     同步策略接口定义
     |- inerceptor 拦截器
         |- CacheMethodInerceptor 缓存方法代理拦截器
     |- listener   监听器
@@ -204,10 +204,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
             |- LocalLock   本地锁实现
             |- RedissonLock   基于Redisson实现分布式锁
         |- KacheLock   并发锁封装定义
-    |- logic      更新处理逻辑
-        |- impl    实现
-            |- BaseCacheLogic    基本更新处理逻辑实现
-        |- CacheLogic   更新处理逻辑定义接口
     |- manager    操纵管理器
         |- impl    实现
             |- BaseCacheManagerImpl    基础二级缓存封装操作实现
