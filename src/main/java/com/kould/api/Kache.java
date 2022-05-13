@@ -17,8 +17,6 @@ import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
-import com.kould.logic.CacheLogic;
-import com.kould.logic.impl.BaseCacheLogic;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
@@ -81,8 +79,6 @@ public class Kache {
 
     private final StrategyHandler strategyHandler;
 
-    private final CacheLogic cacheLogic;
-
     private final CacheHandler cacheHandler;
 
     private final RedisCodec<String, Object> redisCodec;
@@ -131,13 +127,10 @@ public class Kache {
         private RemoteCacheManager remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
                 , redisService, kacheLock, cacheEncoder);
 
-        private CacheLogic cacheLogic = new BaseCacheLogic(kacheLock, cacheEncoder, remoteCacheManager
-                , interprocessCacheManager, dataFieldProperties);
-
-        private StrategyHandler strategyHandler = new DBFirstHandler(daoProperties, cacheLogic);
-
         private IBaseCacheManager iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
-                , remoteCacheManager, interprocessCacheProperties);
+                , remoteCacheManager, interprocessCacheProperties,kacheLock,cacheEncoder,dataFieldProperties);
+
+        private StrategyHandler strategyHandler = new DBFirstHandler(daoProperties, iBaseCacheManager);
 
         public Builder() { }
 
@@ -206,11 +199,6 @@ public class Kache {
             return this;
         }
 
-        public Kache.Builder cacheLogic(CacheLogic cacheLogic) {
-            this.cacheLogic = cacheLogic;
-            return this;
-        }
-
         public Kache.Builder cacheHandler(CacheHandler cacheHandler) {
             this.cacheHandler = cacheHandler;
             return this;
@@ -259,7 +247,6 @@ public class Kache {
         this.selectStatusByIdKey = builder.selectStatusByIdKey;
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
-        this.cacheLogic = builder.cacheLogic;
         this.daoProperties = builder.daoProperties;
         this.dataFieldProperties = builder.dataFieldProperties;
         this.iBaseCacheManager = builder.iBaseCacheManager;

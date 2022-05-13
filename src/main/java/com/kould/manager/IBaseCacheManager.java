@@ -1,15 +1,22 @@
 package com.kould.manager;
 
+import com.kould.encoder.CacheEncoder;
+import com.kould.entity.KacheMessage;
+import com.kould.lock.KacheLock;
+import com.kould.properties.DataFieldProperties;
 import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.MethodPoint;
 
 
 public abstract class IBaseCacheManager {
 
-    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties) {
+    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties, KacheLock kacheLock, CacheEncoder cacheEncoder, DataFieldProperties dataFieldProperties) {
         this.interprocessCacheManager = interprocessCacheManager;
         this.remoteCacheManager = remoteCacheManager;
         this.interprocessCacheProperties = interprocessCacheProperties;
+        this.kacheLock = kacheLock;
+        this.cacheEncoder = cacheEncoder;
+        this.dataFieldProperties = dataFieldProperties;
     }
 
     protected InterprocessCacheManager interprocessCacheManager ;
@@ -18,6 +25,11 @@ public abstract class IBaseCacheManager {
 
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
+    protected final KacheLock kacheLock ;
+
+    protected final CacheEncoder cacheEncoder ;
+
+   protected final DataFieldProperties dataFieldProperties;
     /**
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改
@@ -38,4 +50,10 @@ public abstract class IBaseCacheManager {
      * @throws Exception
      */
     public abstract Object daoRead(String key, String types) throws Exception;
+
+    public abstract void deleteCache(KacheMessage msg) throws Exception;
+
+    public abstract void updateCache(KacheMessage msg) throws Exception;
+
+    public abstract void insertCache(KacheMessage msg) throws Exception;
 }

@@ -1,14 +1,11 @@
 package com.kould.handler.impl;
 
+import com.kould.manager.IBaseCacheManager;
 import com.kould.properties.DaoProperties;
 import com.kould.handler.AsyncHandler;
-import com.kould.logic.CacheLogic;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
 /*
@@ -20,8 +17,8 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     private final AmqpTemplate amqpTemplate;
 
-    public AmqpAsyncHandler(DaoProperties daoProperties, CacheLogic cacheLogic, AmqpTemplate amqpTemplate) {
-        super(daoProperties, cacheLogic);
+    public AmqpAsyncHandler(DaoProperties daoProperties, IBaseCacheManager baseCacheManager, AmqpTemplate amqpTemplate) {
+        super(daoProperties, baseCacheManager);
         this.amqpTemplate = amqpTemplate;
     }
 
@@ -31,79 +28,46 @@ public class AmqpAsyncHandler extends AsyncHandler {
 
     public static final String QUEUE_INSERT_CACHE = "KACHE_CACHE_INSERT" ;
 
-    public static final String INTERPROCESS_DELETE_EXCHANGE_NAME = "KACHE_INTERPROCESS_DELETE_EXCHANGE" ;
-
-    public static final String INTERPROCESS_UPDATE_EXCHANGE_NAME = "KACHE_INTERPROCESS_UPDATE_EXCHANGE" ;
-
-    public static final String INTERPROCESS_INSERT_EXCHANGE_NAME = "KACHE_INTERPROCESS_INSERT_EXCHANGE" ;
-
     @Override
     public Object delete(MethodPoint point, KacheMessage serviceMessage) throws Exception {
-        return asyncChange(point,QUEUE_DELETE_CACHE,INTERPROCESS_DELETE_EXCHANGE_NAME,serviceMessage) ;
+        return asyncChange(point,QUEUE_DELETE_CACHE,serviceMessage) ;
     }
 
     @Override
     public Object update(MethodPoint point, KacheMessage serviceMessage) throws Exception {
-        return asyncChange(point,QUEUE_UPDATE_CACHE,INTERPROCESS_UPDATE_EXCHANGE_NAME,serviceMessage) ;
+        return asyncChange(point,QUEUE_UPDATE_CACHE,serviceMessage) ;
     }
 
     @Override
     public Object insert(MethodPoint point, KacheMessage serviceMessage) throws Exception {
-        return asyncChange(point,QUEUE_INSERT_CACHE,INTERPROCESS_INSERT_EXCHANGE_NAME,serviceMessage) ;
+        return asyncChange(point,QUEUE_INSERT_CACHE,serviceMessage) ;
     }
 
-    private Object asyncChange(MethodPoint point, String queue, String exchange, KacheMessage serviceMessage) throws Exception {
+    private Object asyncChange(MethodPoint point, String queue, KacheMessage serviceMessage) throws Exception {
         //先通过植入点的方法执行后查看是否会发生错误，以免误操作
         Object proceed = point.execute();
         if (serviceMessage != null) {
             amqpTemplate.convertAndSend(queue, serviceMessage);
-            amqpTemplate.convertAndSend(exchange, "", serviceMessage);
         }
         return proceed ;
     }
 
     @Override
     @RabbitListener(queues = {QUEUE_DELETE_CACHE})
-    public void listen2DeleteRemote(KacheMessage msg) throws Exception {
-        cacheLogic.deleteRemoteCache(msg);
-    }
-
-    @Override
-    @RabbitListener(bindings = @QueueBinding(
-            value = @org.springframework.amqp.rabbit.annotation.Queue(), //注意这里不要定义队列名称,系统会随机产生
-            exchange = @Exchange(value = INTERPROCESS_DELETE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
-    ))
-    public void listen2DeleteInterprocess(KacheMessage msg) throws Exception {
-        cacheLogic.deleteInterprocessCache(msg);
+    public void listen2Delete(KacheMessage msg) throws Exception {
+        baseCacheManager.deleteCache(msg);
     }
 
     @Override
     @RabbitListener(queues = QUEUE_UPDATE_CACHE)
-    public void listen2UpdateRemote(KacheMessage msg) throws Exception {
-        cacheLogic.updateRemoteCache(msg);
-    }
-
-    @Override
-    @RabbitListener(bindings = @QueueBinding(
-            value = @org.springframework.amqp.rabbit.annotation.Queue(), //注意这里不要定义队列名称,系统会随机产生
-            exchange = @Exchange(value = INTERPROCESS_UPDATE_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
-    ))
-    public void listen2UpdateInterprocess(KacheMessage msg) throws Exception {
-        cacheLogic.updateInterprocessCache(msg);
+    public void listen2Update(KacheMessage msg) throws Exception {
+        baseCacheManager.updateCache(msg);
     }
 
     @Override
     @RabbitListener(queues = QUEUE_INSERT_CACHE)
-    public void listen2InsertRemote(KacheMessage msg) throws Exception {
-        cacheLogic.insertRemoteCache(msg);
+    public void listen2Insert(KacheMessage msg) throws Exception {
+        baseCacheManager.insertCache(msg);
     }
 
-    @Override
-    @RabbitListener(bindings = @QueueBinding(
-            value = @org.springframework.amqp.rabbit.annotation.Queue(), //注意这里不要定义队列名称,系统会随机产生
-            exchange = @Exchange(value = INTERPROCESS_INSERT_EXCHANGE_NAME,type = ExchangeTypes.FANOUT)
-    ))
-    public void listen2InsertInterprocess(KacheMessage msg) throws Exception {
-        cacheLogic.insertInterprocessCache(msg);
-    }
 }
