@@ -26,7 +26,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class RedisCacheManager extends RemoteCacheManager {
 
-    private static final String INDEX_TAG_KEY = Kache.CACHE_PREFIX  + Kache.INDEX_TAG;
+    private static final String INDEX_TAG_KEY = Kache.CACHE_PREFIX + Kache.INDEX_TAG;
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 

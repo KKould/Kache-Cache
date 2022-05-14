@@ -10,7 +10,7 @@ public class InterprocessCacheProperties {
         this.size = size;
     }
 
-    private boolean enable = false;
+    private boolean enable = true;
 
     private int size =200;
 

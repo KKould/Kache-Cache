@@ -55,15 +55,7 @@ public class Kache {
 
     public static final String DEFAULT_SELECT_BY_ID_KEY = "selectById";
 
-    private final String selectKey;
-
-    private final String insertKey;
-
-    private final String deleteKey;
-
-    private final String updateKey;
-
-    private final String selectStatusByIdKey;
+    private final KeyEntity keyEntity;
 
     private final CacheEncoder cacheEncoder;
 
@@ -240,11 +232,8 @@ public class Kache {
     }
 
     public Kache(Builder builder) {
-        this.selectKey = builder.selectKey;
-        this.insertKey = builder.insertKey;
-        this.deleteKey = builder.deleteKey;
-        this.updateKey = builder.updateKey;
-        this.selectStatusByIdKey = builder.selectStatusByIdKey;
+        this.keyEntity = new KeyEntity(builder.selectKey ,builder.insertKey ,builder.deleteKey ,builder.updateKey
+                , builder.selectStatusByIdKey);
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
         this.daoProperties = builder.daoProperties;
@@ -261,9 +250,10 @@ public class Kache {
     }
 
     public <T> T getProxy(T target,Class<?> entityClass) {
-        return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
-                , this.strategy, this.listenerProperties, this.cacheHandler, this.cacheEncoder
-                , new KeyEntity(selectKey ,insertKey ,deleteKey ,updateKey, selectStatusByIdKey)));
+        return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces()
+                , new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
+                        , this.strategy, this.listenerProperties, this.cacheHandler, this.cacheEncoder
+                        , keyEntity));
     }
 
     public void init() throws Exception {

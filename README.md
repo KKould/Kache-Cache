@@ -19,6 +19,14 @@
 
 ----
 
+### 概要 | Synopsis
+
+- **Dao持久层缓冲增强**
+- **实验性质的缓存框架**
+  - 零重复序列化元数据
+  - 元数据高命中率
+  - 低缓存变更代价
+
 ### 与其他缓存框架有何差异？
 
 ### How is it different from other caching frameworks？
@@ -142,14 +150,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 
 **该框架仅是此结构的一种实现，未经实际生产环境磨练。欢迎尝鲜**
 
-### 概要 | Synopsis
-
-- **Dao持久层缓冲增强**
-- **实验性质的缓存框架**
-  - 零重复序列化元数据
-  - 元数据高命中率
-  - 低缓存变更代价
-
 ### 结构 | Structure
 
 ```
@@ -243,6 +243,8 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 
 ### 使用 | Use
 
+#### 原生使用：
+
 #### **1、Kache依赖引入**
 
 #### **2、Dao层写入注解**
@@ -282,7 +284,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 
 ```java
 @Repository
-@DaoClass(Tag.class)
 public interface TagMapper extends BaseMapper<Tag> {
 
     @Select("select t.* from klog_article_tag at "
@@ -377,141 +378,6 @@ kache:
   - 插入方法：insert*(..)
   - 更新方法：update*(..)
   - 删除方法：delete*(..)
-
-**Actuator端点**：**/kache**：下为例子，参数为：
-
-- 总命中次数：sumHit
-- 总未命中次数：sumNotHit
-- 命中service方法：
-  - 命中的key名：
-    - 命中次数：hit
-    - 未命中次数：notHit
-
-```json
-{
-    "com.kould.listener.impl.StatisticsListener":{
-        "statisticMap":{
-            "com.kould.klog.entity.ArticleAndTag.selectList":{
-                "key_set":[
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList7366488776458918380",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList3688230540085275879",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-6616124714197240509",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-8825655128112326602",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList-4800593238996224284",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList8175467167130639943",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleAndTagselectList5515765047547306303"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Comment.selectPage":{
-                "key_set":[
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-5088645369418484732",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-601408742373120668",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.CommentselectPage-3261110861956454308"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.ArticleBody.selectById":{
-                "key_set":[
-                    "KACHE:1504703525416009729",
-                    "KACHE:1487892466958348290",
-                    "KACHE:1501379280208101377"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Article.selectById":{
-                "key_set":[
-                    "KACHE:1504703525986435074",
-                    "KACHE:1487892467822374914",
-                    "KACHE:1501379280321347585"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Article.selectList":{
-                "key_set":[
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectList-2737135272387492214",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectList6742038077807145512"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Tag.listHotTagsByArticleUse":{
-                "key_set":[
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.TaglistHotTagsByArticleUse8537847423193657128"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Category.selectById":{
-                "key_set":[
-                    "KACHE:1487868148098592770",
-                    "KACHE:1487868235843432449",
-                    "KACHE:1487868277975216130"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            },
-            "com.kould.klog.entity.Article.selectPage":{
-                "key_set":[
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-8185391717994071526",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage4874353664547449116",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-512645026620581858",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage-5899643717788612832",
-                    "KACHE:NO_ID-METHOD_SERVICE_BY_FIELDcom.kould.klog.entity.ArticleselectPage7160101664752907810"
-                ],
-                "hit":{
-
-                },
-                "notHit":{
-
-                }
-            }
-        },
-        "sumHit":23,
-        "sumNotHit":19
-    }
-}
-```
-
-注：若想使用端点需要在配置文件中暴露
-
-例子：暴露全部Actuator端点
-
-```yaml
-management.endpoints.web.exposure.include=*
-```
 
 ### 架构 | Framework
 
