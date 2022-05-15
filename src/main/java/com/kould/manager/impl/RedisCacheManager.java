@@ -129,15 +129,15 @@ public class RedisCacheManager extends RemoteCacheManager {
                             .append(",ARGV[1]);");
                     if (!key.contains(INDEX_TAG_KEY)) {
                         //若为ID方法，则直接将key赋值给id
-                        keys[0] = cacheEncoder.getId2Key(key, types);
+                        keys[0] = cacheEncoder.getId2Key(types, key)[0];
                     } else if (result != null) {
                         //获取条件方法单结果
                         Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
                                 , dataFieldProperties.getPrimaryKeyName());
-                        keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), types);
+                        keys[0] = cacheEncoder.getId2Key(types, (String) primaryKeyField.get(result))[0];
                     } else {
                         //通过将类型设为null使NullTag被通用
-                        keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
+                        keys[0] = cacheEncoder.getId2Key( null, getNullTag())[0];
                     }
                     if (result == null) {
                         values[0] = NullValue.NULL_VALUE;
@@ -182,11 +182,12 @@ public class RedisCacheManager extends RemoteCacheManager {
             //生成Echo脚本（返回Redis内不存在的单条数据，用于减少重复的数据，减少重复序列化和多余的IO占用）
             int count2Echo = 0 ;
             echo.append("local result = {} ") ;
+            String[] echoKeys = new String[records.size()];
             while(iterator.hasNext()) {
                 Object next = iterator.next();
                 count2Echo ++ ;
-                keys[count2Echo - 1] = cacheEncoder.getId2Key(FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName())
-                        .get(next).toString(), types);
+                echoKeys[count2Echo - 1] = FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName())
+                        .get(next).toString();
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -202,8 +203,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                         .append("end ") ;
             }
             echo.append("return result ") ;
-            String[] echoKeys = new String[records.size()];
-            System.arraycopy(keys,0,echoKeys,0,records.size());
+            echoKeys = cacheEncoder.getId2Key(types, echoKeys);
+            System.arraycopy(echoKeys,0,keys,0,records.size());
             echoIds = commands.eval(echo.toString(), ScriptOutputType.MULTI
                     , echoKeys);
             int used = 0;
@@ -334,6 +335,12 @@ public class RedisCacheManager extends RemoteCacheManager {
                 throw e ;
             }
         }) ;
+    }
+
+    @Override
+    public void copyNewVersion(Long increment, String type) {
+
+
     }
 
     @Override

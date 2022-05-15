@@ -33,7 +33,8 @@ public abstract class IBaseCacheManager {
 
     protected final CacheEncoder cacheEncoder ;
 
-   protected final DataFieldProperties dataFieldProperties;
+    protected final DataFieldProperties dataFieldProperties;
+
     /**
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改

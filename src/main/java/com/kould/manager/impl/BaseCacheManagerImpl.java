@@ -70,7 +70,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
             if (resultClass.isAssignableFrom(argClass)){
                 String idStr = FieldUtils.getFieldByNameAndClass(argClass, dataFieldProperties.getPrimaryKeyName())
                         .get(arg).toString();
-                remoteCacheManager.updateById(cacheEncoder.getId2Key(idStr, typeName), typeName, arg) ;
+                remoteCacheManager.updateById(cacheEncoder.getId2Key(typeName,idStr)[0], typeName, arg) ;
             }
             //==========下为重复代码
             interprocessCacheManager.clear(typeName);
@@ -95,17 +95,18 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         Object arg = msg.getArg()[0];
         Class<?> argClass = arg.getClass();
         String typeName = msg.getTypes();
+        cacheEncoder.versionUp(typeName);
         Lock writeLock = null;
         try {
             writeLock = kacheLock.writeLock(typeName);
             //==========上为重复代码
             //无法进行抽取的原因是因为lambda表达式无法抛出异常
             if (arg instanceof Serializable) {
-                remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), typeName));
+                remoteCacheManager.del(cacheEncoder.getId2Key(typeName, arg.toString()));
             } else if (resultClass.isAssignableFrom(argClass)){
                 String idStr = FieldUtils.getFieldByNameAndClass(argClass, dataFieldProperties.getPrimaryKeyName())
                         .get(arg).toString();
-                remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
+                remoteCacheManager.del(cacheEncoder.getId2Key(typeName, idStr));
             }
             interprocessCacheManager.clear(typeName);
             remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + resultClass.getName()));

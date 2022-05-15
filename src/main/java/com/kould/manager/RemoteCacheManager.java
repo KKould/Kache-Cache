@@ -22,5 +22,6 @@ public abstract class RemoteCacheManager {
     public abstract Long del(String... keys) throws Exception;
     public abstract Object updateById(String id,String type,Object result) throws Exception;
     public abstract Object get(String key, String lockKey) throws Exception;
+    public abstract void copyNewVersion(Long increment, String type);
     public abstract void init() throws Exception;
 }
