@@ -1,10 +1,7 @@
 package com.kould.api;
 
 import com.kould.entity.KeyEntity;
-import com.kould.properties.DaoProperties;
-import com.kould.properties.DataFieldProperties;
-import com.kould.properties.InterprocessCacheProperties;
-import com.kould.properties.ListenerProperties;
+import com.kould.properties.*;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
 import com.kould.core.CacheHandler;
@@ -13,7 +10,6 @@ import com.kould.encoder.CacheEncoder;
 import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.strategy.Strategy;
 import com.kould.strategy.impl.DBFirst;
-import com.kould.listener.CacheListener;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
@@ -33,27 +29,11 @@ import java.time.temporal.ChronoUnit;
 
 public class Kache {
 
-    private final DaoProperties daoProperties;
-
-    private final DataFieldProperties dataFieldProperties;
-
-    private final InterprocessCacheProperties interprocessCacheProperties;
-
     private final ListenerProperties listenerProperties;
 
     public static final String INDEX_TAG = "#INDEX:";
 
     public static final String CACHE_PREFIX = "KACHE:";
-
-    public static final String DEFAULT_SELECT_KEY = "select";
-
-    public static final String DEFAULT_INSERT_KEY = "insert";
-
-    public static final String DEFAULT_DELETE_KEY = "delete";
-
-    public static final String DEFAULT_UPDATE_KEY = "update";
-
-    public static final String DEFAULT_SELECT_BY_ID_KEY = "selectById";
 
     private final KeyEntity keyEntity;
 
@@ -65,90 +45,65 @@ public class Kache {
 
     private final RedisService redisService;
 
-    private final InterprocessCacheManager interprocessCacheManager;
-
-    private final KacheLock kacheLock;
-
     private final Strategy strategy;
 
     private final CacheHandler cacheHandler;
 
-    private final RedisCodec<String, Object> redisCodec;
-
-    private final CacheListener cacheListener = StatisticsListener.newInstance();
-
     public static class Builder implements com.kould.type.Builder<Kache> {
 
-        private String selectKey = Kache.DEFAULT_SELECT_KEY;
+        private RedisClient redisClient;
 
-        private String insertKey = Kache.DEFAULT_INSERT_KEY;
+        private CacheEncoder cacheEncoder;
 
-        private String deleteKey = Kache.DEFAULT_DELETE_KEY;
+        private KacheLock kacheLock;
 
-        private String updateKey = Kache.DEFAULT_UPDATE_KEY;
+        private CacheHandler cacheHandler;
 
-        private String selectStatusByIdKey = Kache.DEFAULT_SELECT_BY_ID_KEY;
+        private RedisCodec<String, Object> redisCodec;
 
-        private RedisClient redisClient = RedisClient.create(RedisURI.builder()
-                .withHost("localhost")
-                .withPort(6379)
-                .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
-                .build());
+        private DaoProperties daoProperties;
 
-        private CacheEncoder cacheEncoder = BaseCacheEncoder.getInstance();
+        private DataFieldProperties dataFieldProperties;
 
-        private KacheLock kacheLock = new LocalLock();
+        private InterprocessCacheProperties interprocessCacheProperties;
 
-        private CacheHandler cacheHandler = new BaseCacheHandler();
+        private ListenerProperties listenerProperties;
 
-        private RedisCodec<String, Object> redisCodec = new KryoRedisCodec();
+        private KeyProperties keyProperties;
 
-        private DaoProperties daoProperties = new DaoProperties();
+        private InterprocessCacheManager interprocessCacheManager;
 
-        private DataFieldProperties dataFieldProperties = new DataFieldProperties();
+        private RedisService redisService;
 
-        private InterprocessCacheProperties interprocessCacheProperties = new InterprocessCacheProperties();
+        private RemoteCacheManager remoteCacheManager;
 
-        private ListenerProperties listenerProperties = new ListenerProperties();
+        private IBaseCacheManager iBaseCacheManager;
 
-        private InterprocessCacheManager interprocessCacheManager = new GuavaCacheManager(daoProperties
-                , interprocessCacheProperties);
+        private Strategy strategy;
 
-        private RedisService redisService = new RedisService(daoProperties, redisClient, redisCodec);
-
-        private RemoteCacheManager remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
-                , redisService, kacheLock, cacheEncoder);
-
-        private IBaseCacheManager iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
-                , remoteCacheManager, interprocessCacheProperties,kacheLock,cacheEncoder,dataFieldProperties);
-
-        private Strategy strategy = new DBFirst(iBaseCacheManager);
-
-        public Builder() { }
-
-        public Kache.Builder selectKey(String selectKey) {
-            this.selectKey = selectKey;
-            return this;
-        }
-
-        public Kache.Builder insertKey(String insertKey) {
-            this.insertKey = insertKey;
-            return this;
-        }
-
-        public Kache.Builder deleteKey(String deleteKey) {
-            this.deleteKey = deleteKey;
-            return this;
-        }
-
-        public Kache.Builder updateKey(String updateKey) {
-            this.updateKey = updateKey;
-            return this;
-        }
-
-        public Kache.Builder selectStatusByIdKey(String selectStatusByIdKey) {
-            this.selectStatusByIdKey = selectStatusByIdKey;
-            return this;
+        public Builder() {
+            redisClient = RedisClient.create(RedisURI.builder()
+                    .withHost("localhost")
+                    .withPort(6379)
+                    .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
+                    .build());
+            cacheEncoder = BaseCacheEncoder.getInstance();
+            kacheLock = new LocalLock();
+            cacheHandler = new BaseCacheHandler();
+            redisCodec = new KryoRedisCodec();
+            daoProperties = new DaoProperties();
+            dataFieldProperties = new DataFieldProperties();
+            interprocessCacheProperties = new InterprocessCacheProperties();
+            listenerProperties = new ListenerProperties();
+            keyProperties = new KeyProperties();
+            interprocessCacheManager = new GuavaCacheManager(daoProperties, interprocessCacheProperties);
+            redisService = new RedisService(daoProperties, redisClient, redisCodec);
+            remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
+                    , redisService, kacheLock, cacheEncoder);
+            iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
+                    , remoteCacheManager, interprocessCacheProperties,kacheLock,cacheEncoder,dataFieldProperties);
+            strategy = new DBFirst(iBaseCacheManager);
+            StatisticsListener.newInstance();
         }
 
         public Kache.Builder redisClient(RedisClient redisClient) {
@@ -221,6 +176,11 @@ public class Kache {
             return this;
         }
 
+        public Kache.Builder keyProperties(KeyProperties keyProperties) {
+            this.keyProperties = keyProperties;
+            return this;
+        }
+
         @Override
         public Kache build() {
             return new Kache(this) ;
@@ -232,18 +192,11 @@ public class Kache {
     }
 
     public Kache(Builder builder) {
-        this.keyEntity = new KeyEntity(builder.selectKey ,builder.insertKey ,builder.deleteKey ,builder.updateKey
-                , builder.selectStatusByIdKey);
+        this.keyEntity = new KeyEntity(builder.keyProperties);
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
-        this.daoProperties = builder.daoProperties;
-        this.dataFieldProperties = builder.dataFieldProperties;
         this.iBaseCacheManager = builder.iBaseCacheManager;
-        this.interprocessCacheProperties = builder.interprocessCacheProperties;
-        this.interprocessCacheManager = builder.interprocessCacheManager;
         this.listenerProperties = builder.listenerProperties;
-        this.kacheLock = builder.kacheLock;
-        this.redisCodec = builder.redisCodec;
         this.redisService = builder.redisService;
         this.remoteCacheManager = builder.remoteCacheManager;
         this.strategy = builder.strategy;

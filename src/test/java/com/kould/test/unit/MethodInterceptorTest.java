@@ -1,6 +1,6 @@
 package com.kould.test.unit;
 
-import com.kould.api.Kache;
+import com.kould.properties.KeyProperties;
 import com.kould.properties.ListenerProperties;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
@@ -40,6 +40,16 @@ public class MethodInterceptorTest {
 
     private final Strategy strategyMock = Mockito.mock(Strategy.class);
 
+    public static final String DEFAULT_SELECT_KEY = "select";
+
+    public static final String DEFAULT_INSERT_KEY = "insert";
+
+    public static final String DEFAULT_DELETE_KEY = "delete";
+
+    public static final String DEFAULT_UPDATE_KEY = "update";
+
+    public static final String DEFAULT_SELECT_BY_ID_KEY = "selectById";
+
     @Before
     public void init() throws Exception {
         Mockito.when(handlerMock.load(Mockito.any(),Mockito.anyBoolean(),Mockito.any(),Mockito.any()
@@ -62,10 +72,11 @@ public class MethodInterceptorTest {
     //正则表达式方法名匹配测试
     @Test
     public void regexTest() throws Exception {
+        KeyProperties keyProperties = new KeyProperties(DEFAULT_SELECT_KEY,DEFAULT_INSERT_KEY,DEFAULT_DELETE_KEY
+                , DEFAULT_UPDATE_KEY,DEFAULT_SELECT_BY_ID_KEY, true);
         CacheMethodInterceptor methodInterceptor = new CacheMethodInterceptor(testMapper, TestEntity.class
                 ,managerMock, strategyMock,new ListenerProperties(),handlerMock,encoderMock
-                , new KeyEntity(Kache.DEFAULT_SELECT_KEY,Kache.DEFAULT_INSERT_KEY,Kache.DEFAULT_DELETE_KEY
-                , Kache.DEFAULT_UPDATE_KEY,Kache.DEFAULT_SELECT_BY_ID_KEY));
+                , new KeyEntity(keyProperties));
         TestMapper testMapperProxy = (TestMapper) Proxy.newProxyInstance(testMapper.getClass().getClassLoader(), testMapper.getClass().getInterfaces(), methodInterceptor);
         TestEntity testEntitySelect = testMapperProxy.selectTestById(1L);
         TestEntity testEntityInsert = testMapperProxy.insertTest(this.testEntity);

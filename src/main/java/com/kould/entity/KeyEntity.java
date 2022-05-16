@@ -1,5 +1,7 @@
 package com.kould.entity;
 
+import com.kould.properties.KeyProperties;
+
 public class KeyEntity {
 
     private final String selectKey;
@@ -12,32 +14,34 @@ public class KeyEntity {
 
     private final String selectStatusByIdKey;
 
-    public KeyEntity(String selectKey, String insertKey, String deleteKey
-            , String updateKey, String selectStatusByIdKey) {
-        this.selectKey = selectKey;
-        this.insertKey = insertKey;
-        this.deleteKey = deleteKey;
-        this.updateKey = updateKey;
-        this.selectStatusByIdKey = selectStatusByIdKey;
+    private final boolean enable;
+
+    public KeyEntity(KeyProperties keyProperties) {
+        this.selectKey = keyProperties.getSelectKey();
+        this.insertKey = keyProperties.getInsertKey();
+        this.deleteKey = keyProperties.getDeleteKey();
+        this.updateKey = keyProperties.getUpdateKey();
+        this.selectStatusByIdKey = keyProperties.getSelectByIdKey();
+        this.enable = keyProperties.isEnable();
     }
 
     public boolean selectKeyMatch(String methodName) {
-        return methodName.contains(selectKey);
+        return enable && methodName.contains(selectKey);
     }
 
     public boolean insertKeyMatch(String methodName) {
-        return methodName.contains(insertKey);
+        return enable && methodName.contains(insertKey);
     }
 
     public boolean deleteKeyMatch(String methodName) {
-        return methodName.contains(deleteKey);
+        return enable && methodName.contains(deleteKey);
     }
 
     public boolean updateKeyMatch(String methodName) {
-        return methodName.contains(updateKey);
+        return enable && methodName.contains(updateKey);
     }
 
     public boolean selectByIdKeyEquals(String methodName) {
-        return selectStatusByIdKey.equals(methodName);
+        return enable && selectStatusByIdKey.equals(methodName);
     }
 }
