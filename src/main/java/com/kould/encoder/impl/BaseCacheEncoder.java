@@ -44,7 +44,7 @@ public class BaseCacheEncoder extends CacheEncoder {
     }
 
     @Override
-    public String getDaoKey(MethodPoint point, String methodName, String types, Status methodStatus) {
+    public String getDaoKey(MethodPoint point, String methodName, String type, Status methodStatus) {
         //判断serviceMethod的是否为通过id获取数据
         //  若是则直接使用id进行获取
         //  若否则经过编码后进行获取
@@ -54,11 +54,11 @@ public class BaseCacheEncoder extends CacheEncoder {
             //使Key为ID
             Object idArg = point.getArgs()[0];
             assert idArg instanceof Serializable;
-            return setKey2Id(idArg.toString(),types);
+            return setKey2Id(idArg.toString(),type);
         }else {
             String argsCode = argsEncode(point.getArgs());
             //使Key为各个参数编码后的一个特殊值
-            return keyJoint(types, methodName, argsCode) ;
+            return keyJoint(type, methodName, argsCode) ;
         }
     }
 

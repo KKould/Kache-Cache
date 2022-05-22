@@ -33,6 +33,8 @@ public class Kache {
 
     public static final String CACHE_PREFIX = "KACHE:";
 
+    public static final String SPLIT_TAG = "&";
+
     private final KeyEntity keyEntity;
 
     private final CacheEncoder cacheEncoder;

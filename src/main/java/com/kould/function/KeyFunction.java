@@ -5,5 +5,5 @@ import com.kould.entity.MethodPoint;
 
 @FunctionalInterface
 public interface KeyFunction {
-    String encode(MethodPoint point, String methodName, String types, Status methodStatus) ;
+    String encode(MethodPoint point, String methodName, String type, Status methodStatus) ;
 }

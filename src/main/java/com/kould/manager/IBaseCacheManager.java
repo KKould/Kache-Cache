@@ -35,21 +35,21 @@ public abstract class IBaseCacheManager {
      * 优先对远程缓存进行修改
      * @param key 缓存Key
      * @param point 切点
-     * @param types 类类型
+     * @param type 类类型
      * @return 缓存具体数据
-     * @throws Exception
+     * @throws Exception 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoWrite(String key, MethodPoint point, String types) throws Exception;
+    public abstract Object daoWrite(String key, MethodPoint point, String type) throws Exception;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
      * 优先从进程间缓存获取数据（在进程缓存开启的情况下）
      * @param key 缓存Key
-     * @param types 类类型
+     * @param type 类类型
      * @return 缓存具体数据
-     * @throws Exception
+     * @throws Exception 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoRead(String key, String types) throws Exception;
+    public abstract Object daoRead(String key, String type) throws Exception;
 
     public abstract void deleteCache(KacheMessage msg) throws Exception;
 

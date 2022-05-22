@@ -93,22 +93,22 @@ public class RedisCacheManager extends RemoteCacheManager {
      *          则将直接获取result的id并与result作为单条PO存入；
      *          再将key和id作为键值对，存入作为索引
      * @param key 索引值
-     * @param types 类型名
+     * @param type 主元缓存类型名
      * @param point 切入点
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public Object put(String key, String types, MethodPoint point) throws Exception {
+    public Object put(String key, String type, MethodPoint point) throws Exception {
         return redisService.executeSync(commands -> {
             String recordsName = dataFieldProperties.getRecordsName();
             Object result = point.execute();
             if (result instanceof Collection) {
-                collection2Lua(commands, key, types, (Collection<Object>) result,null);
+                collection2Lua(commands, key, type, (Collection<Object>) result,null);
             } else if (result != null && isHasField(result.getClass(), recordsName)) {
                 Field recordsField = FieldUtils.getFieldByNameAndClass(result.getClass(), recordsName);
                 Collection<Object> records = (Collection<Object>) recordsField.get(result) ;
                 recordsField.set(result,Collections.emptyList());
-                collection2Lua(commands, key, types, records, result);
+                collection2Lua(commands, key, type, records, result);
                 recordsField.set(result,records);
             } else {
                 String[] keys = new String[2];
@@ -119,18 +119,18 @@ public class RedisCacheManager extends RemoteCacheManager {
                         .append(",ARGV[1]);");
                 if (!key.contains(INDEX_TAG_KEY)) {
                     //若为ID方法，则直接将key赋值给id
-                    keys[0] = cacheEncoder.getId2Key(key, types);
+                    keys[0] = cacheEncoder.getId2Key(key, type);
                 } else if (result != null) {
                     //获取条件方法单结果
                     Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
                             , dataFieldProperties.getPrimaryKeyName());
-                    keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), types);
+                    keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), type);
                 } else {
                     //通过将类型设为null使NullTag被通用
                     keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
                 }
                 if (result == null) {
-                    values[0] = NullValue.NULL_VALUE;
+                    values[0] = NullValue.getInstance();
                 } else {
                     values[0] = result;
                 }
@@ -150,7 +150,7 @@ public class RedisCacheManager extends RemoteCacheManager {
         });
     }
 
-    private void collection2Lua(RedisCommands<String, Object> commands, String key, String types
+    private void collection2Lua(RedisCommands<String, Object> commands, String key, String type
             , Collection<Object> records , Object page) throws NoSuchFieldException, IllegalAccessException {
         StringBuilder idsNum = new StringBuilder();
         StringBuilder echo = new StringBuilder() ;
@@ -169,7 +169,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 Object next = iterator.next();
                 count2Echo ++ ;
                 keys[count2Echo - 1] = cacheEncoder.getId2Key(FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName())
-                        .get(next).toString(), types);
+                        .get(next).toString(), type);
                 echo.append("if(redis.call('EXISTS',KEYS[")
                         .append(count2Echo)
                         .append("]) == 0) ")
@@ -266,7 +266,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, String lockKey) throws Exception {
+    public Object get(String key) throws Exception {
         return redisService.executeSync(commands -> {
             //判断是否为直接通过ID获取单条方法
             if (!key.contains(INDEX_TAG_KEY)) {
@@ -332,38 +332,6 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Override
     public Long del(String... keys) throws Exception {
         return redisService.executeSync(commands -> commands.del(keys));
-    }
-
-    /**
-     * 将source的非Null值对target进行替换
-     * @param id 对应元缓存的id
-     * @param type 元缓存对应type
-     * @param source 用于进行值替换的源对象
-     * @return 修改后的Bean
-     * @throws Exception
-     */
-    @Override
-    public Object updateById(String id, String type, Object source) throws Exception {
-       return redisService.executeSync(commands -> {
-           String key = cacheEncoder.getId2Key(id, type);
-           Object target = commands.get(key);
-           if (target != null) {
-               Class<?> beanClass = target.getClass();
-               List<Field> allField = FieldUtils.getAllField(beanClass);
-               for (Field field : allField) {
-                   // 关闭安全检查
-                   field.setAccessible(true);
-                   Object value = field.get(source);
-                   if (value != null) {
-                       field.set(target, value);
-                   }
-               }
-               commands.setex(key, daoProperties.getCacheTime(), target);
-               return target;
-           } else {
-               return null ;
-           }
-       });
     }
 
     /**

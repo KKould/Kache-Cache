@@ -18,7 +18,7 @@ public abstract class InterprocessCacheManager {
         this.daoProperties = daoProperties;
         this.interprocessCacheProperties = interprocessCacheProperties;
     }
-    public abstract Object get(String key, String types) throws ExecutionException;
-    public abstract void clear(String types);
-    public abstract void put(String key, Object result, String types);
+    public abstract Object get(String key, String type) throws ExecutionException;
+    public abstract void clear(String type);
+    public abstract void put(String key, Object result, String type);
 }

@@ -10,13 +10,13 @@ public class KacheMessage implements Serializable {
     private String methodName ;
     private Object[] arg ;
     private Class<?> cacheClazz ;
-    private String types;
+    private String type;
 
     public static class Builder implements com.kould.type.Builder<KacheMessage> {
         private String methodName ;
         private Object[] arg ;
         private Class<?> cacheClazz ;
-        private String types;
+        private String type;
 
         public Builder() { }
 
@@ -35,8 +35,8 @@ public class KacheMessage implements Serializable {
             return this ;
         }
 
-        public Builder types(String types) {
-            this.types = types;
+        public Builder type(String type) {
+            this.type = type;
             return this;
         }
 
@@ -49,18 +49,18 @@ public class KacheMessage implements Serializable {
     public KacheMessage() {
     }
 
-    public KacheMessage(String methodName, Object[] arg, Class<?> cacheClazz, String types) {
+    public KacheMessage(String methodName, Object[] arg, Class<?> cacheClazz, String type) {
         this.methodName = methodName;
         this.arg = arg;
         this.cacheClazz = cacheClazz;
-        this.types = types;
+        this.type = type;
     }
 
     public KacheMessage(Builder builder) {
         this.methodName = builder.methodName;
         this.arg = builder.arg;
         this.cacheClazz = builder.cacheClazz;
-        this.types = builder.types;
+        this.type = builder.type;
     }
 
     public static Builder builder() {
@@ -79,7 +79,7 @@ public class KacheMessage implements Serializable {
         return cacheClazz;
     }
 
-    public String getTypes() {
-        return types;
+    public String getType() {
+        return type;
     }
 }

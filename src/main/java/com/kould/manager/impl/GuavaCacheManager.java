@@ -29,10 +29,10 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
 
     @Override
-    public Object get(String key, String types) throws ExecutionException {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
+    public Object get(String key, String type) throws ExecutionException {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(type);
         if (cache != null) {
-            Object result = cache.get(key, () -> NullValue.NULL_VALUE);
+            Object result = cache.get(key, NullValue::getInstance);
             if (result instanceof NullValue) {
                 return null;
             } else {
@@ -43,16 +43,16 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     }
 
     @Override
-    public void clear(String types) {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(types);
+    public void clear(String type) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(type);
         if (cache != null) {
             cache.invalidateAll();
         }
     }
 
     @Override
-    public void put(String key, Object result,String types) {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(types, (k) -> CacheBuilder.newBuilder()
+    public void put(String key, Object result,String type) {
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, (k) -> CacheBuilder.newBuilder()
                 .weakValues()
                 .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
                 .maximumSize(interprocessCacheProperties.getSize())

@@ -22,24 +22,24 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoWrite(String key, MethodPoint point, String types) throws Exception {
-        Object result = remoteCacheManager.put(key, types, point);
+    public Object daoWrite(String key, MethodPoint point, String type) throws Exception {
+        Object result = remoteCacheManager.put(key, type, point);
         if (interprocessCacheProperties.isEnable()) {
-            interprocessCacheManager.put(key, result, types) ;
+            interprocessCacheManager.put(key, result, type) ;
         }
         return result;
     }
 
     @Override
-    public Object daoRead(String key, String types) throws Exception {
+    public Object daoRead(String key, String type) throws Exception {
         Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
-            result =interprocessCacheManager.get(key, types) ;
+            result =interprocessCacheManager.get(key, type) ;
         }
         if (result == null) {
-            result = remoteCacheManager.get(key, types) ;
+            result = remoteCacheManager.get(key) ;
             if (interprocessCacheProperties.isEnable() && result != null) {
-                interprocessCacheManager.put(key, result, types) ;
+                interprocessCacheManager.put(key, result, type) ;
             }
         }
         return result ;
@@ -50,20 +50,9 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         deleteCacheByKey(msg);
     }
 
-    // 优先处理元缓存，使获取脚本无法收集齐元缓存而走数据库，保证其数据实时性
-    // 下同
     @Override
     public void updateCache(KacheMessage msg) throws Exception {
-        Class<?> resultClass = msg.getCacheClazz();
-        String typeName = msg.getTypes();
-        Object arg = msg.getArg()[0];
-        Class<?> argClass = arg.getClass();
-        if (resultClass.isAssignableFrom(argClass)){
-            String idStr = FieldUtils.getFieldByNameAndClass(argClass, dataFieldProperties.getPrimaryKeyName())
-                    .get(arg).toString();
-            remoteCacheManager.updateById(cacheEncoder.getId2Key(idStr, typeName), typeName, arg) ;
-        }
-        indexClear(resultClass, typeName);
+        deleteCacheByKey(msg);
     }
 
     @Override
@@ -71,11 +60,20 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         deleteCacheByKey(msg);
     }
 
+    /**
+     * 无锁删除索引缓存与元缓存方法
+     *
+     * 元缓存删除会导致到索引缓存收集，以此原理对元缓存优先处理使其未删除的索引缓存能够返回空而走数据库，
+     * 保证其数据实时性，实现类似CAS的效果
+     *
+     * @param msg 方法摘要
+     * @throws Exception
+     */
     private void deleteCacheByKey(KacheMessage msg) throws Exception {
         Class<?> resultClass = msg.getCacheClazz();
         Object arg = msg.getArg()[0];
         Class<?> argClass = arg.getClass();
-        String typeName = msg.getTypes();
+        String typeName = msg.getType();
         if (arg instanceof Serializable) {
             remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), typeName));
         } else if (resultClass.isAssignableFrom(argClass)){
@@ -83,11 +81,8 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
                     .get(arg).toString();
             remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
         }
-        indexClear(resultClass, typeName);
-    }
-
-    private void indexClear(Class<?> resultClass, String typeName) throws Exception {
         interprocessCacheManager.clear(typeName);
+        // 表达式中加*号使类型可以匹配多类型
         remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + "*" + resultClass.getName()));
     }
 }

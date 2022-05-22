@@ -1,6 +1,7 @@
 package com.kould.interceptor;
 
 import com.kould.annotation.*;
+import com.kould.api.Kache;
 import com.kould.properties.ListenerProperties;
 import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
@@ -59,26 +60,37 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         //此处使用的Target为该类实例化时注入的target，以实现二次加工（比如MyBatis生成的实例再次由Kache实例化）
         MethodPoint methodPoint = new MethodPoint(this.target, args, method);
         String methodName = method.getName();
-        String typeName = mapperEntityClass.getTypeName();
-
+        StringBuilder typeName = new StringBuilder(mapperEntityClass.getTypeName());
         if (method.isAnnotationPresent(DaoSelect.class) || keyEntity.selectKeyMatch(methodName)) {
+            DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
+            typeSuperposition(typeName, daoSelect);
             return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
-                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName
-                    , getStatusForRegex(method, methodName));
+                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName.toString()
+                    , getStatus(daoSelect, methodName));
         }
         if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
             return strategy.insert(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
         }
         if (method.isAnnotationPresent(DaoDelete.class) || keyEntity.deleteKeyMatch(methodName)) {
             return strategy.delete(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
         }
         if (method.isAnnotationPresent(DaoUpdate.class) || keyEntity.updateKeyMatch(methodName)) {
             return strategy.update(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
         }
         return methodPoint.execute();
+    }
+
+    private void typeSuperposition(StringBuilder typeName, DaoSelect daoSelect) {
+        if (daoSelect != null) {
+            // 多关联Bean的类型表示增加
+            for (Class<?> entityClass : daoSelect.involve()) {
+                typeName.append(Kache.SPLIT_TAG);
+                typeName.append(entityClass.getTypeName());
+            }
+        }
     }
 
     private KacheMessage getKacheMessage(Method method, Class<?> beanClass, Object[] args, String type) {
@@ -87,27 +99,26 @@ public final class CacheMethodInterceptor implements InvocationHandler {
                 .arg(args)
                 .cacheClazz(beanClass)
                 .methodName(daoMethodName)
-                .types(type)
+                .type(type)
                 .build();
     }
 
     /**
      * 当方法没有DaoSelect时，通过判断MethodName来进行方法状态判断
-     * @param method 方法
+     * @param daoSelect 注解
      * @param methodName 方法名
      * @return Status方法状态
      */
-    private Status getStatusForRegex(Method method, String methodName) {
-        DaoSelect annotation = method.getAnnotation(DaoSelect.class);
+    private Status getStatus(DaoSelect daoSelect, String methodName) {
         Status status;
-        if (annotation == null) {
+        if (daoSelect == null) {
             if (keyEntity.selectByIdKeyEquals(methodName)) {
                 status = Status.BY_ID;
             } else {
                 status = Status.BY_FIELD;
             }
         } else {
-            status = annotation.status();
+            status = daoSelect.status();
         }
         return status;
     }

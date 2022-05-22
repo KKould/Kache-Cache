@@ -11,4 +11,5 @@ import java.lang.annotation.*;
 public @interface DaoSelect {
     //默认使用全删策略
     Status status() default Status.BY_FIELD;
+    Class<?>[] involve() default {};
 }
