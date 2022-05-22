@@ -43,15 +43,13 @@ public class KacheTest {
      */
     @Test
     public void mirrorTest() throws InterruptedException {
-
-        List<TestEntity> extractedReal = crud(testMapperTarget);
-        List<TestEntity> extractedProxy = crud(testMapperProxy);
-
         //写时数据返回，对象应该一致
-        Assert.assertSame(extractedReal, extractedProxy);
+        Assert.assertSame(cru(testMapperTarget), cru(testMapperProxy));
         //提供用于debug打点查看信息
         String s1 = gson.toJson(testMapperTarget.selectTestAll());
         String s2 = gson.toJson(testMapperProxy.selectTestAll());
+
+        testMapperProxy.deleteTest(INSERT_ENTITY_TEST);
 
         //读时序列化数据返回，内容应该一致
         Assert.assertEquals(gson.toJson(testMapperTarget.selectTestAll()), gson.toJson(testMapperProxy.selectTestAll()));
@@ -69,9 +67,8 @@ public class KacheTest {
     }
 
 
-    private List<TestEntity> crud(TestMapper testMapper) throws InterruptedException {
+    private List<TestEntity> cru(TestMapper testMapper) throws InterruptedException {
         testMapper.insertTest(INSERT_ENTITY_TEST);
-        testMapper.deleteTest(INSERT_ENTITY_TEST);
         testMapper.updateTest(UPDATE_ENTITY_TEST);
         return testMapper.selectTestAll();
     }

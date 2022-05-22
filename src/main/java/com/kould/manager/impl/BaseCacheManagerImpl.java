@@ -13,10 +13,6 @@ import com.kould.utils.FieldUtils;
 
 import java.io.Serializable;
 
-/*
-此处进程间缓存并不与远程缓存做同一读写操作锁，通过牺牲一部分数据一致性换取最小的网络IO消耗
-若是需要较强的数据一致性，则需要取消启用进程间缓存
- */
 public class BaseCacheManagerImpl extends IBaseCacheManager {
 
 
@@ -67,8 +63,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
                     .get(arg).toString();
             remoteCacheManager.updateById(cacheEncoder.getId2Key(idStr, typeName), typeName, arg) ;
         }
-        interprocessCacheManager.clear(typeName);
-        remoteCacheManager.delKeys(cacheEncoder.getPattern(resultClass.getName()));
+        indexClear(resultClass, typeName);
     }
 
     @Override
@@ -88,8 +83,11 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
                     .get(arg).toString();
             remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
         }
-        interprocessCacheManager.clear(typeName);
-        remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + resultClass.getName()));
+        indexClear(resultClass, typeName);
+    }
 
+    private void indexClear(Class<?> resultClass, String typeName) throws Exception {
+        interprocessCacheManager.clear(typeName);
+        remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + "*" + resultClass.getName()));
     }
 }

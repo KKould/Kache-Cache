@@ -1,7 +1,5 @@
 package com.kould.manager.impl;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.bean.copier.CopyOptions;
 import com.kould.properties.DaoProperties;
 import com.kould.properties.DataFieldProperties;
 import com.kould.api.Kache;
@@ -336,14 +334,30 @@ public class RedisCacheManager extends RemoteCacheManager {
         return redisService.executeSync(commands -> commands.del(keys));
     }
 
+    /**
+     * 将source的非Null值对target进行替换
+     * @param id 对应元缓存的id
+     * @param type 元缓存对应type
+     * @param source 用于进行值替换的源对象
+     * @return 修改后的Bean
+     * @throws Exception
+     */
     @Override
-    public Object updateById(String id, String type, Object result) throws Exception {
+    public Object updateById(String id, String type, Object source) throws Exception {
        return redisService.executeSync(commands -> {
-           String key = Kache.CACHE_PREFIX + type + id;
+           String key = cacheEncoder.getId2Key(id, type);
            Object target = commands.get(key);
            if (target != null) {
-               BeanUtil.copyProperties(result, target,
-                       true, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
+               Class<?> beanClass = target.getClass();
+               List<Field> allField = FieldUtils.getAllField(beanClass);
+               for (Field field : allField) {
+                   // 关闭安全检查
+                   field.setAccessible(true);
+                   Object value = field.get(source);
+                   if (value != null) {
+                       field.set(target, value);
+                   }
+               }
                commands.setex(key, daoProperties.getCacheTime(), target);
                return target;
            } else {
