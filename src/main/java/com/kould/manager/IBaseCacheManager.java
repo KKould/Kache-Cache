@@ -2,7 +2,6 @@ package com.kould.manager;
 
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.KacheMessage;
-import com.kould.lock.KacheLock;
 import com.kould.properties.DataFieldProperties;
 import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.MethodPoint;
@@ -14,11 +13,10 @@ import com.kould.entity.MethodPoint;
  */
 public abstract class IBaseCacheManager {
 
-    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties, KacheLock kacheLock, CacheEncoder cacheEncoder, DataFieldProperties dataFieldProperties) {
+    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties, CacheEncoder cacheEncoder, DataFieldProperties dataFieldProperties) {
         this.interprocessCacheManager = interprocessCacheManager;
         this.remoteCacheManager = remoteCacheManager;
         this.interprocessCacheProperties = interprocessCacheProperties;
-        this.kacheLock = kacheLock;
         this.cacheEncoder = cacheEncoder;
         this.dataFieldProperties = dataFieldProperties;
     }
@@ -28,8 +26,6 @@ public abstract class IBaseCacheManager {
     protected RemoteCacheManager remoteCacheManager ;
 
     protected InterprocessCacheProperties interprocessCacheProperties ;
-
-    protected final KacheLock kacheLock ;
 
     protected final CacheEncoder cacheEncoder ;
 

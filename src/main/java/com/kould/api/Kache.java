@@ -11,8 +11,6 @@ import com.kould.encoder.impl.BaseCacheEncoder;
 import com.kould.strategy.Strategy;
 import com.kould.strategy.impl.DBFirst;
 import com.kould.listener.impl.StatisticsListener;
-import com.kould.lock.KacheLock;
-import com.kould.lock.impl.LocalLock;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.manager.InterprocessCacheManager;
 import com.kould.manager.RemoteCacheManager;
@@ -55,8 +53,6 @@ public class Kache {
 
         private CacheEncoder cacheEncoder;
 
-        private KacheLock kacheLock;
-
         private CacheHandler cacheHandler;
 
         private RedisCodec<String, Object> redisCodec;
@@ -88,7 +84,6 @@ public class Kache {
                     .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
                     .build());
             cacheEncoder = BaseCacheEncoder.getInstance();
-            kacheLock = new LocalLock();
             cacheHandler = new BaseCacheHandler();
             redisCodec = new KryoRedisCodec();
             daoProperties = new DaoProperties();
@@ -99,9 +94,9 @@ public class Kache {
             interprocessCacheManager = new GuavaCacheManager(daoProperties, interprocessCacheProperties);
             redisService = new RedisService(daoProperties, redisClient, redisCodec);
             remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
-                    , redisService, kacheLock, cacheEncoder);
+                    , redisService, cacheEncoder);
             iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
-                    , remoteCacheManager, interprocessCacheProperties,kacheLock,cacheEncoder,dataFieldProperties);
+                    , remoteCacheManager, interprocessCacheProperties,cacheEncoder,dataFieldProperties);
             strategy = new DBFirst(iBaseCacheManager);
             StatisticsListener.newInstance();
         }
@@ -133,11 +128,6 @@ public class Kache {
 
         public Kache.Builder interprocessCacheManager(InterprocessCacheManager interprocessCacheManager) {
             this.interprocessCacheManager = interprocessCacheManager;
-            return this;
-        }
-
-        public Kache.Builder KacheLock(KacheLock kacheLock) {
-            this.kacheLock = kacheLock;
             return this;
         }
 

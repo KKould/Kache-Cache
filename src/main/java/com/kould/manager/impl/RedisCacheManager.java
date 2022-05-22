@@ -7,7 +7,6 @@ import com.kould.properties.DataFieldProperties;
 import com.kould.api.Kache;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.NullValue;
-import com.kould.lock.KacheLock;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.entity.MethodPoint;
 import com.kould.service.RedisService;
@@ -17,7 +16,6 @@ import io.lettuce.core.api.sync.RedisCommands;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
 
 /*
 使用Redis进行缓存存取的CacheManager
@@ -46,6 +44,8 @@ public class RedisCacheManager extends RemoteCacheManager {
                     "table.remove(keys,1) " +
                     "local result = redis.call('mget',unpack(keys)) " +
                     "table.insert(result,1,container) " +
+                    // 此处可能会因为增删改导致元缓存被删除
+                    // 若元缓存与索引id集内数量不匹配则返回Null并从数据库获取最新数据
                     "if(keySize == table.getn(result)) " +
                     "then " +
                     "   return result " +
@@ -57,14 +57,11 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private final RedisService redisService;
 
-    private final KacheLock kacheLock ;
-
     private final CacheEncoder cacheEncoder;
 
-    public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties, RedisService redisService, KacheLock kacheLock, CacheEncoder cacheEncoder) {
+    public RedisCacheManager(DataFieldProperties dataFieldProperties, DaoProperties daoProperties, RedisService redisService, CacheEncoder cacheEncoder) {
         super(dataFieldProperties, daoProperties);
         this.redisService = redisService;
-        this.kacheLock = kacheLock;
         this.cacheEncoder = cacheEncoder;
     }
 
@@ -105,65 +102,53 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Override
     public Object put(String key, String types, MethodPoint point) throws Exception {
         return redisService.executeSync(commands -> {
-            Lock writeLock = null;
-            try {
-                String recordsName = dataFieldProperties.getRecordsName();
-                writeLock = kacheLock.writeLock(types);
-                Object result = point.execute();
-                if (result instanceof Collection) {
-                    collection2Lua(commands, key, types, (Collection<Object>) result,null);
-                    kacheLock.unLock(writeLock);
-                } else if (result != null && isHasField(result.getClass(), recordsName)) {
-                    Field recordsField = FieldUtils.getFieldByNameAndClass(result.getClass(), recordsName);
-                    Collection<Object> records = (Collection<Object>) recordsField.get(result) ;
-                    recordsField.set(result,Collections.emptyList());
-                    collection2Lua(commands, key, types, records, result);
-                    kacheLock.unLock(writeLock);
-                    recordsField.set(result,records);
+            String recordsName = dataFieldProperties.getRecordsName();
+            Object result = point.execute();
+            if (result instanceof Collection) {
+                collection2Lua(commands, key, types, (Collection<Object>) result,null);
+            } else if (result != null && isHasField(result.getClass(), recordsName)) {
+                Field recordsField = FieldUtils.getFieldByNameAndClass(result.getClass(), recordsName);
+                Collection<Object> records = (Collection<Object>) recordsField.get(result) ;
+                recordsField.set(result,Collections.emptyList());
+                collection2Lua(commands, key, types, records, result);
+                recordsField.set(result,records);
+            } else {
+                String[] keys = new String[2];
+                Object[] values = new Object[2];
+                StringBuilder lua = new StringBuilder();
+                lua.append("redis.call('setex',KEYS[1],")
+                        .append(daoProperties.getCacheTime())
+                        .append(",ARGV[1]);");
+                if (!key.contains(INDEX_TAG_KEY)) {
+                    //若为ID方法，则直接将key赋值给id
+                    keys[0] = cacheEncoder.getId2Key(key, types);
+                } else if (result != null) {
+                    //获取条件方法单结果
+                    Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
+                            , dataFieldProperties.getPrimaryKeyName());
+                    keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), types);
                 } else {
-                    String[] keys = new String[2];
-                    Object[] values = new Object[2];
-                    StringBuilder lua = new StringBuilder();
-                    lua.append("redis.call('setex',KEYS[1],")
+                    //通过将类型设为null使NullTag被通用
+                    keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
+                }
+                if (result == null) {
+                    values[0] = NullValue.NULL_VALUE;
+                } else {
+                    values[0] = result;
+                }
+                //判断此时是否为id获取的单结果或者为条件查询获取的单结果
+                if (!key.equals(keys[0])) {
+                    keys[1] = key;
+                    values[1] = keys[0];
+                    lua.append("redis.call('del',KEYS[2]);");
+                    lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
+                    lua.append("return redis.call('expire',KEYS[2],")
                             .append(daoProperties.getCacheTime())
-                            .append(",ARGV[1]);");
-                    if (!key.contains(INDEX_TAG_KEY)) {
-                        //若为ID方法，则直接将key赋值给id
-                        keys[0] = cacheEncoder.getId2Key(key, types);
-                    } else if (result != null) {
-                        //获取条件方法单结果
-                        Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
-                                , dataFieldProperties.getPrimaryKeyName());
-                        keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), types);
-                    } else {
-                        //通过将类型设为null使NullTag被通用
-                        keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
-                    }
-                    if (result == null) {
-                        values[0] = NullValue.NULL_VALUE;
-                    } else {
-                        values[0] = result;
-                    }
-                    //判断此时是否为id获取的单结果或者为条件查询获取的单结果
-                    if (!key.equals(keys[0])) {
-                        keys[1] = key;
-                        values[1] = keys[0];
-                        lua.append("redis.call('del',KEYS[2]);");
-                        lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
-                        lua.append("return redis.call('expire',KEYS[2],")
-                                .append(daoProperties.getCacheTime())
-                                .append(");");
-                    }
-                    commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values) ;
-                    kacheLock.unLock(writeLock);
+                            .append(");");
                 }
-                return result ;
-            } catch (Exception e) {
-                if (writeLock != null && kacheLock.isLockedByThisThread(writeLock)) {
-                    kacheLock.unLock(writeLock);
-                }
-                throw e ;
+                commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values) ;
             }
+            return result ;
         });
     }
 
@@ -285,53 +270,40 @@ public class RedisCacheManager extends RemoteCacheManager {
     @Override
     public Object get(String key, String lockKey) throws Exception {
         return redisService.executeSync(commands -> {
-            Lock readLock = null ;
-            try {
-                //判断是否为直接通过ID获取单条方法
-                if (!key.contains(INDEX_TAG_KEY)) {
-                    readLock = kacheLock.readLock(lockKey);
-                    Object result = commands.get(key);
-                    kacheLock.unLock(readLock);
-                    return result;
-                } else {
-                    //为条件查询方法
-                    readLock = kacheLock.readLock(lockKey);
-                    List<Object> list = commands.evalsha(scriptGetSHA1, ScriptOutputType.MULTI, key);
-                    kacheLock.unLock(readLock);
-                    List<Object> records = new ArrayList<>();
-                    if (list != null && !list.isEmpty()) {
-                        Object first = list.get(0);
-                        //判断结果是否为单个POBean
-                        if (list.size() == 1) {
-                            return list.get(0);
-                            //判断返回结果是否为Collection或其子类
-                        } else if (first instanceof Collection) {
-                            //跳过第一位数据的填充
-                            for (int i = 1; i < list.size(); i++) {
-                                records.add(list.get(i));
-                            }
-                            //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                            Collections.reverse(records);
-                            return records;
-                        } else {
-                            //此时为包装类的情况
-                            FieldUtils.getFieldByNameAndClass(first.getClass(), dataFieldProperties.getRecordsName())
-                                    .set(first, records);
-                            //跳过第一位数据的填充
-                            for (int i = 1; i < list.size(); i++) {
-                                records.add(list.get(i));
-                            }
-                            //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                            Collections.reverse(records);
-                            return first;
+            //判断是否为直接通过ID获取单条方法
+            if (!key.contains(INDEX_TAG_KEY)) {
+                return commands.get(key);
+            } else {
+                //为条件查询方法
+                List<Object> list = commands.evalsha(scriptGetSHA1, ScriptOutputType.MULTI, key);
+                List<Object> records = new ArrayList<>();
+                if (list != null && !list.isEmpty()) {
+                    Object first = list.get(0);
+                    //判断结果是否为单个POBean
+                    if (list.size() == 1) {
+                        return list.get(0);
+                        //判断返回结果是否为Collection或其子类
+                    } else if (first instanceof Collection) {
+                        //跳过第一位数据的填充
+                        for (int i = 1; i < list.size(); i++) {
+                            records.add(list.get(i));
                         }
-                    } else return null;
-                }
-            } catch (Exception e) {
-                if (readLock != null && kacheLock.isLockedByThisThread(readLock)) {
-                    kacheLock.unLock(readLock);
-                }
-                throw e ;
+                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                        Collections.reverse(records);
+                        return records;
+                    } else {
+                        //此时为包装类的情况
+                        FieldUtils.getFieldByNameAndClass(first.getClass(), dataFieldProperties.getRecordsName())
+                                .set(first, records);
+                        //跳过第一位数据的填充
+                        for (int i = 1; i < list.size(); i++) {
+                            records.add(list.get(i));
+                        }
+                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+                        Collections.reverse(records);
+                        return first;
+                    }
+                } else return null;
             }
         }) ;
     }
