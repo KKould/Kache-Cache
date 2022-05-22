@@ -67,7 +67,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
      * 保证其数据实时性，实现类似CAS的效果
      *
      * @param msg 方法摘要
-     * @throws Exception
+     * @throws Exception 删除时异常
      */
     private void deleteCacheByKey(KacheMessage msg) throws Exception {
         Class<?> resultClass = msg.getCacheClazz();
@@ -82,6 +82,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
             remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
         }
         interprocessCacheManager.clear(typeName);
+        // INDEX为前缀表示只批量删除索引缓存
         // 表达式中加*号使类型可以匹配多类型
         remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + "*" + resultClass.getName()));
     }
