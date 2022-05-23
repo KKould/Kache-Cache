@@ -60,37 +60,39 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         //此处使用的Target为该类实例化时注入的target，以实现二次加工（比如MyBatis生成的实例再次由Kache实例化）
         MethodPoint methodPoint = new MethodPoint(this.target, args, method);
         String methodName = method.getName();
-        StringBuilder typeName = new StringBuilder(mapperEntityClass.getTypeName());
+        String typeName = mapperEntityClass.getTypeName();
         if (method.isAnnotationPresent(DaoSelect.class) || keyEntity.selectKeyMatch(methodName)) {
             DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
-            typeSuperposition(typeName, daoSelect);
+            typeName = typeSuperposition(typeName, daoSelect);
             return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
-                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName.toString()
+                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName
                     , getStatus(daoSelect, methodName));
         }
         if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
             return strategy.insert(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         if (method.isAnnotationPresent(DaoDelete.class) || keyEntity.deleteKeyMatch(methodName)) {
             return strategy.delete(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         if (method.isAnnotationPresent(DaoUpdate.class) || keyEntity.updateKeyMatch(methodName)) {
             return strategy.update(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName.toString()));
+                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
         }
         return methodPoint.execute();
     }
 
-    private void typeSuperposition(StringBuilder typeName, DaoSelect daoSelect) {
-        if (daoSelect != null) {
+    private String typeSuperposition(String typeName, DaoSelect daoSelect) {
+        if (daoSelect != null && daoSelect.involve().length > 0) {
             // 多关联Bean的类型表示增加
-            for (Class<?> entityClass : daoSelect.involve()) {
-                typeName.append(Kache.SPLIT_TAG);
-                typeName.append(entityClass.getTypeName());
+            StringBuilder typeNameBuilder = new StringBuilder(typeName);
+            for (Class<?> clazz : daoSelect.involve()) {
+                typeNameBuilder.append(Kache.SPLIT_TAG).append(clazz.getTypeName());
             }
+            typeName = typeNameBuilder.toString();
         }
+        return typeName;
     }
 
     private KacheMessage getKacheMessage(Method method, Class<?> beanClass, Object[] args, String type) {
