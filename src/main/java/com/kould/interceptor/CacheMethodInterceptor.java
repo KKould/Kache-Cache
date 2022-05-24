@@ -47,7 +47,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
 
     /**
-     *
+     * 对CRUD方法进行区分并对应处理
      * @param proxy 表示要进行增强的对象
      * @param method 表示拦截的方法
      * @param args 数组表示参数列表
@@ -83,18 +83,35 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         return methodPoint.execute();
     }
 
-    private String typeSuperposition(String typeName, DaoSelect daoSelect) {
-        if (daoSelect != null && daoSelect.involve().length > 0) {
+    /**
+     * 类型叠加仅仅针对于索引缓存
+     * 本身仅能保证能使索引缓存被多个Bean域干涉，但是可能存在有潜在的其他查询导致外键实体变化导致信息不准确。
+     * 不鼓励使用持久层涉及多表查询，在非用不可的情况下尽可能不使用缓存注解，除非进行手动的Bean处理
+     *
+     * @param mainType 主类名
+     * @param daoSelect 持久层搜索方法注解
+     * @return 多类型联合字符串
+     */
+    private String typeSuperposition(String mainType, DaoSelect daoSelect) {
+        if (daoSelect != null && daoSelect.involve().length > 0 && Status.BY_FIELD.equals(daoSelect.status())) {
             // 多关联Bean的类型表示增加
-            StringBuilder typeNameBuilder = new StringBuilder(typeName);
+            StringBuilder typeNameBuilder = new StringBuilder(mainType);
             for (Class<?> clazz : daoSelect.involve()) {
                 typeNameBuilder.append(Kache.SPLIT_TAG).append(clazz.getTypeName());
             }
-            typeName = typeNameBuilder.toString();
+            mainType = typeNameBuilder.toString();
         }
-        return typeName;
+        return mainType;
     }
 
+    /**
+     * KacheMessage组装
+     * @param method 方法
+     * @param beanClass Bean类型
+     * @param args 参数
+     * @param type Bean领域(字符串)
+     * @return KacheMessage
+     */
     private KacheMessage getKacheMessage(Method method, Class<?> beanClass, Object[] args, String type) {
         String daoMethodName = method.getName() ;
         return KacheMessage.builder()

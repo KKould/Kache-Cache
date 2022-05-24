@@ -2,15 +2,17 @@ package com.kould.entity;
 
 import java.io.Serializable;
 
-//不允许修改值
+/**
+ * 用于封装传递缓存的摘要信息
+ */
 public class KacheMessage implements Serializable {
 
     private static final long serialVersionUID = -567614646101307581L;
 
-    private String methodName ;
-    private Object[] arg ;
-    private Class<?> cacheClazz ;
-    private String type;
+    private final String methodName ;
+    private final Object[] arg ;
+    private final Class<?> cacheClazz ;
+    private final String type;
 
     public static class Builder implements com.kould.type.Builder<KacheMessage> {
         private String methodName ;
@@ -44,9 +46,6 @@ public class KacheMessage implements Serializable {
         public KacheMessage build() {
             return new KacheMessage(this) ;
         }
-    }
-
-    public KacheMessage() {
     }
 
     public KacheMessage(String methodName, Object[] arg, Class<?> cacheClazz, String type) {
