@@ -93,13 +93,6 @@ public class Kache {
             interprocessCacheProperties = new InterprocessCacheProperties();
             listenerProperties = new ListenerProperties();
             keyProperties = new KeyProperties();
-            interprocessCacheManager = new GuavaCacheManager(daoProperties, interprocessCacheProperties);
-            redisService = new RedisService(daoProperties, redisClient, redisCodec);
-            remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
-                    , redisService, cacheEncoder);
-            iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
-                    , remoteCacheManager, interprocessCacheProperties,cacheEncoder,dataFieldProperties);
-            strategy = new DBFirst(iBaseCacheManager);
             StatisticsListener.newInstance();
         }
 
@@ -175,6 +168,23 @@ public class Kache {
 
         @Override
         public Kache build() {
+            if (interprocessCacheManager == null) {
+                interprocessCacheManager = new GuavaCacheManager(daoProperties, interprocessCacheProperties);
+            }
+            if (redisService == null) {
+                redisService = new RedisService(daoProperties, redisClient, redisCodec);
+            }
+            if (remoteCacheManager == null) {
+                remoteCacheManager = new RedisCacheManager(dataFieldProperties, daoProperties
+                        , redisService, cacheEncoder);
+            }
+            if (iBaseCacheManager == null) {
+                iBaseCacheManager = new BaseCacheManagerImpl(interprocessCacheManager
+                        , remoteCacheManager, interprocessCacheProperties,cacheEncoder,dataFieldProperties);
+            }
+            if (strategy == null) {
+                strategy = new DBFirst(iBaseCacheManager);
+            }
             return new Kache(this) ;
         }
     }
