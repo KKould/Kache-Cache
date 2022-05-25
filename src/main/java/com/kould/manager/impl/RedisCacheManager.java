@@ -26,6 +26,26 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private static final Object COLLECTION_KRYO = new ArrayList<>();
 
+    //Lua脚本，用于在Redis中通过Redis中的索引收集获取对应的散列PO类
+    //需要优化Kache.SERVICE_BY_FIELD的查找，使用索引优化
+    private static final  String SCRIPT_LUA_CACHE_GET =
+                    "local keys = redis.call('lrange',KEYS[1],0,-1) " +
+                    "local keySize = table.getn(keys) " +
+                    // 此处可能会因为增删改导致元缓存被删除
+                    // 若元缓存与索引id集内数量不匹配则返回Null并从数据库获取最新数据
+                    "for i=2, keySize do " +
+                    "   local value = redis.call('get',keys[i]) " +
+                    "   if(value ~= nil) " +
+                    "   then " +
+                    "      keys[i] = value " +
+                    "   else " +
+                    "      return nil " +
+                    "   end " +
+                    "end " +
+                    "return keys ";
+
+    private String scriptGetSHA1 ;
+
     private final RedisService redisService;
 
     private final CacheEncoder cacheEncoder;
@@ -36,9 +56,16 @@ public class RedisCacheManager extends RemoteCacheManager {
         this.cacheEncoder = cacheEncoder;
     }
 
+
+    /**
+     * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
+     */
     @Override
     public void init() throws Exception {
-
+        redisService.executeSync(commands -> {
+            scriptGetSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_GET);
+            return true;
+        });
     }
 
     @Override
@@ -239,7 +266,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 return commands.get(key);
             } else {
                 //为条件查询方法
-                List<Object> list = takeIndexCache(key, commands);
+                List<Object> list = commands.evalsha(scriptGetSHA1, ScriptOutputType.MULTI, key);;
                 List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
                     Object first = list.get(0);
@@ -313,29 +340,5 @@ public class RedisCacheManager extends RemoteCacheManager {
         } catch (NoSuchFieldException e) {
             return false ;
         }
-    }
-
-    /**
-     * 获取索引缓存并对其中的元缓存的id进行元缓存值的替换
-     *
-     * 由于Lua脚本使用EvalSha指令执行脚本传入参数时会莫名奇妙导致吞吐量的下降，所以使用java形式进行操作
-     * 由于不使用Lua脚本，即可降低Redis负载与操作粒度，在分布式情况下总体吞吐性能更高
-     * @param key 缓存键
-     * @param commands Redis命令操作端
-     * @return 索引缓存的内容
-     */
-    private List<Object> takeIndexCache(String key, RedisCommands<String, Object> commands) {
-        List<Object> index = commands.lrange(key, 0, -1);
-        if (index != null && index.size() > 1) {
-            String[] ids = new String[index.size() - 1];
-            for (int i = 0; i < ids.length; i++) {
-                ids[i] = (String) index.get(i + 1);
-            }
-            List<KeyValue<String, Object>> idsValues = commands.mget(ids);
-            for (int i = 0; i < idsValues.size(); i++) {
-                index.set(i + 1,idsValues.get(i).getValue());
-            }
-        }
-        return index;
     }
 }
