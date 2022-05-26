@@ -19,19 +19,19 @@
 
 ----
 
-### 概要 | Synopsis
+### 什么是Kache
 
-- **Dao持久层缓冲增强**
-- **实验性质的缓存框架**
-  - 零重复序列化元数据
-  - 元数据高命中率
-  - 低缓存变更代价
+Kache缓存框架专注于优化高IO的Web应用中数据持久化层次的读写性能，并保证数据实时性，提高缓存数据库的空间利用率。
+
+Kache强调业务与缓存解耦，通过方法为粒度进行动态代理实现旁路缓存，内部拥有特殊的参数编码器，屏蔽键值编码细节，以四个基本的CRUD注解和Status枚举或方法名匹配的形式对Kache表达方法的作用而面向抽象实现自动化处理。
+
+Kache的缓存实现为Guava Cache+Redis+Lua，减少网络IO的消耗，且缓存分为索引缓存+元缓存，并在缓存存入时进行"Echo"操作，仅将尚未空缺的缓存存入而减少重复的序列化。在集中于热点的大数据量场景下，可以做到“接近无序列化程度”的缓存存入。
+
+Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过在Kache通过建造者模式时填入自定义的组件进行替换，可以做到MongoDB、IndexDB甚至是MySQL的缓存实现。并且提供额外的策略接口，允许用户对分布式、单机等环境进行对应的策略实现。
 
 ### 与其他缓存框架有何差异？
 
-### How is it different from other caching frameworks？
-
-GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中对缓存的各种定义和操作都做出了非常合理的诠释与实现。
+现有主流的GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中对缓存的各种定义和操作都做出了非常合理的诠释与实现。
 
 而类似的缓存框架也有J2Cache、Memcache、Ehcache等充分经受实践拷打的优秀开源框架。
 
@@ -199,11 +199,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
             |- StatisticsSnapshot 统计计数快照
         |- CacheListener   缓存监听器定义
         |- ListenerHandler 缓存监听处理器
-    |- lock       并发锁封装
-        |- impl    实现
-            |- LocalLock   本地锁实现
-            |- RedissonLock   基于Redisson实现分布式锁
-        |- KacheLock   并发锁封装定义
     |- manager    操纵管理器
         |- impl    实现
             |- BaseCacheManagerImpl    基础二级缓存封装操作实现
@@ -227,33 +222,13 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
         |- ProtostuffUtils Protostuff序列化工具
 ```
 
-### 优势 | Advantage
-
-- **极低侵入**：以黑盒的形式作为Dao持久化层的代理提供缓存功能
-- **面向数据库操作**：Kache仅服务于Dao持久层，降低MySQL数据库等负担，转移至Redis
-- **溅射查询**：单次条件查询会被解析为多个元数据缓存，能够做到简单的缓存预存
-- **散列PO级缓存**：与MySQL的非聚合索引和回表查询概念类似，Kache的远程缓存形式为key -> po的id列表 -> po，增强PO数据的一致性并提高修改数据的效率，并且默认的实现使用**Lua脚本完成了一次网络io**完成上述操作，且提高缓存命中率（详情见原理）
-- **基于注解**：Kache的实现原理是基于Dao层的动态代理与使用注解的形式获取摘要编码进行缓存。仅需在对应的方法及类上添加注释而不修改本身的业务代码，**不会影响本身的业务流程稳定性**
-- **支持策略拓展**：针对不同应用场景，可以自己通过策略实现延时双删、Write Back、Read/Write Through等策略，同时也能够拓展Kafka等其他消息队列（内部已提供同步的数据库优先处理（默认）与异步基于RabbitMQ的异步处理）
-- **高拓展性**：提供进程间缓存、远程缓存与缓存调度器的接口，**允许使用者通过实现对应的抽象类兼容所需的NoSQL、进程间缓存框架**以更好的兼容使用者的项目
-- **IO消耗低**：积极使用Lua脚本进行IO优化并用GuavaCache辅助进程间缓存，**最大化减少网络IO带来的性能影响
-- **高速读取**：通过类似HashMap的编码形式进行对应数据的去除，**读取Lua脚本为静态常量，仅写入Lua脚本为动态拼接**
-- **内置Actuator信息端点**：**允许通过URL路径动态观测缓存命中情况**，详情在示例中
-- **支持自定义监听器**：允许通过自定义监听器进行缓存动作的额外业务处理，**默认提供StatisticsListener统计缓存监听器**
-
 ### 使用 | Use
-
-#### 原生使用：
 
 #### **1、Kache依赖引入**
 
-#### **2、Dao层写入注解**
+#### **2、Kache代理**
 
-#### 3、提供Lettuce实例
-
-#### **可选：根据策略提供所需组件（异步策略需要提供对应RabbitMQ、Kafka等实例）**
-
-#### **可选：配置文件参考(详情见说明，可跳过)**
+#### 3、Dao层写入注解
 
 ##### 示例：
 
@@ -266,7 +241,20 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 </dependency>
 ```
 
-**2**.其对应的**Dao层**的Dao方法添加注释：
+**2**.对Mapper进行Kache的代理
+
+```java
+Kache kache = Kache.builder().build();
+
+// 需要对Kache进行init与destroy以保证脚本的缓存载入与连接释放
+kache.init();
+kache.destroy();
+
+// 对Mapper进行动态代理，获取到拥有缓存旁路功能的新Mapper
+ArticleMapper proxy = kache.getProxy(articleMapper, Article.class);
+```
+
+**3**.其对应的**Dao层**的Dao方法添加注释：
 
 - 搜索方法：@DaoSelect
   
@@ -280,8 +268,6 @@ GuavaCache是一个优秀的缓存框架，他出身于IT大头Google，其中�
 
 - 删除方法：@DaoDelete
 
-- **(MyBatis-Plus的BaseMapper已经在代码中做了支持，不需要加入注释)**
-
 ```java
 @Repository
 public interface TagMapper extends BaseMapper<Tag> {
@@ -290,152 +276,11 @@ public interface TagMapper extends BaseMapper<Tag> {
             + "right join klog_tag t on t.id = at.tag_id "
             + "where t.deleted = 0 AND at.deleted = 0 "
             + "group by t.id order by count(at.tag_id) desc limit #{limit}")
+    // 表示这个持久化方法通过条件查询获取数据
     @DaoSelect(status = Status.BY_FIELD)
     List<Tag> listHotTagsByArticleUse(@Param("limit") int limit);
 }
 ```
-
-**3**.提供Lettuce实例：
-
-```java
-@Configuration
-public class RedisAutoConfig {
-    @Value("${spring.redis.host}")
-    private String host;
-    @Value("${spring.redis.port}")
-    private Integer port;
-    @Value("${spring.redis.password}")
-    private String password;
-    @Value("${spring.redis.database}")
-    private Integer database;
-
-    @Bean
-    RedisClient redisClient() {
-        RedisURI uri = RedisURI.Builder.redis(this.host, this.port)
-                .withPassword(this.password)
-                .withDatabase(this.database)
-                .build();
-        return RedisClient.create(uri);
-    }
-}
-```
-
-**可选**：提供消息队列源（可选，当使用框架内提供的异步策略时），参考：
-
-```java
-@Configuration
-public class MessageQueueConfig {
-
-    public static final String LOG_QUEUE_NAME = "KLOG_LOG_QUEUE";
-
-    @Bean
-    public Queue logQueue() {
-        return new Queue(LOG_QUEUE_NAME,false,false,false);
-    }
-
-    @Bean
-    public Queue kacheInsertQueue() {
-        return new Queue(AmqpAsyncHandler.QUEUE_INSERT_CACHE,false,false,false);
-    }
-
-    @Bean
-    public Queue kacheDeleteQueue() {
-        return new Queue(AmqpAsyncHandler.QUEUE_DELETE_CACHE,false,false,false);
-    }
-
-    @Bean
-    public Queue kacheUpdateQueue() {
-        return new Queue(AmqpAsyncHandler.QUEUE_UPDATE_CACHE,false,false,false);
-    }
-}
-```
-
-**可选**：配置（默认值）：
-
-```yaml
-#Kache各属性可修改值
-kache:
-   dao:
-       lock-time: 3 //分布式锁持续时间
-       base-time: 86400 //缓存基本存活时间
-       random-time: 600 //缓存随机延长时间
-       poolMaxTotal: 20    //Redis连接池最大连接数
-       poolMaxIdle: 5    //Redis连接池最大Idle状态连接数
-   interprocess-cache:
-       enable: true //进程间缓存是否开启
-       size: 50 //进程间缓存数量
-   data-field:
-       name: records //分页包装类等包装类对持久类的数据集属性名：如MyBatis-Plus中Page的records属性
-       declare-type: java.util.List //上述属性名所对应的属性声明类型（全称）
-   listener:
-          enable: true //监听器是否开启
-```
-
-**其他说明：**
-
-- 内部默认提供本地锁LocalLock用于单机环境，同时提供分布式读写锁**RessionLock实现**，需要手动提供。用于提供该框架下在**分布式环境**下的**缓存穿透处理**的缓存读写安全
-- - 搜索方法：select*(..)
-  - 插入方法：insert*(..)
-  - 更新方法：update*(..)
-  - 删除方法：delete*(..)
-
-### 架构 | Framework
-
-Java标准MVC架构如图：
-
-![Kache结构图](https://s3.bmp.ovh/imgs/2022/04/09/685006080e2d0b91.png)
-
-**（溢出方框外表示允许拓展）**
-
-### 对比 | Contrast
-
-#### Spring Cache
-
-- **应用层面**：
-  - Spring Cache往往是基于Service进行缓存
-  - Kache是基于Dao进行缓存；
-  - 也就是说其实两者是允许共同使用的
-- **应用架构**：
-  - Spring Cache与Kache同样都可以通过内置拓展类的形式完成单机与分布式的应用架构
-- **代码侵入与学习成本**：
-  - 都基于Aop+注解完成，代码侵入性极低
-  - Spring Cache的注解为：
-    - @CacheConfig：主要用于配置该类中会用到的一些共用的缓存配置
-    - @Cacheable：主要方法返回值加入缓存。同时在查询时，会先从缓存中取，若不存在才再发起对数据库的访问
-    - @CachePut:配置于函数上，能够根据参数定义条件进行缓存，与@Cacheable不同的是，每次回真实调用函数
-    - @CacheEvict:配置于函数上，通常用在删除方法上，用来从缓存中移除对应数据
-    - @Caching:配置于函数上，组合多个Cache注解使用
-  - Kache的注解为：
-    - @CacheBean：标记Service对应Mapper的Po类类型（即缓存类型）
-    - @CacheImpl：标记Service的实现类
-    - @DaoSelect：标记为数据搜索的方法
-    - @DaoInsert：标记为数据插入的方法
-    - @DaoUpdate：标记为数据更新的方法
-    - @DaoDelete：标记为数据删除的方法
-    - 在应用基于MyBatis-Plus的IService与BaseMapper的情况下，仅需要@CacheBean注解即可完成缓存操作
-- **缓存结构**：
-  - Spring Cache在基于Redis的情况下，缓存是基于简单的Key—Value对应实现的
-  - Kache同样在使用二级缓存（默认为Redis）的情况下，会将缓存分为
-    - **索引缓存**
-    - **元数据缓存**
-  - 并将搜索分为
-    - **通过Id进行单个数据搜索**：直接搜索元数据缓存
-    - **通过某条件或者无条件等进行数据搜索**：通过解析dao方法以及参数进行特制Hash编码生成一个特殊的key，再通过lua脚本让key获取到索引缓存的同时对索引缓存中的元数据id替换为元数据缓存value
-- **缓存增删改逻辑**
-  - Spring Cache
-    - 增，即@CachePut：通过新增或替换对应key缓存实现，但往往会与@CacheEvict混合使用（因为可能会影响条件搜索）
-    - 删改，即@CacheEvict：通过删除单条或多条数据（往往都是将同一Po类型下的所有缓存删除）
-  - Kache
-    - 增删为同一策略：通过删除该Po类型的所有索引缓存进行条件缓存的清除，若为单条数据删除则会再删除掉对应的Id元数据缓存
-    - 改：在删除索引的同时，对对应Id的元数据缓存进行修改
-  - 最大差异点：Kache与SpringCache会清空条件搜索的缓存，但Id搜索的缓存基本不会删除，缓存利用率较高
-- **缓存命中率**：
-  - Spring Cache在简单的Key—Value缓存结构下，缓存的命中基本为同样的参数下返回同样的值，结合**缓存增删改来看**命中率适中偏低
-  - Kache则会分为两种情况的命中率
-    - **通过Id进行单个数据搜索**：在重复的Id搜索情况下，命中率仍然与Spring Cache保持一致，但是若该应用的缓存被多个不同的方法进行查询（如有条件、无条件、通过id等）交叉进行使用时，在**缓存更新**处所述的**通过某条件或者无条件进行数据搜索**会在单次的条件查询时带来多个元缓存（笔者称为**溅射查询**），这意味着在网页中搜索某一条件时，若之后继续点击其结果的数据时，则第二次是必定命中的；
-      - 在**缓存成本**处，也会体现到其中Kache的缓存利用率更高，不会因为数据增删改而类似Spring Cache一样删除所有元数据缓存
-      - 故实际情况**id搜索**的缓存命中率会**大大高于**Spring Cache
-    - **通过某条件或者无条件等进行数据搜索**：索引缓存的Key是由参数决定的，所以结构和SpringCache的命中率是基本保持一致的，但由于Kache所在的Dao层次相较于SpringCache的Service层次更底层，所以这导致了Dao的方法使用大多数情况下会更加密集，使实际使用的缓存的命中率相较Spring Cache的相较起来更高（或是称为缓存复用率）
 
 ### 原理 | Principle
 
@@ -496,73 +341,6 @@ Service层缓存对于Dao层缓存来说产生一个问题：
 ##### 缓存结构：
 
 ![Kache缓存结构](https://s3.bmp.ovh/imgs/2021/11/4ec53d620c952a95.jpg)
-
-### 测试 | Test
-
-##### 一分钟持续并发单一PO类重复操作
-
-- 使用jmeter进行7线程查询+3线程增改
-- 环境皆为局域网内，双方环境一致（Kache组使用Redis+MySQL，MySQL组仅为MySQL）
-- Kache版本为1.3.2
-
-结果如下
-
-###### **MySQL组：**
-
-- **图形结果**
-
-![](https://s3.bmp.ovh/imgs/2021/11/fa2d2f05caf9268e.png)
-
-- **汇总报告**
-
-![](https://s3.bmp.ovh/imgs/2021/11/eda0920a774d0ae6.png)
-
-**Arthas的dashboard检测情况：**
-
-​    开始：
-
-​    ![](https://s3.bmp.ovh/imgs/2021/11/e677bc3a4d56d171.png)
-
-​    结束：
-
-​    ![](https://s3.bmp.ovh/imgs/2021/11/38b6dfd492b29a71.png)
-
-###### Kache组：
-
-- **图形结果**
-
-![](https://s3.bmp.ovh/imgs/2021/11/712a28313bbf0615.png)
-
-- **汇总报告**
-
-![](https://s3.bmp.ovh/imgs/2021/11/123b087ffde32502.png)
-
-**Arthas的dashboard检测情况：**
-
-​    开始：
-
-​    ![](https://s3.bmp.ovh/imgs/2021/11/16e27216b18fd98b.png)
-
-​    结束：
-
-​    ![](https://s3.bmp.ovh/imgs/2021/11/7abfcb1943f50df1.png)
-
-###### **测试总结**：
-
-- 吞吐量/平均单次数据读取时间降低3倍左右（同为简单条件情况下，理论实际涉及海量数据与复杂查询时，Kache的延迟速度基本不会变动，提升会变为几个数量级）
-- 各类读取速度平均时间和最小值时间更为稳定一致
-- 标注偏差时间更低更稳定
-- 最大值基本持平
-- 该场景的GC次数：
-  - Kache组：142
-  - MySQL组：249
-  - 相较起来Kache产生的内存占用更低
-
-**欢迎一起讨论或是提供改善意见与测试结果~~~~**
-
-#### 正在使用
-
-- 安徽鼎信：安徽招采平台
 
 #### 感谢名单
 
