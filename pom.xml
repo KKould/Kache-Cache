@@ -6,7 +6,7 @@
 
   <groupId>io.gitee.kould</groupId>
   <artifactId>Kache</artifactId>
-  <version>1.8.5.INFORMAL_VERSION</version>
+  <version>1.8.6.INFORMAL_VERSION</version>
   <packaging>jar</packaging>
 
   <name>Kache</name>
@@ -24,17 +24,15 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <redisson.ver>3.16.1</redisson.ver>
     <junit.ver>4.10</junit.ver>
     <mockito.ver>2.7.22</mockito.ver>
-    <spring.ver>2.1.18.RELEASE</spring.ver>
     <apche.commons.ver>2.7.0</apche.commons.ver>
     <lettuce.ver>5.2.1.RELEASE</lettuce.ver>
-    <hutool.ver>4.1.14</hutool.ver>
     <google.guava.ver>22.0</google.guava.ver>
     <protostuff.ver>1.7.4</protostuff.ver>
     <kryo-shaded.ver>4.0.0</kryo-shaded.ver>
     <kryo-serializers.ver>0.41</kryo-serializers.ver>
+    <rabbit.ver>5.14.2</rabbit.ver>
   </properties>
 
   <dependencies>
@@ -59,11 +57,6 @@
     </dependency>
 
 <!--    运行时依赖-->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-amqp</artifactId>
-      <version>${spring.ver}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-pool2</artifactId>
@@ -98,6 +91,11 @@
       <groupId>de.javakaffee</groupId>
       <artifactId>kryo-serializers</artifactId>
       <version>${kryo-serializers.ver}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+      <version>${rabbit.ver}</version>
     </dependency>
   </dependencies>
 

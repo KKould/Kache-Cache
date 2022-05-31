@@ -17,9 +17,10 @@ public abstract class RemoteCacheManager {
 
     public abstract String getNullTag() ;
 
-    public abstract Object put(String key, String type, MethodPoint point) throws Exception;
-    public abstract Long delKeys(String pattern) throws Exception;
-    public abstract Long del(String... keys) throws Exception;
-    public abstract Object get(String key) throws Exception;
-    public abstract void init() throws Exception;
+    public abstract Object put(String key, String type, MethodPoint point) throws RuntimeException;
+    public abstract Long delKeys(String pattern) throws RuntimeException;
+    public abstract Long del(String... keys) throws RuntimeException;
+    public abstract Object get(String key) throws RuntimeException;
+    public abstract boolean cas(String key) throws RuntimeException;
+    public abstract void init() throws RuntimeException;
 }

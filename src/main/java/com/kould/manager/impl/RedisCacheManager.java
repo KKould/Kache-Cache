@@ -56,12 +56,13 @@ public class RedisCacheManager extends RemoteCacheManager {
         this.cacheEncoder = cacheEncoder;
     }
 
+    private static final String CAS_NULL = "$1";
 
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
      */
     @Override
-    public void init() throws Exception {
+    public void init() throws RuntimeException {
         redisService.executeSync(commands -> {
             scriptGetSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_GET);
             return true;
@@ -91,7 +92,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public Object put(String key, String type, MethodPoint point) throws Exception {
+    public Object put(String key, String type, MethodPoint point) throws RuntimeException {
         return redisService.executeSync(commands -> {
             String recordsName = dataFieldProperties.getRecordsName();
             Object result = point.execute();
@@ -104,84 +105,79 @@ public class RedisCacheManager extends RemoteCacheManager {
                 collection2Lua(commands, key, type, records, result);
                 recordsField.set(result,records);
             } else {
-                String[] keys = new String[2];
-                Object[] values = new Object[2];
-                StringBuilder lua = new StringBuilder();
-                lua.append("redis.call('setex',KEYS[1],")
-                        .append(daoProperties.getCacheTime())
-                        .append(",ARGV[1]);");
-                if (!key.contains(INDEX_TAG_KEY)) {
-                    //若为ID方法，则直接将key赋值给id
-                    keys[0] = cacheEncoder.getId2Key(key, type);
-                } else if (result != null) {
-                    //获取条件方法单结果
-                    Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
-                            , dataFieldProperties.getPrimaryKeyName());
-                    keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), type);
-                } else {
-                    //通过将类型设为null使NullTag被通用
-                    keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
-                }
-                if (result == null) {
-                    values[0] = NullValue.getInstance();
-                } else {
-                    values[0] = result;
-                }
-                //判断此时是否为id获取的单结果或者为条件查询获取的单结果
-                if (!key.equals(keys[0])) {
-                    keys[1] = key;
-                    values[1] = keys[0];
-                    lua.append("redis.call('del',KEYS[2]);");
-                    lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
-                    lua.append("return redis.call('expire',KEYS[2],")
-                            .append(daoProperties.getCacheTime())
-                            .append(");");
-                }
-                commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values) ;
+                noPackingResultPut(key, type, commands, result);
             }
             return result ;
         });
     }
 
+    /**
+     * 非包装或集合数据缓存处理方法
+     * @param key 缓存key
+     * @param type 缓存实体类类型
+     * @param commands Redis操作对象
+     * @param result 数据库结果
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    private void noPackingResultPut(String key, String type, RedisCommands<String, Object> commands, Object result) throws NoSuchFieldException, IllegalAccessException {
+        StringBuilder lua = new StringBuilder();
+        lua.append("redis.call('setex',KEYS[1],")
+                .append(daoProperties.getCacheTime())
+                .append(",ARGV[1]);");
+        String[] keys = new String[2];
+        Object[] values = new Object[2];
+        if (!key.contains(INDEX_TAG_KEY)) {
+            //若为ID方法，则直接将key赋值给id
+            keys[0] = cacheEncoder.getId2Key(key, type);
+        } else if (result != null) {
+            //获取条件方法单结果
+            Field primaryKeyField = FieldUtils.getFieldByNameAndClass(result.getClass()
+                    , dataFieldProperties.getPrimaryKeyName());
+            keys[0] = cacheEncoder.getId2Key((String) primaryKeyField.get(result), type);
+        } else {
+            //通过将类型设为null使NullTag被通用
+            keys[0] = cacheEncoder.getId2Key(getNullTag(), null);
+        }
+        if (result == null) {
+            values[0] = NullValue.getInstance();
+        } else {
+            values[0] = result;
+        }
+        //判断此时是否为id获取的单结果或者为条件查询获取的单结果
+        if (!key.equals(keys[0])) {
+            keys[1] = key;
+            values[1] = keys[0];
+            lua.append("redis.call('del',KEYS[2]);");
+            lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
+            lua.append("return redis.call('expire',KEYS[2],")
+                    .append(daoProperties.getCacheTime())
+                    .append(");");
+        }
+        commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values) ;
+    }
+
+    /**
+     * 数据集缓存解析处理
+     * @param commands redis操作对象
+     * @param key 缓存key
+     * @param type 缓存实体类型
+     * @param records 数据库返回的数据集
+     * @param page 包装对象
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
     private void collection2Lua(RedisCommands<String, Object> commands, String key, String type
             , Collection<Object> records , Object page) throws NoSuchFieldException, IllegalAccessException {
         StringBuilder idsNum = new StringBuilder();
-        StringBuilder echo = new StringBuilder() ;
         StringBuilder lua = new StringBuilder();
         //用于收集哪些元数据是否已存在（每个元素指的是records中的元素索引）
         List<Long> echoIds ;
         Integer count = 0;
         int delCount = 0;
-        Iterator<Object> iterator = records.iterator();
         String[] keys = new String[records.size() + 1];
-        if (iterator.hasNext()) {
-            //生成Echo脚本（返回Redis内不存在的单条数据，用于减少重复的数据，减少重复序列化和多余的IO占用）
-            int count2Echo = 0 ;
-            echo.append("local result = {} ") ;
-            while(iterator.hasNext()) {
-                Object next = iterator.next();
-                count2Echo ++ ;
-                keys[count2Echo - 1] = cacheEncoder.getId2Key(FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName())
-                        .get(next).toString(), type);
-                echo.append("if(redis.call('EXISTS',KEYS[")
-                        .append(count2Echo)
-                        .append("]) == 0) ")
-                        .append("then ")
-                        //若不存在即加入result中被返回
-                        .append("table.insert(result,")
-                        .append(count2Echo)
-                        .append(") ")
-                        .append("else ")
-                        //若存在则延长命中缓存的存活时间
-                        .append("redis.call('expire',KEYS[").append(count2Echo).append("],")
-                        .append(daoProperties.getCacheTime()).append("); ")
-                        .append("end ") ;
-            }
-            echo.append("return result ") ;
-            String[] echoKeys = new String[records.size()];
-            System.arraycopy(keys,0,echoKeys,0,records.size());
-            echoIds = commands.eval(echo.toString(), ScriptOutputType.MULTI
-                    , echoKeys);
+        if (records.size() > 1) {
+            echoIds = echoRedundancyIDCache(commands, type, records, keys);
             int used = 0;
             int valuesSize = echoIds.size() + keys.length;
             Object[] values = new Object[valuesSize];
@@ -190,9 +186,7 @@ public class RedisCacheManager extends RemoteCacheManager {
                 //保证echoIds的总数大于于used，并筛选其中Redis没有的数据加以存储到Redis之中
                 if (echoIds.size() > used && echoIds.get(used) == count.longValue()) {
                     //单条数据缓存
-                    lua.append("redis.call('setex',KEYS[")
-                            .append(count)
-                            .append("],")
+                    lua.append("redis.call('setex',KEYS[").append(count).append("],")
                             .append(daoProperties.getCacheTime())
                             .append(",ARGV[")
                             .append(count - delCount)
@@ -203,13 +197,9 @@ public class RedisCacheManager extends RemoteCacheManager {
                     delCount++;
                 }
                 //拼接id聚合参数
-                idsNum.append(",ARGV[")
-                        .append(count + echoIds.size())
-                        .append("]");
+                idsNum.append(",ARGV[").append(count + echoIds.size()).append("]");
             }
-            idsNum.append(",ARGV[")
-                    .append(++count + echoIds.size())
-                    .append("]");
+            idsNum.append(",ARGV[").append(++count + echoIds.size()).append("]");
             //聚合缓存
             lua.append("redis.call('del',KEYS[")
                     .append(records.size() + 1)
@@ -217,8 +207,7 @@ public class RedisCacheManager extends RemoteCacheManager {
             lua.append("redis.call('lpush',KEYS[")
                     .append(records.size() + 1)
                     .append("]")
-                    .append(idsNum)
-                    .append(");");
+                    .append(idsNum).append(");");
             lua.append("return redis.call('expire',KEYS[")
                     .append(records.size() + 1)
                     .append("],")
@@ -246,6 +235,52 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     /**
+     * 非冗余元缓存查询方法
+     *
+     * 生成Echo脚本（返回Redis内不存在的单条数据，用于减少重复的数据，减少重复序列化和多余的IO占用）
+     * @param commands redis命令操作对象
+     * @param type 缓存实体类型
+     * @param records 数据库返回的数据集(若为Page等包装类则提取Record)
+     * @param keys 存入缓存的Key数组
+     * @return 返回非冗余的id的索引List
+     * @throws IllegalAccessException
+     * @throws NoSuchFieldException
+     */
+    private List<Long> echoRedundancyIDCache(RedisCommands<String, Object> commands, String type, Collection<Object> records, String[] keys)
+            throws IllegalAccessException, NoSuchFieldException {
+        Iterator<Object> iterator = records.iterator();
+        StringBuilder echo = new StringBuilder() ;
+        List<Long> echoIds;
+        int count2Echo = 0 ;
+        echo.append("local result = {} ") ;
+        while(iterator.hasNext()) {
+            Object next = iterator.next();
+            count2Echo ++ ;
+            keys[count2Echo - 1] = cacheEncoder
+                    .getId2Key(FieldUtils.getFieldByNameAndClass(next.getClass(), dataFieldProperties.getPrimaryKeyName())
+                    .get(next).toString(), type);
+            echo.append("if(redis.call('EXISTS',KEYS[")
+                    .append(count2Echo)
+                    .append("]) == 0) ")
+                    .append("then ")
+                    //若不存在即加入result中被返回
+                    .append("table.insert(result,")
+                    .append(count2Echo)
+                    .append(") ")
+                    .append("else ")
+                    //若存在则延长命中缓存的存活时间
+                    .append("redis.call('expire',KEYS[").append(count2Echo).append("],")
+                    .append(daoProperties.getCacheTime()).append("); ")
+                    .append("end ") ;
+        }
+        echo.append("return result ") ;
+        String[] echoKeys = new String[records.size()];
+        System.arraycopy(keys,0,echoKeys,0, records.size());
+        echoIds = commands.eval(echo.toString(), ScriptOutputType.MULTI, echoKeys);
+        return echoIds;
+    }
+
+    /**
      * 使用Lua脚本在Redis处直接完成索引值的散列数据收集并以List的形式返回
      * 随后解析list：
      *  若list的首位数据为"[]"或"{}"则说明为Collection（目前还只是支持List）
@@ -259,7 +294,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key) throws Exception {
+    public Object get(String key) throws RuntimeException {
         return redisService.executeSync(commands -> {
             //判断是否为直接通过ID获取单条方法
             if (!key.contains(INDEX_TAG_KEY)) {
@@ -300,7 +335,19 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Long delKeys(String pattern) throws Exception {
+    public boolean cas(String key) throws RuntimeException {
+        return redisService.executeSync(commands -> {
+            if (Boolean.TRUE.equals(commands.setnx(key,CAS_NULL))) {
+                commands.expire(key, daoProperties.getCasKeepTIme());
+                return true;
+            } else {
+                return false;
+            }
+        });
+    }
+
+    @Override
+    public Long delKeys(String pattern) throws RuntimeException {
         return redisService.executeSync(commands -> {
             // SCAN参数
             ScanArgs scanArgs = ScanArgs.Builder.limit(500).match(pattern);
@@ -323,7 +370,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Long del(String... keys) throws Exception {
+    public Long del(String... keys) throws RuntimeException {
         return redisService.executeSync(commands -> commands.del(keys));
     }
 

@@ -14,7 +14,11 @@ import com.kould.entity.MethodPoint;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.UUID;
 
+/**
+ * 缓存方法环绕代理调用处理器
+ */
 public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final Object target;
@@ -48,6 +52,13 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     /**
      * 对CRUD方法进行区分并对应处理
+     *
+     * 读取时：
+     * 若使用了级联功能则对类型进行级联拼接处理
+     * 并通过CacheHandler进行缓存的读出
+     *
+     * 增删改时：
+     * 将方法摘要进行封装并传入Strategy之中用于进一步处理
      * @param proxy 表示要进行增强的对象
      * @param method 表示拦截的方法
      * @param args 数组表示参数列表
@@ -105,7 +116,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
     }
 
     /**
-     * KacheMessage组装
+     * KacheMessage组装并生成唯一ID作为幂等凭据
      * @param method 方法
      * @param beanClass Bean类型
      * @param args 参数
@@ -113,8 +124,10 @@ public final class CacheMethodInterceptor implements InvocationHandler {
      * @return KacheMessage
      */
     private KacheMessage getKacheMessage(Method method, Class<?> beanClass, Object[] args, String type) {
+        String messageId = cacheEncoder.getId2Key(UUID.randomUUID().toString(), type);
         String daoMethodName = method.getName() ;
         return KacheMessage.builder()
+                .id(messageId)
                 .arg(args)
                 .cacheClazz(beanClass)
                 .methodName(daoMethodName)

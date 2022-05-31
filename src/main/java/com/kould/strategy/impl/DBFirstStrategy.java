@@ -5,9 +5,9 @@ import com.kould.strategy.SyncStrategy;
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
 
-public class DBFirst extends SyncStrategy {
+public class DBFirstStrategy extends SyncStrategy {
 
-    public DBFirst(IBaseCacheManager baseCacheManager) {
+    public DBFirstStrategy(IBaseCacheManager baseCacheManager) {
         super(baseCacheManager);
     }
 

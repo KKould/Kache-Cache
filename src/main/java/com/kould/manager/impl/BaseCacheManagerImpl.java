@@ -32,17 +32,18 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
 
     @Override
     public Object daoRead(String key, String type) throws Exception {
-        Object result = null ;
         if (interprocessCacheProperties.isEnable()) {
-            result =interprocessCacheManager.get(key, type) ;
-        }
-        if (result == null) {
-            result = remoteCacheManager.get(key) ;
-            if (interprocessCacheProperties.isEnable() && result != null) {
-                interprocessCacheManager.put(key, result, type) ;
+            Object result =interprocessCacheManager.get(key, type) ;
+            if (result == null) {
+                result = remoteCacheManager.get(key) ;
+                if (result != null) {
+                    interprocessCacheManager.put(key, result, type);
+                }
             }
+            return result;
+        } else {
+            return remoteCacheManager.get(key);
         }
-        return result ;
     }
 
     @Override
@@ -64,16 +65,21 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
      * 无锁删除索引缓存与元缓存方法
      *
      * 元缓存删除会导致到索引缓存收集，以此原理对元缓存优先处理使其未删除的索引缓存能够返回空而走数据库，
-     * 保证其数据实时性，实现类似CAS的效果
+     * 实现幂等，防止远程缓存重复删除
      *
      * @param msg 方法摘要
      * @throws Exception 删除时异常
      */
     private void deleteCacheByKey(KacheMessage msg) throws Exception {
+        String typeName = msg.getType();
+        // 若远程缓存CAS失败则仅清空进程缓存
+        if (!remoteCacheManager.cas(msg.getId())) {
+            interprocessCacheManager.clear(typeName);
+            return;
+        }
         Class<?> resultClass = msg.getCacheClazz();
         Object arg = msg.getArg()[0];
         Class<?> argClass = arg.getClass();
-        String typeName = msg.getType();
         if (arg instanceof Serializable) {
             remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), typeName));
         } else if (resultClass.isAssignableFrom(argClass)){

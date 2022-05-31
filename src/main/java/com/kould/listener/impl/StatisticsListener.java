@@ -10,12 +10,19 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class StatisticsListener extends CacheListener {
 
-    private StatisticsListener() {}
+    private static StatisticsListener instance;
 
-    public static StatisticsListener newInstance() {
-        StatisticsListener statisticsListener = new StatisticsListener();
-        statisticsListener.register();
-        return statisticsListener ;
+    private StatisticsListener() {
+    }
+
+    public static StatisticsListener getInstance() {
+        synchronized (StatisticsListener.class) {
+            if (instance == null) {
+                instance = new StatisticsListener();
+                instance.register();
+            }
+            return instance;
+        }
     }
 
     @Override

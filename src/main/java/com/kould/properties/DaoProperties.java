@@ -5,12 +5,13 @@ public class DaoProperties {
     public DaoProperties() {
     }
 
-    public DaoProperties(int lockTime, int baseTime, int randomTime, int poolMaxTotal, int poolMaxIdle) {
+    public DaoProperties(int lockTime, int baseTime, int randomTime, int poolMaxTotal, int poolMaxIdle, long casKeepTIme) {
         this.lockTime = lockTime;
         this.baseTime = baseTime;
         this.randomTime = randomTime;
         this.poolMaxTotal = poolMaxTotal;
         this.poolMaxIdle = poolMaxIdle;
+        this.casKeepTIme = casKeepTIme;
     }
 
     private int lockTime = 3 ;
@@ -22,6 +23,8 @@ public class DaoProperties {
     private int poolMaxTotal = 20;
 
     private int poolMaxIdle = 5;
+
+    private long casKeepTIme = 1L;
 
     public long getCacheTime() {
         return (long) (baseTime + Math.random() * randomTime);
@@ -65,5 +68,13 @@ public class DaoProperties {
 
     public void setPoolMaxIdle(int poolMaxIdle) {
         this.poolMaxIdle = poolMaxIdle;
+    }
+
+    public long getCasKeepTIme() {
+        return casKeepTIme;
+    }
+
+    public void setCasKeepTIme(long casKeepTIme) {
+        this.casKeepTIme = casKeepTIme;
     }
 }
