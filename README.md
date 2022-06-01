@@ -67,7 +67,7 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 
 > Redis key大小设计： 由于网络的一次传输MTU最大为1500字节，所以为了保证高效的性能，建议单个k-v大小不超过1KB，一次网络传输就能完成，避免多次网络交互； k-v是越小性能越好
 
-这也意味着，若是像结果为List这样的数据集时，避免相同数据重复的序列化而导致序列化结果的空间变大，则能让缓存越小而越好。
+这也意味着，若是像增加结果为List这样的数据集缓存时，避免相同数据重复的序列化而导致序列化结果的空间变大，则能让缓存越小而越好。
 
 **而如何让数据减少重复序列化占用空间的同时保证数据信息的完整性？**
 
@@ -253,6 +253,7 @@ kache.init();
 kache.destroy();
 
 // 对Mapper进行动态代理，获取到拥有缓存旁路功能的新Mapper
+// 示例：
 ArticleMapper proxy = kache.getProxy(articleMapper, Article.class);
 ```
 
@@ -278,10 +279,34 @@ public interface TagMapper extends BaseMapper<Tag> {
             + "right join klog_tag t on t.id = at.tag_id "
             + "where t.deleted = 0 AND at.deleted = 0 "
             + "group by t.id order by count(at.tag_id) desc limit #{limit}")
-    // 表示这个持久化方法通过条件查询获取数据
     @DaoSelect(status = Status.BY_FIELD)
+    // 通过条件查询获取数据
     List<Tag> listHotTagsByArticleUse(@Param("limit") int limit);
+
+    @DaoInsert
+    // 批量新增方法（会导致数据变动）
+    Integer insertBatch(Collection<T> entityList);
 }
+```
+
+自定义配置或组件：
+
+```java
+// 以接口类型作为键值替换默认配置或增加额外配置
+// 用于无额外参数的配置或组件加载
+load(Class<?> interfaceClass, Object bean);
+
+// 以接口类型作为键值替换默认配置组件
+// 用于类似Kache中Strategy这样实例化时需要额外参数的组件
+replace(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass);
+
+// 示例:使用Kache默认提供的额外AMQP异步删改策略实现
+private Kache kache = Kache.builder()
+            // 新增Connection接口配置,并提供接口实例
+            .load(Connection.class, factory.newConnection())
+            // 替换默认Strategy接口,提供实现类的class类信息与对应的构造方法参数类信息
+            .replace(Strategy.class, AmqpStrategy.class, new Class[]{IBaseCacheManager.class, Connection.class})
+            .build();
 ```
 
 ### 原理 | Principle
