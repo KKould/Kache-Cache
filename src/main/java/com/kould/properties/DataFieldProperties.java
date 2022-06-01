@@ -5,17 +5,14 @@ public class DataFieldProperties {
     public DataFieldProperties() {
     }
 
-    public DataFieldProperties(String primaryKeyName, String recordsName, String declareType) {
+    public DataFieldProperties(String primaryKeyName, String recordsName) {
         this.primaryKeyName = primaryKeyName;
         this.recordsName = recordsName;
-        this.declareType = declareType;
     }
 
     private String primaryKeyName = "id";
 
     private String recordsName = "records";
-
-    private String declareType = "java.util.List";
 
     public String getPrimaryKeyName() {
         return primaryKeyName;
@@ -31,13 +28,5 @@ public class DataFieldProperties {
 
     public void setRecordsName(String recordsName) {
         this.recordsName = recordsName;
-    }
-
-    public String getDeclareType() {
-        return declareType;
-    }
-
-    public void setDeclareType(String declareType) {
-        this.declareType = declareType;
     }
 }

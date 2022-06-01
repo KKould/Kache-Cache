@@ -338,7 +338,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     public boolean cas(String key) throws RuntimeException {
         return redisService.executeSync(commands -> {
             if (Boolean.TRUE.equals(commands.setnx(key,CAS_NULL))) {
-                commands.expire(key, daoProperties.getCasKeepTIme());
+                commands.expire(key, daoProperties.getCasKeepTime());
                 return true;
             } else {
                 return false;
