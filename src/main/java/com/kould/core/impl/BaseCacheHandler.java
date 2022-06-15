@@ -4,6 +4,7 @@ import com.kould.api.Kache;
 import com.kould.entity.Status;
 import com.kould.core.CacheHandler;
 import com.kould.entity.NullValue;
+import com.kould.exception.KacheAsyncWriteException;
 import com.kould.function.KeyFunction;
 import com.kould.function.ReadFunction;
 import com.kould.function.WriteFunction;
@@ -12,41 +13,45 @@ import com.kould.entity.MethodPoint;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BaseCacheHandler extends CacheHandler {
+
+    private static final Map<String, CompletableFuture<?>> FUTURE_INDEX = new ConcurrentHashMap<>();
 
     @Override
     public Object load(MethodPoint point, boolean listenerEnable, ReadFunction readFunction
             , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status methodStatus) throws Exception {
-        Object result;
         Method daoMethod = point.getMethod();
         String methodName = daoMethod.getName() ;
         //该PO领域的初始化
         //需要使用types表示其所涉及的缓存Bean的Class
         String key = keyFunction.encode(point, methodName, types, methodStatus);
-        //对types进行处理,获取其主缓存Bean的Class传入
+        //对types进行处理,获取其主缓存Bean的Class名传入
         String mainType = types.split(Kache.SPLIT_TAG, 2)[0];
         //key拼接命名空间前缀
         Object[] daoArgs = point.getArgs();
-        //以PO类型进行不同持久类领域的划分并拼接参数与方法作为锁对象，而intern方法是必要的
+        //以PO类型进行不同持久类领域的划分并拼接参数与方法作为幂等凭据
         String lockKey = (mainType + methodName + Arrays.hashCode(daoArgs));
         //获取缓存
-        result = readFunction.read(key , mainType);
+        Object result = readFunction.read(key , mainType);
         if (result == null) {
-            //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
-            //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
-            //通过intern保证字符串都是源自于常量池而使得相同字符串为同一对象，保证锁的一致性
-            synchronized (lockKey.intern()) {
-                result = readFunction.read(key , mainType);
-                if (result == null) {
-                    //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
+            // 通过新建Future进行异步写入,FUTURE_INDEX保证线程安全避免重复写入
+            // 避免纵向（单一节点）击穿,而允许横向（分布式）击穿
+            CompletableFuture<?> completableFuture = FUTURE_INDEX.computeIfAbsent(lockKey, k -> CompletableFuture.supplyAsync(() -> {
+                try {
                     ListenerHandler.notHit(key, methodName, daoArgs, mainType, listenerEnable);
-                    result = writeFunction.write(key , point, mainType);
-                } else {
-                    //将同步后获取缓存的线程的命中也计数
-                    ListenerHandler.hit(key, methodName, daoArgs, mainType, listenerEnable);
+                    return writeFunction.write(key , point, mainType);
+                } catch (Exception e) {
+                    throw new KacheAsyncWriteException(e.getMessage(),e);
                 }
-            }
+            }));
+            // 堵塞读取,聚集该击穿至写入时间内的线程统一获取数据并解除堵塞
+            result = completableFuture.get();
+            // 该次击穿结束，移除该Future帧避免下次击穿获取脏值
+            FUTURE_INDEX.remove(lockKey);
         } else {
             ListenerHandler.hit(key, methodName, daoArgs, mainType, listenerEnable);
         }
