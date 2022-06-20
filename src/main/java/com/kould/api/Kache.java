@@ -57,11 +57,11 @@ public class Kache {
 
     private static class BeanLoad {
 
-        private Class<?> interfaceClass;
+        private final Class<?> interfaceClass;
 
-        private Class<?> accomplishClass;
+        private final Class<?> accomplishClass;
 
-        private Class<?>[] argsClass;
+        private final Class<?>[] argsClass;
 
         public BeanLoad(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass) {
             this.interfaceClass = interfaceClass;
@@ -88,25 +88,13 @@ public class Kache {
 
         private static final Map<Class<?>, Kache.BeanLoad> BEAN_LOAD_MAP = new HashMap<>();
 
-        private RedisClient redisClient;
-
         private CacheEncoder cacheEncoder;
 
         private CacheHandler cacheHandler;
 
-        private RedisCodec<String, Object> redisCodec;
-
-        private DaoProperties daoProperties;
-
-        private DataFieldProperties dataFieldProperties;
-
-        private InterprocessCacheProperties interprocessCacheProperties;
-
         private ListenerProperties listenerProperties;
 
         private KeyProperties keyProperties;
-
-        private InterprocessCacheManager interprocessCacheManager;
 
         private RedisService redisService;
 
@@ -146,7 +134,7 @@ public class Kache {
          * 用于自定义实体类时的额外参数构造
          * @param interfaceClass 目标参数类型，请勿传入同类型的配置，可以包装后传入
          * @param bean 配置实体
-         * @return
+         * @return Kache.Builder
          */
         public Kache.Builder load(Class<?> interfaceClass, Object bean) {
             BEAN_BOOT.put(interfaceClass, bean);
@@ -161,7 +149,7 @@ public class Kache {
          * @param interfaceClass 需要对应替换的接口Class
          * @param accomplishClass 自定义的实现类Class
          * @param argsClass 该实现类对应的参数Class数组
-         * @return
+         * @return Kache.Builder
          */
         public Kache.Builder replace(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass) {
             BEAN_LOAD_MAP.put(interfaceClass,new BeanLoad(interfaceClass, accomplishClass, argsClass));
@@ -240,8 +228,16 @@ public class Kache {
      */
     public <T> T getProxy(T target,Class<?> entityClass) {
         return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces()
-                , new CacheMethodInterceptor(target, entityClass, this.iBaseCacheManager
-                        , this.strategy, this.listenerProperties, this.cacheHandler, this.cacheEncoder, this.keyEntity));
+                , CacheMethodInterceptor.builder()
+                        .mapper(target)
+                        .entityClass(entityClass)
+                        .baseCacheManager(this.iBaseCacheManager)
+                        .strategy(this.strategy)
+                        .listenerProperties(this.listenerProperties)
+                        .cacheHandler(this.cacheHandler)
+                        .cacheEncoder(this.cacheEncoder)
+                        .keyEntity(this.keyEntity)
+                        .build());
     }
 
     /**

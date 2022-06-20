@@ -74,9 +74,16 @@ public class MethodInterceptorTest {
     public void regexTest() throws Exception {
         KeyProperties keyProperties = new KeyProperties(DEFAULT_SELECT_KEY,DEFAULT_INSERT_KEY,DEFAULT_DELETE_KEY
                 , DEFAULT_UPDATE_KEY,DEFAULT_SELECT_BY_ID_KEY, true);
-        CacheMethodInterceptor methodInterceptor = new CacheMethodInterceptor(testMapper, TestEntity.class
-                ,managerMock, strategyMock,new ListenerProperties(),handlerMock,encoderMock
-                , new KeyEntity(keyProperties));
+        CacheMethodInterceptor methodInterceptor = CacheMethodInterceptor.builder()
+                .mapper(testMapper)
+                .entityClass(TestEntity.class)
+                .baseCacheManager(managerMock)
+                .strategy(strategyMock)
+                .listenerProperties(new ListenerProperties())
+                .cacheHandler(handlerMock)
+                .cacheEncoder(encoderMock)
+                .keyEntity(new KeyEntity(keyProperties))
+                .build();
         TestMapper testMapperProxy = (TestMapper) Proxy.newProxyInstance(testMapper.getClass().getClassLoader(), testMapper.getClass().getInterfaces(), methodInterceptor);
         TestEntity testEntitySelect = testMapperProxy.selectTestById(1L);
         TestEntity testEntityInsert = testMapperProxy.insertTest(this.testEntity);

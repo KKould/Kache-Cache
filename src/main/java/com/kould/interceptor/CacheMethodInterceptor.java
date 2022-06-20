@@ -37,16 +37,15 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final KeyEntity keyEntity;
 
-    public CacheMethodInterceptor(Object target, Class<?> entityClass, IBaseCacheManager baseCacheManager, Strategy strategy,
-                                  ListenerProperties listenerProperties, CacheHandler cacheHandler, CacheEncoder cacheEncoder, KeyEntity keyEntity) {
-        this.target = target;
-        this.entityClass = entityClass;
-        this.baseCacheManager = baseCacheManager;
-        this.strategy = strategy;
-        this.listenerProperties = listenerProperties;
-        this.cacheHandler = cacheHandler;
-        this.cacheEncoder = cacheEncoder;
-        this.keyEntity = keyEntity;
+    public CacheMethodInterceptor(Builder builder) {
+        this.target = builder.target;
+        this.entityClass = builder.entityClass;
+        this.baseCacheManager = builder.baseCacheManager;
+        this.strategy = builder.strategy;
+        this.listenerProperties = builder.listenerProperties;
+        this.cacheHandler = builder.cacheHandler;
+        this.cacheEncoder = builder.cacheEncoder;
+        this.keyEntity = builder.keyEntity;
     }
 
 
@@ -153,5 +152,73 @@ public final class CacheMethodInterceptor implements InvocationHandler {
             status = daoSelect.status();
         }
         return status;
+    }
+
+    public static Builder builder() {
+        return new Builder() ;
+    }
+
+    public static class Builder implements com.kould.type.Builder<CacheMethodInterceptor> {
+
+        private Object target;
+
+        private Class<?> entityClass;
+
+        private IBaseCacheManager baseCacheManager;
+
+        private Strategy strategy;
+
+        private ListenerProperties listenerProperties;
+
+        private CacheHandler cacheHandler;
+
+        private CacheEncoder cacheEncoder;
+
+        private KeyEntity keyEntity;
+
+        public CacheMethodInterceptor.Builder mapper(Object mapper) {
+            this.target = mapper;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder entityClass(Class<?> entityClass) {
+            this.entityClass = entityClass;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder baseCacheManager(IBaseCacheManager baseCacheManager) {
+            this.baseCacheManager = baseCacheManager;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder strategy(Strategy strategy) {
+            this.strategy = strategy;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder listenerProperties(ListenerProperties listenerProperties) {
+            this.listenerProperties = listenerProperties;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder cacheHandler(CacheHandler cacheHandler) {
+            this.cacheHandler = cacheHandler;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder cacheEncoder(CacheEncoder cacheEncoder) {
+            this.cacheEncoder = cacheEncoder;
+            return this;
+        }
+
+        public CacheMethodInterceptor.Builder keyEntity(KeyEntity keyEntity) {
+            this.keyEntity = keyEntity;
+            return this;
+        }
+
+        @Override
+        public CacheMethodInterceptor build() {
+            return new CacheMethodInterceptor(this);
+        }
     }
 }
