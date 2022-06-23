@@ -58,7 +58,7 @@ public class Kache {
 
     public static class Builder {
 
-        private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
+        private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
         private final Map<Class<?>, Object> beanBoot = new HashMap<>();
 
@@ -176,7 +176,7 @@ public class Kache {
             Class<?> pageClass = pageDetails.getClazz();
             String recordsName = pageDetails.getFieldName();
             Class<?> recordsClass = pageDetails.getFieldClass();
-            MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(pageClass, lookup);
+            MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(pageClass, LOOKUP);
             MethodHandle setterForRecords = privateLookupIn.findSetter(pageClass, recordsName, recordsClass);
             MethodHandle getterForRecords = privateLookupIn.findGetter(pageClass, recordsName, recordsClass);
             beanBoot.put(PageDetails.class, new PageDetails<>(pageClass, recordsName, recordsClass, setterForRecords, getterForRecords));
