@@ -18,6 +18,7 @@ public class KacheMessage implements Serializable {
     private final Object[] args;
     private final Class<? extends KacheEntity> cacheClazz ;
     private final String type;
+    private final Status status;
 
     public static class Builder {
         private String id;
@@ -25,6 +26,7 @@ public class KacheMessage implements Serializable {
         private Object[] args;
         private Class<? extends KacheEntity> cacheClazz ;
         private String type;
+        private Status status;
 
         public Builder id(String id) {
             this.id = id;
@@ -51,17 +53,23 @@ public class KacheMessage implements Serializable {
             return this;
         }
 
+        public Builder status(Status status) {
+            this.status = status;
+            return this;
+        }
+
         public KacheMessage build() {
             return new KacheMessage(this) ;
         }
     }
 
-    public KacheMessage(String id, String methodName, Object[] args, Class<? extends KacheEntity> cacheClazz, String type) {
+    public KacheMessage(String id, String methodName, Object[] args, Class<? extends KacheEntity> cacheClazz, String type, Status status) {
         this.id = id;
         this.methodName = methodName;
         this.args = args;
         this.cacheClazz = cacheClazz;
         this.type = type;
+        this.status = status;
     }
 
     public KacheMessage(Builder builder) {
@@ -70,6 +78,7 @@ public class KacheMessage implements Serializable {
         this.args = builder.args;
         this.cacheClazz = builder.cacheClazz;
         this.type = builder.type;
+        this.status = builder.status;
     }
 
     public static Builder builder() {
@@ -94,5 +103,9 @@ public class KacheMessage implements Serializable {
 
     public String getId() {
         return id;
+    }
+
+    public Status getStatus() {
+        return status;
     }
 }

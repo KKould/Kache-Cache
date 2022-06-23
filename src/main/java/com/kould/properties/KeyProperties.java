@@ -5,12 +5,16 @@ public class KeyProperties {
     public KeyProperties() {
     }
 
-    public KeyProperties(String selectKey, String insertKey, String deleteKey, String updateKey, String selectByIdKey, boolean enable) {
+    public KeyProperties(String selectKey, String insertKey, String deleteKey, String updateKey, String selectByIdKey
+            , String insertByIdKey, String updateByIdKey, String deleteByIdKey, boolean enable) {
         this.selectKey = selectKey;
         this.insertKey = insertKey;
         this.deleteKey = deleteKey;
         this.updateKey = updateKey;
         this.selectByIdKey = selectByIdKey;
+        this.insertByIdKey = insertByIdKey;
+        this.updateByIdKey = updateByIdKey;
+        this.deleteByIdKey = deleteByIdKey;
         this.enable = enable;
     }
 
@@ -23,6 +27,12 @@ public class KeyProperties {
     private String updateKey = "update";
 
     private String selectByIdKey = "selectById";
+
+    private String insertByIdKey = "insertById";
+
+    private String updateByIdKey = "updateById";
+
+    private String deleteByIdKey = "deleteById";
 
     private boolean enable = true;
 
@@ -64,6 +74,30 @@ public class KeyProperties {
 
     public void setSelectByIdKey(String selectByIdKey) {
         this.selectByIdKey = selectByIdKey;
+    }
+
+    public String getInsertByIdKey() {
+        return insertByIdKey;
+    }
+
+    public void setInsertByIdKey(String insertByIdKey) {
+        this.insertByIdKey = insertByIdKey;
+    }
+
+    public String getUpdateByIdKey() {
+        return updateByIdKey;
+    }
+
+    public void setUpdateByIdKey(String updateByIdKey) {
+        this.updateByIdKey = updateByIdKey;
+    }
+
+    public String getDeleteByIdKey() {
+        return deleteByIdKey;
+    }
+
+    public void setDeleteByIdKey(String deleteByIdKey) {
+        this.deleteByIdKey = deleteByIdKey;
     }
 
     public boolean isEnable() {

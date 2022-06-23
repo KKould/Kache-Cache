@@ -1,6 +1,6 @@
 package com.kould.interceptor;
 
-import com.kould.annotation.*;
+import com.kould.annotation.DaoMethod;
 import com.kould.api.Kache;
 import com.kould.api.KacheEntity;
 import com.kould.entity.*;
@@ -11,6 +11,7 @@ import com.kould.strategy.Strategy;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * 缓存方法环绕代理调用处理器
@@ -61,24 +62,48 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         MethodPoint methodPoint = new MethodPoint(this.target, args, method);
         String methodName = method.getName();
         String typeName = mapperEntityClass.getTypeName();
-        if (method.isAnnotationPresent(DaoSelect.class) || keyEntity.selectKeyMatch(methodName)) {
-            DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
-            typeName = typeSuperposition(typeName, daoSelect);
-            return cacheHandler.load(methodPoint, typeName, getStatus(daoSelect, methodName));
-        }
-        if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
-            return strategy.insert(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
-        }
-        if (method.isAnnotationPresent(DaoDelete.class) || keyEntity.deleteKeyMatch(methodName)) {
-            return strategy.delete(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
-        }
-        if (method.isAnnotationPresent(DaoUpdate.class) || keyEntity.updateKeyMatch(methodName)) {
-            return strategy.update(methodPoint
-                    ,getKacheMessage(method, mapperEntityClass, args, typeName));
+
+        if (method.isAnnotationPresent(DaoMethod.class) || keyEntity.isEnable()) {
+            DaoMethod daoMethod = method.getAnnotation(DaoMethod.class);
+            Type type = null;
+            if (daoMethod != null) {
+                type = daoMethod.value();
+            }
+            if (isSelectMethod(methodName, type)) {
+                typeName = typeSuperposition(typeName, daoMethod);
+                return cacheHandler.load(methodPoint, typeName
+                        , getStatus(daoMethod, methodName, keyEntity::selectByIdKeyEquals));
+            }
+            if (isInsertMethod(methodName, type)) {
+                return strategy.insert(methodPoint,getKacheMessage(method, mapperEntityClass, args, typeName
+                        , getStatus(daoMethod, methodName, keyEntity::insertByIdKeyEquals)));
+            }
+            if (isUpdateMethod(methodName, type)) {
+                return strategy.update(methodPoint,getKacheMessage(method, mapperEntityClass, args, typeName
+                        , getStatus(daoMethod, methodName, keyEntity::updateByIdKeyEquals)));
+            }
+            if (isDeleteMethod(methodName, type)) {
+                return strategy.delete(methodPoint,getKacheMessage(method, mapperEntityClass, args, typeName
+                        , getStatus(daoMethod, methodName, keyEntity::deleteByIdKeyEquals)));
+            }
         }
         return methodPoint.execute();
+    }
+
+    private boolean isSelectMethod(String methodName, Type type) {
+        return Type.SELECT.equals(type) || keyEntity.selectKeyMatch(methodName);
+    }
+
+    private boolean isInsertMethod(String methodName, Type type) {
+        return Type.INSERT.equals(type) || keyEntity.insertKeyMatch(methodName);
+    }
+
+    private boolean isUpdateMethod(String methodName, Type type) {
+        return Type.UPDATE.equals(type) || keyEntity.updateKeyMatch(methodName);
+    }
+
+    private boolean isDeleteMethod(String methodName, Type type) {
+        return Type.DELETE.equals(type) || keyEntity.deleteKeyMatch(methodName);
     }
 
     /**
@@ -87,14 +112,15 @@ public final class CacheMethodInterceptor implements InvocationHandler {
      * 不鼓励使用持久层涉及多表查询，在非用不可的情况下尽可能不使用缓存注解，除非进行手动的Bean处理
      *
      * @param mainType 主类名
-     * @param daoSelect 持久层搜索方法注解
+     * @param daoMethod 持久层搜索方法注解
      * @return 多类型联合字符串
      */
-    private String typeSuperposition(String mainType, DaoSelect daoSelect) {
-        if (daoSelect != null && daoSelect.involve().length > 0 && Status.BY_FIELD.equals(daoSelect.status())) {
+    private String typeSuperposition(String mainType, DaoMethod daoMethod) {
+        if (daoMethod != null && daoMethod.involve().length > 0 && Type.SELECT.equals(daoMethod.value())
+                && Status.BY_FIELD.equals(daoMethod.status())) {
             // 多关联Bean的类型表示增加
             StringBuilder typeNameBuilder = new StringBuilder(mainType);
-            for (Class<?> clazz : daoSelect.involve()) {
+            for (Class<?> clazz : daoMethod.involve()) {
                 typeNameBuilder.append(Kache.SPLIT_TAG).append(clazz.getTypeName());
             }
             mainType = typeNameBuilder.toString();
@@ -108,9 +134,11 @@ public final class CacheMethodInterceptor implements InvocationHandler {
      * @param beanClass Bean类型
      * @param args 参数
      * @param type Bean领域(字符串)
+     * @param status Status方法状态
      * @return KacheMessage
      */
-    private KacheMessage getKacheMessage(Method method, Class<? extends KacheEntity> beanClass, Object[] args, String type) {
+    private KacheMessage getKacheMessage(Method method, Class<? extends KacheEntity> beanClass, Object[] args
+            , String type, Status status) {
         String messageId = cacheEncoder.getId2Key(UUID.randomUUID().toString(), type);
         String daoMethodName = method.getName() ;
         return KacheMessage.builder()
@@ -119,27 +147,25 @@ public final class CacheMethodInterceptor implements InvocationHandler {
                 .cacheClazz(beanClass)
                 .methodName(daoMethodName)
                 .type(type)
+                .status(status)
                 .build();
     }
 
     /**
      * 当方法没有DaoSelect时，通过判断MethodName来进行方法状态判断
-     * @param daoSelect 注解
+     * @param daoMethod 方法注解
      * @param methodName 方法名
      * @return Status方法状态
      */
-    private Status getStatus(DaoSelect daoSelect, String methodName) {
-        Status status;
-        if (daoSelect == null) {
-            if (keyEntity.selectByIdKeyEquals(methodName)) {
-                status = Status.BY_ID;
+    private Status getStatus(DaoMethod daoMethod, String methodName, Predicate<String> idMatch) {
+        if (daoMethod == null) {
+            if (Boolean.TRUE.equals(idMatch.test(methodName))) {
+                return Status.BY_ID;
             } else {
-                status = Status.BY_FIELD;
+                return Status.BY_FIELD;
             }
-        } else {
-            status = daoSelect.status();
         }
-        return status;
+        return daoMethod.status();
     }
 
     public static Builder builder() {

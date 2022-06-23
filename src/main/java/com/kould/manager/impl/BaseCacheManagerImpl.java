@@ -3,10 +3,9 @@ package com.kould.manager.impl;
 import com.kould.api.Kache;
 import com.kould.api.KacheEntity;
 import com.kould.entity.KacheMessage;
+import com.kould.entity.Status;
 import com.kould.manager.IBaseCacheManager;
 import com.kould.entity.MethodPoint;
-
-import java.io.Serializable;
 
 public class BaseCacheManagerImpl extends IBaseCacheManager {
 
@@ -67,12 +66,12 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
             return;
         }
         Class<? extends KacheEntity> resultClass = msg.getCacheClazz();
-        Object arg = msg.getArgs()[0];
-        Class<?> argClass = arg.getClass();
-        if (arg instanceof Serializable) {
-            remoteCacheManager.del(cacheEncoder.getId2Key(arg.toString(), typeName));
-        } else if (resultClass.isAssignableFrom(argClass)){
-            String idStr = resultClass.cast(arg).getPrimaryKey();
+        Object args = msg.getArgs()[0];
+        Class<?> argClass = args.getClass();
+        if (Status.BY_ID.equals(msg.getStatus())) {
+            remoteCacheManager.del(cacheEncoder.getId2Key(args.toString(), typeName));
+        } else if (resultClass.isAssignableFrom(argClass)) {
+            String idStr = resultClass.cast(args).getPrimaryKey();
             remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
         }
         interprocessCacheManager.clear(typeName);

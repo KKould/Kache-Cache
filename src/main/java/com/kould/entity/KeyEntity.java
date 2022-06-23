@@ -14,6 +14,12 @@ public class KeyEntity {
 
     private final String selectStatusByIdKey;
 
+    private final String insertStatusByIdKey;
+
+    private final String updateStatusByIdKey;
+
+    private final String deleteStatusByIdKey;
+
     private final boolean enable;
 
     public KeyEntity(KeyProperties keyProperties) {
@@ -21,8 +27,11 @@ public class KeyEntity {
         this.insertKey = keyProperties.getInsertKey();
         this.deleteKey = keyProperties.getDeleteKey();
         this.updateKey = keyProperties.getUpdateKey();
-        this.selectStatusByIdKey = keyProperties.getSelectByIdKey();
         this.enable = keyProperties.isEnable();
+        this.selectStatusByIdKey = keyProperties.getSelectByIdKey();
+        this.insertStatusByIdKey = keyProperties.getInsertByIdKey();
+        this.updateStatusByIdKey = keyProperties.getUpdateByIdKey();
+        this.deleteStatusByIdKey = keyProperties.getDeleteByIdKey();
     }
 
     public boolean selectKeyMatch(String methodName) {
@@ -43,5 +52,21 @@ public class KeyEntity {
 
     public boolean selectByIdKeyEquals(String methodName) {
         return enable && selectStatusByIdKey.equals(methodName);
+    }
+
+    public boolean insertByIdKeyEquals(String methodName) {
+        return enable && insertStatusByIdKey.equals(methodName);
+    }
+
+    public boolean updateByIdKeyEquals(String methodName) {
+        return enable && updateStatusByIdKey.equals(methodName);
+    }
+
+    public boolean deleteByIdKeyEquals(String methodName) {
+        return enable && deleteStatusByIdKey.equals(methodName);
+    }
+
+    public boolean isEnable() {
+        return enable;
     }
 }
