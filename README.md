@@ -155,12 +155,11 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 ```
 |- com.kould
     |- annotaion  操作注解
-        |- DaoDelete    标记删除注解
-        |- DaoInsert    标记新增注解
-        |- DaoSelect    标记搜索注解
-        |- DaoUpdate    标记更新注解
+        |- DaoMethod    标记方法注解
     |- api        对外调用接口
+        |- BeanLoad Kache内组件自动注入接口
         |- Kache    控制面板
+        |- KacheEntity Entity实体类接口
     |- codec      序列化编码器
         |- KryoRedisCodec   Kryo序列化编码器
         |- ProtostuffRedisCodec    Ptotostuff序列化编码器
@@ -177,12 +176,11 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
         |- KeyEntity       方法名摘要匹配实体
         |- MethodPoint     方法代理封装实体
         |- NullValue       空值实体
+        |- PageDetails     包装类型细节实体
         |- Status          方法状态枚举
+        |- Type            方法类型枚举
     |- function   函数式接口
-        |- KeyFunction     取键函数
-        |- ReadFunction    读取函数
         |- SyncCommandCallback 同步命令函数
-        |- WriteFunction   写入函数
     |- Strategy    删改策略
         |- impl    实现
             |- AmqpAsyncStrategy  基于AMQP的异步策略实现
@@ -209,13 +207,10 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
         |- RemoteCacheManager        远程缓存操作接口定义
     |- properties 配置信息包装
         |- DaoProperties                Dao层配置
-        |- DataFieldProperties          数据名定义配置
         |- InterprocessCacheProperties  进程缓存配置
         |- ListenerProperties           监听器配置
     |- service    Redis操作客户端
         |- RedisService    Redis封装实现
-    |- type    结构化接口
-        |- Builder    建造者接口
     |- utils    工具
         |- FieldUtils      属性反射工具
         |- KryoUtils       Kryo序列化工具
@@ -259,17 +254,16 @@ ArticleMapper proxy = kache.getProxy(articleMapper, Article.class);
 
 **3**.其对应的**Dao层**的Dao方法添加注释：
 
-- 搜索方法：@DaoSelect
-  
-  - 其对应的@DaoSelect的status默认为Status.BY_Field：
+- 持久化方法注解：@DaoMethod
+  - Type：方法类型：
+    - value = Type.SELECT : 搜索方法
+    - value = Type.INSERT : 插入方法
+    - value = Type.UPDATE : 更新方法
+    - value = Type.DELETE : 删除方法
+  - Status：方法参数状态 默认为Status.BY_Field：
     - status = Status.BY_FIELD : 非ID查询方法
     - status = Status.BY_ID : ID查询方法
-
-- 插入方法：@DaoInsert
-
-- 更新方法：@DaoUpdate
-
-- 删除方法：@DaoDelete
+  - Class<?>[] involve：仅在Type.SELECT Status.BY_Field时生效：用于使该条件搜索方法的索引能够被其他缓存Class影响
 
 ```java
 @Repository
@@ -279,11 +273,11 @@ public interface TagMapper extends BaseMapper<Tag> {
             + "right join klog_tag t on t.id = at.tag_id "
             + "where t.deleted = 0 AND at.deleted = 0 "
             + "group by t.id order by count(at.tag_id) desc limit #{limit}")
-    @DaoSelect(status = Status.BY_FIELD)
+    @DaoMethod(value = Type.SELECT,status = Status.BY_FIELD)
     // 通过条件查询获取数据
     List<Tag> listHotTagsByArticleUse(@Param("limit") int limit);
 
-    @DaoInsert
+    @DaoMethod(Type.INSERT)
     // 批量新增方法（会导致数据变动）
     Integer insertBatch(Collection<T> entityList);
 }
@@ -296,16 +290,9 @@ public interface TagMapper extends BaseMapper<Tag> {
 // 用于无额外参数的配置或组件加载
 load(Class<?> interfaceClass, Object bean);
 
-// 以接口类型作为键值替换默认配置组件
-// 用于类似Kache中Strategy这样实例化时需要额外参数的组件
-replace(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass);
-
-// 示例:使用Kache默认提供的额外AMQP异步删改策略实现
-private Kache kache = Kache.builder()
-            // 新增Connection接口配置,并提供接口实例
-            .load(Connection.class, factory.newConnection())
-            // 替换默认Strategy接口,提供实现类的class类信息与对应的构造方法参数类信息
-            .replace(Strategy.class, AmqpStrategy.class, new Class[]{IBaseCacheManager.class, Connection.class})
+// 示例:注入MyBatis-Plus的包装类对象Page的PageDetails对象
+private final Kache kache = Kache.builder()
+            .load(PageDetails.class, new PageDetails<>(Page.class, "records", List.class))
             .build();
 ```
 
