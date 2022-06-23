@@ -2,15 +2,11 @@ package com.kould.interceptor;
 
 import com.kould.annotation.*;
 import com.kould.api.Kache;
-import com.kould.properties.ListenerProperties;
-import com.kould.entity.Status;
+import com.kould.api.KacheEntity;
+import com.kould.entity.*;
 import com.kould.core.CacheHandler;
 import com.kould.encoder.CacheEncoder;
-import com.kould.entity.KeyEntity;
 import com.kould.strategy.Strategy;
-import com.kould.manager.IBaseCacheManager;
-import com.kould.entity.KacheMessage;
-import com.kould.entity.MethodPoint;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -23,13 +19,9 @@ public final class CacheMethodInterceptor implements InvocationHandler {
 
     private final Object target;
 
-    private final Class<?> entityClass;
-
-    private final IBaseCacheManager baseCacheManager;
+    private final Class<? extends KacheEntity> entityClass;
 
     private final Strategy strategy;
-
-    private final ListenerProperties listenerProperties;
 
     private final CacheHandler cacheHandler;
 
@@ -40,9 +32,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
     public CacheMethodInterceptor(Builder builder) {
         this.target = builder.target;
         this.entityClass = builder.entityClass;
-        this.baseCacheManager = builder.baseCacheManager;
         this.strategy = builder.strategy;
-        this.listenerProperties = builder.listenerProperties;
         this.cacheHandler = builder.cacheHandler;
         this.cacheEncoder = builder.cacheEncoder;
         this.keyEntity = builder.keyEntity;
@@ -66,7 +56,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        Class<?> mapperEntityClass = this.entityClass;
+        Class<? extends KacheEntity> mapperEntityClass = this.entityClass;
         //此处使用的Target为该类实例化时注入的target，以实现二次加工（比如MyBatis生成的实例再次由Kache实例化）
         MethodPoint methodPoint = new MethodPoint(this.target, args, method);
         String methodName = method.getName();
@@ -74,9 +64,7 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         if (method.isAnnotationPresent(DaoSelect.class) || keyEntity.selectKeyMatch(methodName)) {
             DaoSelect daoSelect = method.getAnnotation(DaoSelect.class);
             typeName = typeSuperposition(typeName, daoSelect);
-            return cacheHandler.load(methodPoint, listenerProperties.isEnable(), baseCacheManager::daoRead
-                    , baseCacheManager::daoWrite, cacheEncoder::getDaoKey, typeName
-                    , getStatus(daoSelect, methodName));
+            return cacheHandler.load(methodPoint, typeName, getStatus(daoSelect, methodName));
         }
         if (method.isAnnotationPresent(DaoInsert.class) || keyEntity.insertKeyMatch(methodName)) {
             return strategy.insert(methodPoint
@@ -122,12 +110,12 @@ public final class CacheMethodInterceptor implements InvocationHandler {
      * @param type Bean领域(字符串)
      * @return KacheMessage
      */
-    private KacheMessage getKacheMessage(Method method, Class<?> beanClass, Object[] args, String type) {
+    private KacheMessage getKacheMessage(Method method, Class<? extends KacheEntity> beanClass, Object[] args, String type) {
         String messageId = cacheEncoder.getId2Key(UUID.randomUUID().toString(), type);
         String daoMethodName = method.getName() ;
         return KacheMessage.builder()
                 .id(messageId)
-                .arg(args)
+                .args(args)
                 .cacheClazz(beanClass)
                 .methodName(daoMethodName)
                 .type(type)
@@ -158,17 +146,13 @@ public final class CacheMethodInterceptor implements InvocationHandler {
         return new Builder() ;
     }
 
-    public static class Builder implements com.kould.type.Builder<CacheMethodInterceptor> {
+    public static class Builder {
 
         private Object target;
 
-        private Class<?> entityClass;
-
-        private IBaseCacheManager baseCacheManager;
+        private Class<? extends KacheEntity> entityClass;
 
         private Strategy strategy;
-
-        private ListenerProperties listenerProperties;
 
         private CacheHandler cacheHandler;
 
@@ -181,23 +165,13 @@ public final class CacheMethodInterceptor implements InvocationHandler {
             return this;
         }
 
-        public CacheMethodInterceptor.Builder entityClass(Class<?> entityClass) {
+        public CacheMethodInterceptor.Builder entityClass(Class<? extends KacheEntity> entityClass) {
             this.entityClass = entityClass;
-            return this;
-        }
-
-        public CacheMethodInterceptor.Builder baseCacheManager(IBaseCacheManager baseCacheManager) {
-            this.baseCacheManager = baseCacheManager;
             return this;
         }
 
         public CacheMethodInterceptor.Builder strategy(Strategy strategy) {
             this.strategy = strategy;
-            return this;
-        }
-
-        public CacheMethodInterceptor.Builder listenerProperties(ListenerProperties listenerProperties) {
-            this.listenerProperties = listenerProperties;
             return this;
         }
 
@@ -216,7 +190,6 @@ public final class CacheMethodInterceptor implements InvocationHandler {
             return this;
         }
 
-        @Override
         public CacheMethodInterceptor build() {
             return new CacheMethodInterceptor(this);
         }

@@ -1,6 +1,8 @@
 package com.kould.test.entity;
 
-public class TestEntity {
+import com.kould.api.KacheEntity;
+
+public class TestEntity implements KacheEntity {
 
     public TestEntity() {
     }
@@ -28,5 +30,10 @@ public class TestEntity {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    @Override
+    public String getPrimaryKey() {
+        return id.toString();
     }
 }

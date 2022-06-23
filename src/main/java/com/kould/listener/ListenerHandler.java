@@ -31,7 +31,7 @@ public final class ListenerHandler {
                     cacheListener.hit(key, KacheMessage.builder()
                             .methodName(methodName)
                             .type(type)
-                            .arg(arg)
+                            .args(arg)
                             .build()) ;
                 }
             });
@@ -46,7 +46,7 @@ public final class ListenerHandler {
                     cacheListener.notHit(key, KacheMessage.builder()
                             .methodName(methodName)
                             .type(type)
-                            .arg(arg)
+                            .args(arg)
                             .build());
                 }
             });
@@ -66,6 +66,5 @@ public final class ListenerHandler {
 
     public static void register(CacheListener cacheListener) {
         CACHE_LISTENER_LIST.add(cacheListener) ;
-        System.out.println(CACHE_LISTENER_LIST);
     }
 }

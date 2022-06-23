@@ -1,13 +1,24 @@
 package com.kould.core;
 
+import com.kould.api.BeanLoad;
+import com.kould.encoder.CacheEncoder;
 import com.kould.entity.Status;
-import com.kould.function.KeyFunction;
-import com.kould.function.ReadFunction;
-import com.kould.function.WriteFunction;
 import com.kould.entity.MethodPoint;
+import com.kould.manager.IBaseCacheManager;
+import com.kould.properties.ListenerProperties;
 
-public abstract class CacheHandler {
+public abstract class CacheHandler implements BeanLoad {
 
-    public abstract Object load(MethodPoint point, boolean listenerEnable, ReadFunction readFunction
-            , WriteFunction writeFunction, KeyFunction keyFunction , String types, Status status) throws Exception ;
+    protected IBaseCacheManager baseCacheManager;
+
+    protected CacheEncoder encoder;
+
+    protected ListenerProperties listenerProperties;
+
+    public abstract Object load(MethodPoint point, String types, Status methodStatus) throws Throwable;
+
+    @Override
+    public Class<?>[] loadArgs() {
+        return new Class[]{IBaseCacheManager.class, CacheEncoder.class, ListenerProperties.class};
+    }
 }

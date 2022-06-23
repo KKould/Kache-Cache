@@ -3,8 +3,6 @@ package com.kould.manager.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.kould.properties.DaoProperties;
-import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.NullValue;
 import com.kould.manager.InterprocessCacheManager;
 
@@ -23,10 +21,6 @@ public class GuavaCacheManager extends InterprocessCacheManager {
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
     private static final Map<String, Cache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();
-
-    public GuavaCacheManager(DaoProperties daoProperties, InterprocessCacheProperties interprocessCacheProperties) {
-        super(daoProperties, interprocessCacheProperties);
-    }
 
     @Override
     public Object get(String key, String type) throws ExecutionException {
@@ -52,7 +46,7 @@ public class GuavaCacheManager extends InterprocessCacheManager {
 
     @Override
     public void put(String key, Object result,String type) {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, (k) -> CacheBuilder.newBuilder()
+        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, k -> CacheBuilder.newBuilder()
                 .weakValues()
                 .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
                 .maximumSize(interprocessCacheProperties.getSize())

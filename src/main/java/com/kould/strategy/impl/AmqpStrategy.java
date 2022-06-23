@@ -2,8 +2,7 @@ package com.kould.strategy.impl;
 
 import com.kould.entity.KacheMessage;
 import com.kould.entity.MethodPoint;
-import com.kould.manager.IBaseCacheManager;
-import com.kould.strategy.ASyncStrategy;
+import com.kould.strategy.Strategy;
 import com.kould.utils.KryoUtil;
 import com.rabbitmq.client.*;
 
@@ -14,10 +13,13 @@ import java.util.concurrent.TimeoutException;
 /**
  * AMQP异步删改缓存策略
  *
+ * 异步更新处理器
+ * 分布式处理需要通过广播实现各节点消息同时消费，且需保持增删改幂等性，防止重复删除
+ *
  * 每个应用对会随机生成ID，以一个应用三个队列的形式绑定Kache_Exchange路由器
  * routingKey统一为增删改三种，增删改消息会复制给同一操作种类的所有队列消费
  */
-public class AmqpStrategy extends ASyncStrategy {
+public class AmqpStrategy extends Strategy {
 
     private static final String ID = "." + UUID.randomUUID();
 
@@ -47,8 +49,7 @@ public class AmqpStrategy extends ASyncStrategy {
 
     private Channel channel;
 
-    public AmqpStrategy(IBaseCacheManager baseCacheManager, Connection connection) {
-        super(baseCacheManager);
+    public AmqpStrategy(Connection connection) {
         this.connection = connection;
     }
 
@@ -131,7 +132,7 @@ public class AmqpStrategy extends ASyncStrategy {
                 // 优先消费数据后再进行应答
                 consumer.accept((KacheMessage) KryoUtil.readFromByteArray(body));
                 this.getChannel().basicAck(deliveryTag, false);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
         }

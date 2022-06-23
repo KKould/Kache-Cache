@@ -1,7 +1,9 @@
 package com.kould.test;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.kould.api.Kache;
+import com.kould.entity.PageDetails;
 import com.kould.test.entity.TestEntity;
 import com.kould.test.mapper.TestMapper;
 import com.kould.test.mapper.impl.TestMapperImpl;
@@ -15,25 +17,30 @@ import java.util.List;
 public class KacheTest {
 
     private final Kache kache = Kache.builder()
+            .load(PageDetails.class, new PageDetails<>(Page.class, "records", List.class))
             .build();
 
     private final Gson gson = new Gson();
 
     private final TestMapper testMapperTarget = new TestMapperImpl();
 
-    private final TestMapper testMapperProxy = kache.getProxy(testMapperTarget, TestEntity.class);
+    private TestMapper testMapperProxy;
 
     public static final TestEntity UPDATE_ENTITY_TEST = new TestEntity(0L,"$1");
 
     public static final TestEntity INSERT_ENTITY_TEST = new TestEntity(3L,"$4");
+
+    public KacheTest() throws NoSuchFieldException, IllegalAccessException {
+    }
 
     /**
      * 测试前对该框架进行初始化
      * @throws Exception
      */
     @Before
-    public void init() throws Exception {
+    public void init() throws Throwable {
         kache.init();
+        testMapperProxy = kache.getProxy(testMapperTarget, TestEntity.class);
     }
 
     /**
@@ -74,7 +81,7 @@ public class KacheTest {
      * @throws Exception
      */
     @After
-    public void destroy() throws Exception {
+    public void destroy() throws Throwable {
         kache.destroy();
     }
 

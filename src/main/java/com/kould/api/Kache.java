@@ -1,6 +1,8 @@
 package com.kould.api;
 
 import com.kould.entity.KeyEntity;
+import com.kould.entity.PageDetails;
+import com.kould.exception.KacheBuildException;
 import com.kould.properties.*;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
@@ -19,13 +21,14 @@ import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
 import com.kould.manager.impl.RedisCacheManager;
 import com.kould.service.RedisService;
+import com.kould.utils.FieldUtils;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
 
-import java.lang.reflect.Constructor;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -33,19 +36,17 @@ import java.util.*;
 
 public class Kache {
 
-    private final ListenerProperties listenerProperties;
-
     public static final String INDEX_TAG = "#INDEX:";
 
     public static final String CACHE_PREFIX = "KACHE:";
 
     public static final String SPLIT_TAG = "&";
 
+    public static final String PAGE_UNLOAD_MESSAGE = "The Page's Class unload!";
+
     private final KeyEntity keyEntity;
 
     private final CacheEncoder cacheEncoder;
-
-    private final IBaseCacheManager iBaseCacheManager;
 
     private final RemoteCacheManager remoteCacheManager;
 
@@ -55,44 +56,15 @@ public class Kache {
 
     private final CacheHandler cacheHandler;
 
-    private static class BeanLoad {
+    public static class Builder {
 
-        private final Class<?> interfaceClass;
+        private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
 
-        private final Class<?> accomplishClass;
-
-        private final Class<?>[] argsClass;
-
-        public BeanLoad(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass) {
-            this.interfaceClass = interfaceClass;
-            this.accomplishClass = accomplishClass;
-            this.argsClass = argsClass;
-        }
-
-        public Class<?> getInterfaceClass() {
-            return interfaceClass;
-        }
-
-        public Class<?> getAccomplishClass() {
-            return accomplishClass;
-        }
-
-        public Class<?>[] getArgsClass() {
-            return argsClass;
-        }
-    }
-
-    public static class Builder implements com.kould.type.Builder<Kache> {
-
-        private static final Map<Class<?>, Object> BEAN_BOOT = new HashMap<>();
-
-        private static final Map<Class<?>, Kache.BeanLoad> BEAN_LOAD_MAP = new HashMap<>();
+        private final Map<Class<?>, Object> beanBoot = new HashMap<>();
 
         private CacheEncoder cacheEncoder;
 
         private CacheHandler cacheHandler;
-
-        private ListenerProperties listenerProperties;
 
         private KeyProperties keyProperties;
 
@@ -100,32 +72,27 @@ public class Kache {
 
         private RemoteCacheManager remoteCacheManager;
 
-        private IBaseCacheManager iBaseCacheManager;
-
         private Strategy strategy;
 
         public Builder() {
             StatisticsListener.getInstance();
-            BEAN_BOOT.put(RedisClient.class, RedisClient.create(RedisURI.builder()
+            beanBoot.put(RedisClient.class, RedisClient.create(RedisURI.builder()
                     .withHost("localhost")
                     .withPort(6379)
                     .withTimeout(Duration.of(10, ChronoUnit.SECONDS))
                     .build()));
-            BEAN_BOOT.put(CacheEncoder.class, BaseCacheEncoder.getInstance());
-            BEAN_BOOT.put(CacheHandler.class, new BaseCacheHandler());
-            BEAN_BOOT.put(RedisCodec.class, new KryoRedisCodec());
-            BEAN_BOOT.put(DaoProperties.class, new DaoProperties());
-            BEAN_BOOT.put(DataFieldProperties.class, new DataFieldProperties());
-            BEAN_BOOT.put(InterprocessCacheProperties.class, new InterprocessCacheProperties());
-            BEAN_BOOT.put(ListenerProperties.class, new ListenerProperties());
-            BEAN_BOOT.put(KeyProperties.class, new KeyProperties());
+            beanBoot.put(CacheEncoder.class, BaseCacheEncoder.getInstance());
+            beanBoot.put(RedisCodec.class, new KryoRedisCodec());
+            beanBoot.put(DaoProperties.class, new DaoProperties());
+            beanBoot.put(InterprocessCacheProperties.class, new InterprocessCacheProperties());
+            beanBoot.put(ListenerProperties.class, new ListenerProperties());
+            beanBoot.put(KeyProperties.class, new KeyProperties());
+            beanBoot.put(InterprocessCacheManager.class, new GuavaCacheManager());
+            beanBoot.put(IBaseCacheManager.class, new BaseCacheManagerImpl());
+            beanBoot.put(Strategy.class, new DBFirstStrategy());
+            beanBoot.put(CacheHandler.class, new BaseCacheHandler());
+            beanBoot.put(RemoteCacheManager.class, new RedisCacheManager());
 
-            BEAN_LOAD_MAP.put(InterprocessCacheManager.class, new BeanLoad(InterprocessCacheManager.class, GuavaCacheManager.class, new Class[]{DaoProperties.class,InterprocessCacheProperties.class}));
-            BEAN_LOAD_MAP.put(RedisService.class, new BeanLoad(RedisService.class, RedisService.class, new Class[]{DaoProperties.class, RedisClient.class, RedisCodec.class}));
-            BEAN_LOAD_MAP.put(RemoteCacheManager.class, new BeanLoad(RemoteCacheManager.class, RedisCacheManager.class, new Class[]{DataFieldProperties.class, DaoProperties.class, RedisService.class, CacheEncoder.class}));
-            BEAN_LOAD_MAP.put(IBaseCacheManager.class, new BeanLoad(IBaseCacheManager.class, BaseCacheManagerImpl.class, new Class[]{InterprocessCacheManager.class, RemoteCacheManager.class
-                    , InterprocessCacheProperties.class, CacheEncoder.class, DataFieldProperties.class}));
-            BEAN_LOAD_MAP.put(Strategy.class, new BeanLoad(Strategy.class, DBFirstStrategy.class, new Class[]{IBaseCacheManager.class}));
         }
 
         /**
@@ -137,22 +104,7 @@ public class Kache {
          * @return Kache.Builder
          */
         public Kache.Builder load(Class<?> interfaceClass, Object bean) {
-            BEAN_BOOT.put(interfaceClass, bean);
-            return this;
-        }
-
-        /**
-         * 替换默认实现类方法
-         * 允许用户通过自定义实现对应需要替换的接口，将其载入到Kache中进行默认组件的替换
-         *
-         * 若使用自定义的配置或组件需要先使用load方法进行配置载入，否则Kache对实现类进行实例化时无法找到对应的配置
-         * @param interfaceClass 需要对应替换的接口Class
-         * @param accomplishClass 自定义的实现类Class
-         * @param argsClass 该实现类对应的参数Class数组
-         * @return Kache.Builder
-         */
-        public Kache.Builder replace(Class<?> interfaceClass, Class<?> accomplishClass, Class<?>[] argsClass) {
-            BEAN_LOAD_MAP.put(interfaceClass,new BeanLoad(interfaceClass, accomplishClass, argsClass));
+            beanBoot.put(interfaceClass, bean);
             return this;
         }
 
@@ -160,47 +112,74 @@ public class Kache {
          * Kache的建造方法，用于将载入的配置与BeanLoad进行组装
          * @return Kache对象
          */
-        @Override
-        public Kache build() {
-            try {
-                componentLoad(BEAN_LOAD_MAP.get(InterprocessCacheManager.class));
-                componentLoad(BEAN_LOAD_MAP.get(RedisService.class));
-                componentLoad(BEAN_LOAD_MAP.get(RemoteCacheManager.class));
-                componentLoad(BEAN_LOAD_MAP.get(IBaseCacheManager.class));
-                componentLoad(BEAN_LOAD_MAP.get(Strategy.class));
-
-                for (Field declaredField : Builder.class.getDeclaredFields()) {
-                    declaredField.setAccessible(true);
-                    Object bean = BEAN_BOOT.get(declaredField.getType());
-                    if (bean != null) {
-                        declaredField.set(this, bean);
-                    }
-                }
-                return new Kache(this) ;
-            } catch (Exception e) {
-                e.printStackTrace();
+        public Kache build() throws IllegalAccessException, NoSuchFieldException {
+            PageDetails<?> pageDetails = (PageDetails<?>) beanBoot.get(PageDetails.class);
+            if (pageDetails == null) {
+                throw new KacheBuildException(PAGE_UNLOAD_MESSAGE);
             }
-            return null;
+            if (!pageDetails.isFull()){
+                processPageDetails(pageDetails);
+            }
+            if (beanBoot.get(RedisService.class) == null) {
+                injectionDefaultRedisService();
+            }
+            beanInjectionOfBeanLoad();
+
+            this.redisService = (RedisService) beanBoot.get(RedisService.class);
+            this.strategy = (Strategy) beanBoot.get(Strategy.class);
+            this.remoteCacheManager = (RemoteCacheManager) beanBoot.get(RemoteCacheManager.class);
+            this.keyProperties = (KeyProperties) beanBoot.get(KeyProperties.class);
+            this.cacheEncoder = (CacheEncoder) beanBoot.get(CacheEncoder.class);
+            this.cacheHandler = (CacheHandler) beanBoot.get(CacheHandler.class);
+            return new Kache(this);
         }
 
         /**
-         * BeanLoad中的对应接口与实现类进行组件装填载入
-         * @param beanLoad 实现类的类信息封装
-         * @throws NoSuchMethodException
-         * @throws InstantiationException
-         * @throws IllegalAccessException
-         * @throws InvocationTargetException
+         * 对beanBoot内的BeanLoad对象进行组件注入
+         * @throws IllegalAccessException 无法访问异常
          */
-        private void componentLoad(BeanLoad beanLoad) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
-            Class<?> interfaceClass = beanLoad.getInterfaceClass();
-            Class<?> accomplishClass = beanLoad.getAccomplishClass();
-            Class<?>[] argsClass = beanLoad.getArgsClass();
-            Constructor<?> constructor = accomplishClass.getConstructor(argsClass);
-            Object[] realArgs = new Object[argsClass.length];
-            for (int i = 0; i < argsClass.length; i++) {
-                realArgs[i] = BEAN_BOOT.get(argsClass[i]);
+        private void beanInjectionOfBeanLoad() throws IllegalAccessException {
+            for (Map.Entry<Class<?>, Object> entry : beanBoot.entrySet()) {
+                Object bean = entry.getValue();
+                if (bean instanceof BeanLoad) {
+                    Class<?>[] injectionFields = ((BeanLoad) bean).loadArgs();
+                    List<Field> allField = FieldUtils.getAllField(bean.getClass());
+                    Set<Class<?>> classSet = new HashSet<>(Arrays.asList(injectionFields));
+                    for (Field field : allField) {
+                        field.setAccessible(true);
+                        Class<?> fieldType = field.getType();
+                        if (classSet.contains(fieldType) && field.get(bean) == null) {
+                            field.set(bean, beanBoot.get(fieldType));
+                        }
+                    }
+                }
             }
-            BEAN_BOOT.put(interfaceClass, constructor.newInstance(realArgs));
+        }
+
+        /**
+         * 注入默认RedisService
+         */
+        private void injectionDefaultRedisService() {
+            DaoProperties daoProperties = (DaoProperties) beanBoot.get(DaoProperties.class);
+            RedisClient redisClient = (RedisClient) beanBoot.get(RedisClient.class);
+            RedisCodec<String, Object> redisCodec = (RedisCodec<String, Object>) beanBoot.get(RedisCodec.class);
+            beanBoot.put(RedisService.class, new RedisService(daoProperties, redisClient, redisCodec));
+        }
+
+        /**
+         * PageDetails自动填充方法句柄
+         * @param pageDetails 目标pageDetails
+         * @throws IllegalAccessException 无法访问异常
+         * @throws NoSuchFieldException 无匹配属性异常
+         */
+        private void processPageDetails(PageDetails<?> pageDetails) throws IllegalAccessException, NoSuchFieldException {
+            Class<?> pageClass = pageDetails.getClazz();
+            String recordsName = pageDetails.getFieldName();
+            Class<?> recordsClass = pageDetails.getFieldClass();
+            MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(pageClass, lookup);
+            MethodHandle setterForRecords = privateLookupIn.findSetter(pageClass, recordsName, recordsClass);
+            MethodHandle getterForRecords = privateLookupIn.findGetter(pageClass, recordsName, recordsClass);
+            beanBoot.put(PageDetails.class, new PageDetails<>(pageClass, recordsName, recordsClass, setterForRecords, getterForRecords));
         }
     }
 
@@ -212,8 +191,6 @@ public class Kache {
         this.keyEntity = new KeyEntity(builder.keyProperties);
         this.cacheEncoder = builder.cacheEncoder;
         this.cacheHandler = builder.cacheHandler;
-        this.iBaseCacheManager = builder.iBaseCacheManager;
-        this.listenerProperties = builder.listenerProperties;
         this.redisService = builder.redisService;
         this.remoteCacheManager = builder.remoteCacheManager;
         this.strategy = builder.strategy;
@@ -226,25 +203,25 @@ public class Kache {
      * @param <T> 目标Mapper类型
      * @return 拥有缓存代理增强后的Mapper
      */
-    public <T> T getProxy(T target,Class<?> entityClass) {
-        return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces()
-                , CacheMethodInterceptor.builder()
-                        .mapper(target)
-                        .entityClass(entityClass)
-                        .baseCacheManager(this.iBaseCacheManager)
-                        .strategy(this.strategy)
-                        .listenerProperties(this.listenerProperties)
-                        .cacheHandler(this.cacheHandler)
-                        .cacheEncoder(this.cacheEncoder)
-                        .keyEntity(this.keyEntity)
-                        .build());
+    public <T> T getProxy(T target, Class<? extends KacheEntity> entityClass){
+        CacheMethodInterceptor interceptor = CacheMethodInterceptor.builder()
+                .mapper(target)
+                .entityClass(entityClass)
+                .strategy(this.strategy)
+                .cacheHandler(this.cacheHandler)
+                .cacheEncoder(this.cacheEncoder)
+                .keyEntity(this.keyEntity)
+                .build();
+        ClassLoader classLoader = target.getClass().getClassLoader();
+        Class<?>[] interfaces = target.getClass().getInterfaces();
+        return (T) Proxy.newProxyInstance(classLoader, interfaces, interceptor);
     }
 
     /**
      * Kache初始化方法
-     * @throws Exception
+     * @throws Throwable 初始化异常
      */
-    public void init() throws Exception {
+    public void init() throws Throwable {
         if (strategy instanceof AmqpStrategy) {
             ((AmqpStrategy) strategy).init();
         }
@@ -253,9 +230,9 @@ public class Kache {
 
     /**
      * Kache资源释放方法
-     * @throws Exception
+     * @throws Throwable 释放异常
      */
-    public void destroy() throws Exception {
+    public void destroy() throws Throwable {
         if (strategy instanceof AmqpStrategy) {
             ((AmqpStrategy) strategy).destroy();
         }

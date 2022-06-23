@@ -1,8 +1,9 @@
 package com.kould.manager;
 
+import com.kould.api.BeanLoad;
 import com.kould.encoder.CacheEncoder;
+import com.kould.entity.PageDetails;
 import com.kould.entity.KacheMessage;
-import com.kould.properties.DataFieldProperties;
 import com.kould.properties.InterprocessCacheProperties;
 import com.kould.entity.MethodPoint;
 
@@ -11,15 +12,7 @@ import com.kould.entity.MethodPoint;
  *
  * 使用异步消息队列策略实现删改逻辑时请让增删改逻辑能保证幂等性
  */
-public abstract class IBaseCacheManager {
-
-    public IBaseCacheManager(InterprocessCacheManager interprocessCacheManager, RemoteCacheManager remoteCacheManager, InterprocessCacheProperties interprocessCacheProperties, CacheEncoder cacheEncoder, DataFieldProperties dataFieldProperties) {
-        this.interprocessCacheManager = interprocessCacheManager;
-        this.remoteCacheManager = remoteCacheManager;
-        this.interprocessCacheProperties = interprocessCacheProperties;
-        this.cacheEncoder = cacheEncoder;
-        this.dataFieldProperties = dataFieldProperties;
-    }
+public abstract class IBaseCacheManager implements BeanLoad {
 
     protected InterprocessCacheManager interprocessCacheManager ;
 
@@ -27,9 +20,9 @@ public abstract class IBaseCacheManager {
 
     protected InterprocessCacheProperties interprocessCacheProperties ;
 
-    protected final CacheEncoder cacheEncoder ;
+    protected CacheEncoder cacheEncoder ;
 
-   protected final DataFieldProperties dataFieldProperties;
+    protected PageDetails<?> pageDetails;
     /**
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改
@@ -39,7 +32,7 @@ public abstract class IBaseCacheManager {
      * @return 缓存具体数据
      * @throws Exception 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoWrite(String key, MethodPoint point, String type) throws Exception;
+    public abstract Object daoWrite(String key, MethodPoint point, String type) throws Throwable;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
@@ -49,11 +42,16 @@ public abstract class IBaseCacheManager {
      * @return 缓存具体数据
      * @throws Exception 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoRead(String key, String type) throws Exception;
+    public abstract Object daoRead(String key, String type) throws Throwable;
 
-    public abstract void deleteCache(KacheMessage msg) throws Exception;
+    public abstract void deleteCache(KacheMessage msg) throws Throwable;
 
-    public abstract void updateCache(KacheMessage msg) throws Exception;
+    public abstract void updateCache(KacheMessage msg) throws Throwable;
 
-    public abstract void insertCache(KacheMessage msg) throws Exception;
+    public abstract void insertCache(KacheMessage msg) throws Throwable;
+
+    @Override
+    public Class<?>[] loadArgs() {
+        return new Class[] {InterprocessCacheManager.class, RemoteCacheManager.class, InterprocessCacheProperties.class, CacheEncoder.class, PageDetails.class};
+    }
 }

@@ -1,5 +1,7 @@
 package com.kould.entity;
 
+import com.kould.api.KacheEntity;
+
 import java.io.Serializable;
 
 /**
@@ -13,18 +15,16 @@ public class KacheMessage implements Serializable {
     private final String id;
 
     private final String methodName ;
-    private final Object[] arg ;
-    private final Class<?> cacheClazz ;
+    private final Object[] args;
+    private final Class<? extends KacheEntity> cacheClazz ;
     private final String type;
 
-    public static class Builder implements com.kould.type.Builder<KacheMessage> {
+    public static class Builder {
         private String id;
         private String methodName ;
-        private Object[] arg ;
-        private Class<?> cacheClazz ;
+        private Object[] args;
+        private Class<? extends KacheEntity> cacheClazz ;
         private String type;
-
-        public Builder() { }
 
         public Builder id(String id) {
             this.id = id;
@@ -36,12 +36,12 @@ public class KacheMessage implements Serializable {
             return this ;
         }
 
-        public Builder arg(Object[] arg) {
-            this.arg = arg;
+        public Builder args(Object[] args) {
+            this.args = args;
             return this ;
         }
 
-        public Builder cacheClazz(Class<?> cacheClazz) {
+        public Builder cacheClazz(Class<? extends KacheEntity> cacheClazz) {
             this.cacheClazz = cacheClazz;
             return this ;
         }
@@ -51,16 +51,15 @@ public class KacheMessage implements Serializable {
             return this;
         }
 
-        @Override
         public KacheMessage build() {
             return new KacheMessage(this) ;
         }
     }
 
-    public KacheMessage(String id, String methodName, Object[] arg, Class<?> cacheClazz, String type) {
+    public KacheMessage(String id, String methodName, Object[] args, Class<? extends KacheEntity> cacheClazz, String type) {
         this.id = id;
         this.methodName = methodName;
-        this.arg = arg;
+        this.args = args;
         this.cacheClazz = cacheClazz;
         this.type = type;
     }
@@ -68,7 +67,7 @@ public class KacheMessage implements Serializable {
     public KacheMessage(Builder builder) {
         this.id = builder.id;
         this.methodName = builder.methodName;
-        this.arg = builder.arg;
+        this.args = builder.args;
         this.cacheClazz = builder.cacheClazz;
         this.type = builder.type;
     }
@@ -81,11 +80,11 @@ public class KacheMessage implements Serializable {
         return methodName;
     }
 
-    public Object[] getArg() {
-        return arg;
+    public Object[] getArgs() {
+        return args;
     }
 
-    public Class<?> getCacheClazz() {
+    public Class<? extends KacheEntity> getCacheClazz() {
         return cacheClazz;
     }
 

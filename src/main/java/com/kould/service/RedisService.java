@@ -32,13 +32,13 @@ public class RedisService {
         this.redisClient.shutdown();
     }
 
-    public <T> T executeSync(SyncCommandCallback<T> callback) {
+    public <T> T executeSync(SyncCommandCallback<T> callback) throws Throwable {
         try (StatefulRedisConnection<String, Object> connection = redisConnectionPool.borrowObject()) {
             connection.setAutoFlushCommands(true);
             RedisCommands<String, Object> commands = connection.sync();
             return callback.doInConnection(commands);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (Throwable e) {
+            throw new Throwable(e);
         }
     }
 }
