@@ -7,7 +7,7 @@
     <img alt="code style" src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg?style=flat-square">
   </a>
   <a target="_blank" href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">
-      <img src="https://img.shields.io/badge/JDK-1.8+-blue.svg" />
+      <img src="https://img.shields.io/badge/JDK-11+-red.svg" />
   </a>
 </p>
 
