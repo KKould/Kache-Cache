@@ -25,6 +25,8 @@ import com.kould.utils.FieldUtils;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
+import org.objenesis.Objenesis;
+import org.objenesis.ObjenesisStd;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -35,6 +37,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class Kache {
+
+    public static final Objenesis OBJENESIS = new ObjenesisStd();
 
     public static final String INDEX_TAG = "#INDEX:";
 
@@ -177,9 +181,8 @@ public class Kache {
             String recordsName = pageDetails.getFieldName();
             Class<?> recordsClass = pageDetails.getFieldClass();
             MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(pageClass, LOOKUP);
-            MethodHandle setterForRecords = privateLookupIn.findSetter(pageClass, recordsName, recordsClass);
             MethodHandle getterForRecords = privateLookupIn.findGetter(pageClass, recordsName, recordsClass);
-            beanBoot.put(PageDetails.class, new PageDetails<>(pageClass, recordsName, recordsClass, setterForRecords, getterForRecords));
+            beanBoot.put(PageDetails.class, new PageDetails<>(pageClass, recordsName, recordsClass, getterForRecords));
         }
     }
 

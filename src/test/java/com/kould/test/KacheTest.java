@@ -70,6 +70,27 @@ public class KacheTest {
         Assert.assertEquals(gson.toJson(testMapperTarget.selectTestAll()), gson.toJson(testMapperProxy.selectTestAll()));
         Assert.assertEquals(gson.toJson(testMapperTarget.selectTestAll()), gson.toJson(testMapperProxy.selectTestAll()));
 
+        // 测试Page对象是否顺利解析
+        // 测试多次读取
+        // 读时序列化数据返回，内容应该一致
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestPage()), gson.toJson(testMapperProxy.selectTestPage()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestPage()), gson.toJson(testMapperProxy.selectTestPage()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestPage()), gson.toJson(testMapperProxy.selectTestPage()));
+
+        // 测试Set对象是否顺利解析
+        // 测试多次读取
+        // 读时序列化数据返回，内容应该一致
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestSet()), gson.toJson(testMapperProxy.selectTestSet()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestSet()), gson.toJson(testMapperProxy.selectTestSet()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestSet()), gson.toJson(testMapperProxy.selectTestSet()));
+
+        // 测试Queue对象是否顺利解析
+        // 测试多次读取
+        // 读时序列化数据返回，内容应该一致
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestQueue()), gson.toJson(testMapperProxy.selectTestQueue()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestQueue()), gson.toJson(testMapperProxy.selectTestQueue()));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestQueue()), gson.toJson(testMapperProxy.selectTestQueue()));
+
         // 测试修改时返回结果是否为同一对象
         Assert.assertEquals(testMapperTarget.insertTest(INSERT_ENTITY_TEST),testMapperProxy.insertTest(INSERT_ENTITY_TEST));
         Assert.assertEquals(testMapperTarget.updateTest(UPDATE_ENTITY_TEST),testMapperProxy.updateTest(UPDATE_ENTITY_TEST));

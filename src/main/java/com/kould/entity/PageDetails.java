@@ -1,5 +1,9 @@
 package com.kould.entity;
 
+import com.kould.api.Kache;
+import net.sf.cglib.beans.BeanCopier;
+import org.objenesis.instantiator.ObjectInstantiator;
+
 import java.lang.invoke.MethodHandle;
 
 /**
@@ -17,24 +21,32 @@ public class PageDetails<T> {
 
     private final boolean isFull;
 
-    private MethodHandle setterForField;
+    private ObjectInstantiator<T> pageInstantiator;
 
     private MethodHandle getterForField;
+
+    private BeanCopier beanCopier;
 
     public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass) {
         this.clazz = clazz;
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
         isFull = false;
+        init(clazz);
     }
 
-    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass, MethodHandle setterForField, MethodHandle getterForField) {
+    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass, MethodHandle getterForField) {
         this.clazz = clazz;
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
-        this.setterForField = setterForField;
         this.getterForField = getterForField;
         isFull = true;
+        init(clazz);
+    }
+
+    private void init(Class<T> clazz) {
+        pageInstantiator = Kache.OBJENESIS.getInstantiatorOf(clazz);
+        beanCopier = BeanCopier.create(clazz, clazz, false);
     }
 
     public Class<T> getClazz() {
@@ -49,15 +61,17 @@ public class PageDetails<T> {
         return fieldClass;
     }
 
-    public MethodHandle getSetterForField() {
-        return setterForField;
-    }
-
     public MethodHandle getGetterForField() {
         return getterForField;
     }
 
     public boolean isFull() {
         return isFull;
+    }
+
+    public T clone(T source) {
+        T clone = pageInstantiator.newInstance();
+        beanCopier.copy(source, clone, null);
+        return clone;
     }
 }

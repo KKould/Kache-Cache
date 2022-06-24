@@ -14,7 +14,7 @@ public abstract class RemoteCacheManager implements BeanLoad {
 
     public abstract String getNullTag() ;
 
-    public abstract Object put(String key, String type, MethodPoint point, PageDetails<?> pageDetails) throws Throwable;
+    public abstract <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Throwable;
     public abstract Long delKeys(String pattern) throws Throwable;
     public abstract Long del(String... keys) throws Throwable;
     public abstract Object get(String key, PageDetails<?> pageDetails) throws Throwable;

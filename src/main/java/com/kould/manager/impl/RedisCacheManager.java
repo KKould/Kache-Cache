@@ -12,7 +12,6 @@ import com.kould.service.RedisService;
 import io.lettuce.core.*;
 import io.lettuce.core.api.sync.RedisCommands;
 
-import java.lang.invoke.MethodHandle;
 import java.util.*;
 
 /*
@@ -82,18 +81,15 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public Object put(String key, String type, MethodPoint point, PageDetails<?> pageDetails) throws Throwable {
+    public <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Throwable {
         return redisService.executeSync(commands -> {
             Object result = point.execute();
             Class<?> pageClass = pageDetails.getClazz();
             if (result instanceof Collection) {
-                collection2Lua(commands, key, type, (Collection<? extends KacheEntity>) result,null);
+                collection2Lua(commands, key, type, (Collection<KacheEntity>) result,null);
             } else if (result != null && pageClass.isAssignableFrom(result.getClass())) {
-                MethodHandle setterForRecords = pageDetails.getSetterForField();
-                Collection<? extends KacheEntity> records = (Collection<? extends KacheEntity>) pageDetails.getSetterForField().invoke(result);
-                setterForRecords.invoke(result,Collections.emptyList());
-                collection2Lua(commands, key, type, records, result);
-                setterForRecords.invoke(result,records);
+                Collection<KacheEntity> records = (Collection<KacheEntity>) pageDetails.getGetterForField().invoke(result);
+                collection2Lua(commands, key, type, records, pageDetails.clone((T) result));
             } else {
                 noPackingResultPut(key, type, commands, (KacheEntity) result);
             }
@@ -107,8 +103,6 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @param type 缓存实体类类型
      * @param commands Redis操作对象
      * @param result 数据库结果
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
      */
     private void noPackingResultPut(String key, String type, RedisCommands<String, Object> commands, KacheEntity result) {
         StringBuilder lua = new StringBuilder();
@@ -154,7 +148,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @param page 包装对象
      */
     private void collection2Lua(RedisCommands<String, Object> commands, String key, String type
-            , Collection<? extends KacheEntity> records , Object page) {
+            , Collection<KacheEntity> records , Object page) {
         StringBuilder idsNum = new StringBuilder();
         StringBuilder lua = new StringBuilder();
         //用于收集哪些元数据是否已存在（每个元素指的是records中的元素索引）
@@ -202,13 +196,14 @@ public class RedisCacheManager extends RemoteCacheManager {
             if (keys.length - 1 >= 0) {
                 System.arraycopy(keys, 0, values, used, keys.length - 1);
             }
-            if (page != null) {
-                values[valuesSize - 1] = page;
-            } else {
-                values[valuesSize - 1] = Collections.emptyList();
-            }
+
+            List<KacheEntity> list = new ArrayList<>(records);
+            records.clear();
+
+            values[valuesSize - 1] = Objects.requireNonNullElse(page, records);
             keys[keys.length - 1] = key;
             commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values);
+            records.addAll(list);
         } else {
             lua.append("redis.call('del',KEYS[1]) ");
             lua.append("redis.call('lpush',KEYS[1],ARGV[1]) ") ;
@@ -283,7 +278,6 @@ public class RedisCacheManager extends RemoteCacheManager {
             } else {
                 //为条件查询方法
                 List<Object> list = commands.evalsha(scriptGetSHA1, ScriptOutputType.MULTI, key);
-                List<Object> records = new ArrayList<>();
                 if (list != null && !list.isEmpty()) {
                     Object first = list.get(0);
                     //判断结果是否为单个POBean
@@ -291,27 +285,30 @@ public class RedisCacheManager extends RemoteCacheManager {
                         return list.get(0);
                         //判断返回结果是否为Collection或其子类
                     } else if (first instanceof Collection) {
-                        //跳过第一位数据的填充
-                        for (int i = 1; i < list.size(); i++) {
-                            records.add(list.get(i));
-                        }
-                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                        Collections.reverse(records);
-                        return records;
+                        return fillingData(list, (Collection<Object>) first);
                     } else {
                         //此时为包装类的情况
-                        pageDetails.getSetterForField().invoke(first, records);
-                        //跳过第一位数据的填充
-                        for (int i = 1; i < list.size(); i++) {
-                            records.add(list.get(i));
-                        }
-                        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
-                        Collections.reverse(records);
+                        fillingData(list, (Collection<Object>) pageDetails.getGetterForField().invoke(first));
                         return first;
                     }
                 } else return null;
             }
         }) ;
+    }
+
+    /**
+     * 将list中的数据移除首位倒序并填充如collection之中
+     * @param list Redis中的序列化List数据集
+     * @param collection 需要填充元数据的集合
+     * @return 填充完成后的数据结合
+     */
+    private Collection<Object> fillingData(List<Object> list, Collection<Object> collection) {
+        //移除第一位避免填充
+        list.remove(0);
+        //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
+        Collections.reverse(list);
+        collection.addAll(list);
+        return collection;
     }
 
     @Override

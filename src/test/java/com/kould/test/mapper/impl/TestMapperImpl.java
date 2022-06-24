@@ -1,9 +1,9 @@
 package com.kould.test.mapper.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kould.test.entity.TestEntity;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class TestMapperImpl implements com.kould.test.mapper.TestMapper {
 
@@ -29,6 +29,27 @@ public class TestMapperImpl implements com.kould.test.mapper.TestMapper {
         //模拟网络延迟
         Thread.sleep(1);
         return DATA_BASE_TEST;
+    }
+
+    @Override
+    public Set<TestEntity> selectTestSet() throws InterruptedException {
+        //模拟网络延迟
+        Thread.sleep(1);
+        return new HashSet<>(DATA_BASE_TEST);
+    }
+
+    @Override
+    public Queue<TestEntity> selectTestQueue() throws InterruptedException {
+        //模拟网络延迟
+        Thread.sleep(1);
+        return new ArrayDeque<>(DATA_BASE_TEST);
+    }
+
+    @Override
+    public Page<TestEntity> selectTestPage() throws InterruptedException {
+        //模拟网络延迟
+        Thread.sleep(1);
+        return new Page<TestEntity>().setRecords(DATA_BASE_TEST);
     }
 
     @Override
