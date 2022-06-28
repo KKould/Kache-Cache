@@ -34,6 +34,7 @@
     <kryo-shaded.ver>4.0.0</kryo-shaded.ver>
     <kryo-serializers.ver>0.41</kryo-serializers.ver>
     <rabbit.ver>5.14.2</rabbit.ver>
+    <objenesis.ver>3.2</objenesis.ver>
     <cglib.ver>3.2.4</cglib.ver>
   </properties>
 
@@ -109,7 +110,7 @@
     <dependency>
       <groupId>org.objenesis</groupId>
       <artifactId>objenesis</artifactId>
-      <version>3.2</version>
+      <version>${objenesis.ver}</version>
     </dependency>
     <dependency>
       <groupId>cglib</groupId>

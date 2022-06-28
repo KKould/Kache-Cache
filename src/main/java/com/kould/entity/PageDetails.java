@@ -5,13 +5,15 @@ import net.sf.cglib.beans.BeanCopier;
 import org.objenesis.instantiator.ObjectInstantiator;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 
 /**
  * Page类型的属性方法句柄封装
- * 当方法句柄为Null时，在Kache组装时自动填充Setter、Getter的方法句柄
  * @param <T>
  */
 public class PageDetails<T> {
+
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     private final Class<T> clazz;
 
@@ -19,34 +21,24 @@ public class PageDetails<T> {
 
     private final Class<?> fieldClass;
 
-    private final boolean isFull;
+    private final MethodHandle getterForField;
 
     private ObjectInstantiator<T> pageInstantiator;
 
-    private MethodHandle getterForField;
-
     private BeanCopier beanCopier;
 
-    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass) {
+    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass) throws NoSuchFieldException, IllegalAccessException {
         this.clazz = clazz;
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
-        isFull = false;
-        init(clazz);
+        getterForField = init(clazz, fieldName, fieldClass);
     }
 
-    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass, MethodHandle getterForField) {
-        this.clazz = clazz;
-        this.fieldName = fieldName;
-        this.fieldClass = fieldClass;
-        this.getterForField = getterForField;
-        isFull = true;
-        init(clazz);
-    }
-
-    private void init(Class<T> clazz) {
+    private MethodHandle init(Class<T> clazz, String fieldName, Class<?> collectionClazz) throws NoSuchFieldException, IllegalAccessException {
         pageInstantiator = Kache.OBJENESIS.getInstantiatorOf(clazz);
         beanCopier = BeanCopier.create(clazz, clazz, false);
+        MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(clazz, LOOKUP);
+        return privateLookupIn.findGetter(clazz, fieldName, collectionClazz);
     }
 
     public Class<T> getClazz() {
@@ -63,10 +55,6 @@ public class PageDetails<T> {
 
     public MethodHandle getGetterForField() {
         return getterForField;
-    }
-
-    public boolean isFull() {
-        return isFull;
     }
 
     public T clone(T source) {

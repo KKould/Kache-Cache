@@ -28,8 +28,6 @@ import io.lettuce.core.codec.RedisCodec;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
@@ -61,8 +59,6 @@ public class Kache {
     private final CacheHandler cacheHandler;
 
     public static class Builder {
-
-        private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
         private final Map<Class<?>, Object> beanBoot = new HashMap<>();
 
@@ -116,13 +112,10 @@ public class Kache {
          * Kache的建造方法，用于将载入的配置与BeanLoad进行组装
          * @return Kache对象
          */
-        public Kache build() throws IllegalAccessException, NoSuchFieldException {
+        public Kache build() throws IllegalAccessException {
             PageDetails<?> pageDetails = (PageDetails<?>) beanBoot.get(PageDetails.class);
             if (pageDetails == null) {
                 throw new KacheBuildException(PAGE_UNLOAD_MESSAGE);
-            }
-            if (!pageDetails.isFull()){
-                processPageDetails(pageDetails);
             }
             if (beanBoot.get(RedisService.class) == null) {
                 injectionDefaultRedisService();
@@ -168,21 +161,6 @@ public class Kache {
             RedisClient redisClient = (RedisClient) beanBoot.get(RedisClient.class);
             RedisCodec<String, Object> redisCodec = (RedisCodec<String, Object>) beanBoot.get(RedisCodec.class);
             beanBoot.put(RedisService.class, new RedisService(daoProperties, redisClient, redisCodec));
-        }
-
-        /**
-         * PageDetails自动填充方法句柄
-         * @param pageDetails 目标pageDetails
-         * @throws IllegalAccessException 无法访问异常
-         * @throws NoSuchFieldException 无匹配属性异常
-         */
-        private void processPageDetails(PageDetails<?> pageDetails) throws IllegalAccessException, NoSuchFieldException {
-            Class<?> pageClass = pageDetails.getClazz();
-            String recordsName = pageDetails.getFieldName();
-            Class<?> recordsClass = pageDetails.getFieldClass();
-            MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(pageClass, LOOKUP);
-            MethodHandle getterForRecords = privateLookupIn.findGetter(pageClass, recordsName, recordsClass);
-            beanBoot.put(PageDetails.class, new PageDetails<>(pageClass, recordsName, recordsClass, getterForRecords));
         }
     }
 
