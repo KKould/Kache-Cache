@@ -50,8 +50,6 @@ public class BaseCacheHandler extends CacheHandler {
             }));
             // 堵塞读取,聚集该击穿至写入时间内的线程统一获取数据并解除堵塞
             result = completableFuture.get();
-            // 该次击穿结束，移除该Future帧避免下次击穿获取脏值
-            FUTURE_INDEX.remove(lockKey);
         } else {
             ListenerHandler.hit(key, methodName, daoArgs, mainType, enable);
         }
