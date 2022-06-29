@@ -1,11 +1,11 @@
 package com.kould.properties;
 
-public class InterprocessCacheProperties {
+public class LocalCacheProperties {
 
-    public InterprocessCacheProperties() {
+    public LocalCacheProperties() {
     }
 
-    public InterprocessCacheProperties(boolean enable, int size) {
+    public LocalCacheProperties(boolean enable, int size) {
         this.enable = enable;
         this.size = size;
     }

@@ -15,7 +15,7 @@ import com.kould.strategy.impl.AmqpStrategy;
 import com.kould.strategy.impl.DBFirstStrategy;
 import com.kould.listener.impl.StatisticsListener;
 import com.kould.manager.IBaseCacheManager;
-import com.kould.manager.InterprocessCacheManager;
+import com.kould.manager.LocalCacheManager;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.manager.impl.BaseCacheManagerImpl;
 import com.kould.manager.impl.GuavaCacheManager;
@@ -25,8 +25,6 @@ import com.kould.utils.FieldUtils;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.codec.RedisCodec;
-import org.objenesis.Objenesis;
-import org.objenesis.ObjenesisStd;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
@@ -35,8 +33,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class Kache {
-
-    public static final Objenesis OBJENESIS = new ObjenesisStd();
 
     public static final String INDEX_TAG = "#INDEX:";
 
@@ -84,15 +80,19 @@ public class Kache {
             beanBoot.put(CacheEncoder.class, BaseCacheEncoder.getInstance());
             beanBoot.put(RedisCodec.class, new KryoRedisCodec());
             beanBoot.put(DaoProperties.class, new DaoProperties());
-            beanBoot.put(InterprocessCacheProperties.class, new InterprocessCacheProperties());
+            beanBoot.put(LocalCacheProperties.class, new LocalCacheProperties());
             beanBoot.put(ListenerProperties.class, new ListenerProperties());
             beanBoot.put(KeyProperties.class, new KeyProperties());
-            beanBoot.put(InterprocessCacheManager.class, new GuavaCacheManager());
+            beanBoot.put(LocalCacheManager.class, new GuavaCacheManager());
             beanBoot.put(IBaseCacheManager.class, new BaseCacheManagerImpl());
             beanBoot.put(Strategy.class, new DBFirstStrategy());
             beanBoot.put(CacheHandler.class, new BaseCacheHandler());
             beanBoot.put(RemoteCacheManager.class, new RedisCacheManager());
+        }
 
+        public Kache.Builder page(Class<?> clazz, String fieldName, Class<?> fieldClass) throws NoSuchFieldException, IllegalAccessException {
+            beanBoot.put(PageDetails.class, new PageDetails<>(clazz, fieldName, fieldClass));
+            return this;
         }
 
         /**

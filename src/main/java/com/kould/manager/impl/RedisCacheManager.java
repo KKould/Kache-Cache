@@ -9,6 +9,7 @@ import com.kould.entity.NullValue;
 import com.kould.manager.RemoteCacheManager;
 import com.kould.entity.MethodPoint;
 import com.kould.service.RedisService;
+import com.kould.utils.CloneUtils;
 import io.lettuce.core.*;
 import io.lettuce.core.api.sync.RedisCommands;
 
@@ -45,7 +46,7 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private RedisService redisService;
 
-    private static final String CAS_NULL = "$1";
+    private static final String CAS_NULL = "$Kache";
 
     /**
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
@@ -86,10 +87,12 @@ public class RedisCacheManager extends RemoteCacheManager {
             Object result = point.execute();
             Class<?> pageClass = pageDetails.getClazz();
             if (result instanceof Collection) {
-                collection2Lua(commands, key, type, (Collection<KacheEntity>) result,null);
+                Collection<KacheEntity> cloneCollection = CloneUtils.cloneBean((Collection<KacheEntity>) result);
+                collection2Lua(commands, key, type, cloneCollection,null);
             } else if (result != null && pageClass.isAssignableFrom(result.getClass())) {
-                Collection<KacheEntity> records = (Collection<KacheEntity>) pageDetails.getGetterForField().invoke(result);
-                collection2Lua(commands, key, type, records, pageDetails.clone((T) result));
+                T pageClone = CloneUtils.cloneBean((T) result);
+                Collection<KacheEntity> records = pageDetails.getRecord(pageClone);
+                collection2Lua(commands, key, type, records, pageClone);
             } else {
                 noPackingResultPut(key, type, commands, (KacheEntity) result);
             }
@@ -196,14 +199,10 @@ public class RedisCacheManager extends RemoteCacheManager {
             if (keys.length - 1 >= 0) {
                 System.arraycopy(keys, 0, values, used, keys.length - 1);
             }
-
-            List<KacheEntity> list = new ArrayList<>(records);
             records.clear();
-
             values[valuesSize - 1] = Objects.requireNonNullElse(page, records);
             keys[keys.length - 1] = key;
             commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values);
-            records.addAll(list);
         } else {
             lua.append("redis.call('del',KEYS[1]) ");
             lua.append("redis.call('lpush',KEYS[1],ARGV[1]) ") ;
@@ -285,10 +284,10 @@ public class RedisCacheManager extends RemoteCacheManager {
                         return list.get(0);
                         //判断返回结果是否为Collection或其子类
                     } else if (first instanceof Collection) {
-                        return fillingData(list, (Collection<Object>) first);
+                        return fillingData(list, (Collection<KacheEntity>) first);
                     } else {
                         //此时为包装类的情况
-                        fillingData(list, (Collection<Object>) pageDetails.getGetterForField().invoke(first));
+                        fillingData(list, pageDetails.getRecord(first));
                         return first;
                     }
                 } else return null;
@@ -302,12 +301,14 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @param collection 需要填充元数据的集合
      * @return 填充完成后的数据结合
      */
-    private Collection<Object> fillingData(List<Object> list, Collection<Object> collection) {
+    private Collection<KacheEntity> fillingData(List<Object> list, Collection<KacheEntity> collection) {
         //移除第一位避免填充
         list.remove(0);
         //由于Redis内list的存储是类似栈帧压入的形式导致list存取时倒叙，所以此处取出时将顺序颠倒回原位
         Collections.reverse(list);
-        collection.addAll(list);
+        for (Object o : list) {
+            collection.add(((KacheEntity) o));
+        }
         return collection;
     }
 

@@ -4,7 +4,7 @@ import com.kould.api.BeanLoad;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.PageDetails;
 import com.kould.entity.KacheMessage;
-import com.kould.properties.InterprocessCacheProperties;
+import com.kould.properties.LocalCacheProperties;
 import com.kould.entity.MethodPoint;
 
 /**
@@ -14,11 +14,11 @@ import com.kould.entity.MethodPoint;
  */
 public abstract class IBaseCacheManager implements BeanLoad {
 
-    protected InterprocessCacheManager interprocessCacheManager ;
+    protected LocalCacheManager localCacheManager;
 
     protected RemoteCacheManager remoteCacheManager ;
 
-    protected InterprocessCacheProperties interprocessCacheProperties ;
+    protected LocalCacheProperties localCacheProperties;
 
     protected CacheEncoder cacheEncoder ;
 
@@ -52,6 +52,6 @@ public abstract class IBaseCacheManager implements BeanLoad {
 
     @Override
     public Class<?>[] loadArgs() {
-        return new Class[] {InterprocessCacheManager.class, RemoteCacheManager.class, InterprocessCacheProperties.class, CacheEncoder.class, PageDetails.class};
+        return new Class[] {LocalCacheManager.class, RemoteCacheManager.class, LocalCacheProperties.class, CacheEncoder.class, PageDetails.class};
     }
 }

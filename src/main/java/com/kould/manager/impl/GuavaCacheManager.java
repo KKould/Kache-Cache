@@ -4,7 +4,7 @@ package com.kould.manager.impl;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.kould.entity.NullValue;
-import com.kould.manager.InterprocessCacheManager;
+import com.kould.manager.LocalCacheManager;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 用于缓存RemoteCache获取的缓存
 仅为Key->Value形式存储
  */
-public class GuavaCacheManager extends InterprocessCacheManager {
+public class GuavaCacheManager extends LocalCacheManager {
 
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
@@ -49,7 +49,7 @@ public class GuavaCacheManager extends InterprocessCacheManager {
         Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, k -> CacheBuilder.newBuilder()
                 .weakValues()
                 .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
-                .maximumSize(interprocessCacheProperties.getSize())
+                .maximumSize(localCacheProperties.getSize())
                 .build());
         cache.put(key,result);
     }

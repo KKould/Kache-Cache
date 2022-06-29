@@ -12,20 +12,20 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     @Override
     public Object daoWrite(String key, MethodPoint point, String type) throws Throwable {
         Object result = remoteCacheManager.put(key, type, point, this.pageDetails);
-        if (interprocessCacheProperties.isEnable()) {
-            interprocessCacheManager.put(key, result, type) ;
+        if (localCacheProperties.isEnable()) {
+            localCacheManager.put(key, result, type) ;
         }
         return result;
     }
 
     @Override
     public Object daoRead(String key, String type) throws Throwable {
-        if (interprocessCacheProperties.isEnable()) {
-            Object result =interprocessCacheManager.get(key, type) ;
+        if (localCacheProperties.isEnable()) {
+            Object result = localCacheManager.get(key, type) ;
             if (result == null) {
                 result = remoteCacheManager.get(key, this.pageDetails) ;
                 if (result != null) {
-                    interprocessCacheManager.put(key, result, type);
+                    localCacheManager.put(key, result, type);
                 }
             }
             return result;
@@ -62,7 +62,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
         String typeName = msg.getType();
         // 若远程缓存CAS失败则仅清空进程缓存
         if (!remoteCacheManager.cas(msg.getId())) {
-            interprocessCacheManager.clear(typeName);
+            localCacheManager.clear(typeName);
             return;
         }
         Class<? extends KacheEntity> resultClass = msg.getCacheClazz();
@@ -74,9 +74,9 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
             String idStr = resultClass.cast(args).getPrimaryKey();
             remoteCacheManager.del(cacheEncoder.getId2Key(idStr, typeName));
         }
-        interprocessCacheManager.clear(typeName);
         // INDEX为前缀表示只批量删除索引缓存
         // 表达式中加*号使类型可以匹配多类型
         remoteCacheManager.delKeys(cacheEncoder.getPattern(Kache.INDEX_TAG + "*" + resultClass.getName()));
+        localCacheManager.clear(typeName);
     }
 }

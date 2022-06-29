@@ -1,11 +1,10 @@
 package com.kould.entity;
 
-import com.kould.api.Kache;
-import net.sf.cglib.beans.BeanCopier;
-import org.objenesis.instantiator.ObjectInstantiator;
+import com.kould.api.KacheEntity;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.util.Collection;
 
 /**
  * Page类型的属性方法句柄封装
@@ -17,26 +16,20 @@ public class PageDetails<T> {
 
     private final Class<T> clazz;
 
-    private final String fieldName;
+    private final String recordName;
 
-    private final Class<?> fieldClass;
+    private final Class<?> recordClass;
 
-    private final MethodHandle getterForField;
+    private final MethodHandle getterForRecord;
 
-    private ObjectInstantiator<T> pageInstantiator;
-
-    private BeanCopier beanCopier;
-
-    public PageDetails(Class<T> clazz, String fieldName, Class<?> fieldClass) throws NoSuchFieldException, IllegalAccessException {
+    public PageDetails(Class<T> clazz, String recordName, Class<?> recordClass) throws NoSuchFieldException, IllegalAccessException {
         this.clazz = clazz;
-        this.fieldName = fieldName;
-        this.fieldClass = fieldClass;
-        getterForField = init(clazz, fieldName, fieldClass);
+        this.recordName = recordName;
+        this.recordClass = recordClass;
+        getterForRecord = init(clazz, recordName, recordClass);
     }
 
     private MethodHandle init(Class<T> clazz, String fieldName, Class<?> collectionClazz) throws NoSuchFieldException, IllegalAccessException {
-        pageInstantiator = Kache.OBJENESIS.getInstantiatorOf(clazz);
-        beanCopier = BeanCopier.create(clazz, clazz, false);
         MethodHandles.Lookup privateLookupIn = MethodHandles.privateLookupIn(clazz, LOOKUP);
         return privateLookupIn.findGetter(clazz, fieldName, collectionClazz);
     }
@@ -45,21 +38,15 @@ public class PageDetails<T> {
         return clazz;
     }
 
-    public String getFieldName() {
-        return fieldName;
+    public String getRecordName() {
+        return recordName;
     }
 
-    public Class<?> getFieldClass() {
-        return fieldClass;
+    public Class<?> getRecordClass() {
+        return recordClass;
     }
 
-    public MethodHandle getGetterForField() {
-        return getterForField;
-    }
-
-    public T clone(T source) {
-        T clone = pageInstantiator.newInstance();
-        beanCopier.copy(source, clone, null);
-        return clone;
+    public Collection<KacheEntity> getRecord(Object source) throws Throwable {
+        return (Collection<KacheEntity>) getterForRecord.invoke(source);
     }
 }
