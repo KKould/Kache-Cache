@@ -30,9 +30,9 @@ public abstract class IBaseCacheManager implements BeanLoad {
      * @param point 切点
      * @param type 类类型
      * @return 缓存具体数据
-     * @throws Exception 方法拦截时被代理方法可能产生的异常
+     * @throws RuntimeException 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoWrite(String key, MethodPoint point, String type) throws Throwable;
+    public abstract Object daoWrite(String key, MethodPoint point, String type) throws Exception;
 
     /**
      * 抽象层面上进行缓存的具体读取操作调控
@@ -42,13 +42,13 @@ public abstract class IBaseCacheManager implements BeanLoad {
      * @return 缓存具体数据
      * @throws Exception 方法拦截时被代理方法可能产生的异常
      */
-    public abstract Object daoRead(String key, String type) throws Throwable;
+    public abstract Object daoRead(String key, String type) throws Exception;
 
-    public abstract void deleteCache(KacheMessage msg) throws Throwable;
+    public abstract void deleteCache(KacheMessage msg) throws Exception;
 
-    public abstract void updateCache(KacheMessage msg) throws Throwable;
+    public abstract void updateCache(KacheMessage msg) throws Exception;
 
-    public abstract void insertCache(KacheMessage msg) throws Throwable;
+    public abstract void insertCache(KacheMessage msg) throws Exception;
 
     @Override
     public Class<?>[] loadArgs() {

@@ -10,9 +10,9 @@ public abstract class Strategy implements BeanLoad {
 
     protected IBaseCacheManager baseCacheManager;
 
-    public abstract Object delete(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
-    public abstract Object update(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
-    public abstract Object insert(MethodPoint point, KacheMessage serviceMessage) throws Throwable;
+    public abstract Object delete(MethodPoint point, KacheMessage serviceMessage) throws Exception;
+    public abstract Object update(MethodPoint point, KacheMessage serviceMessage) throws Exception;
+    public abstract Object insert(MethodPoint point, KacheMessage serviceMessage) throws Exception;
 
     @Override
     public Class<?>[] loadArgs() {

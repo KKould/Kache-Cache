@@ -14,12 +14,12 @@ public abstract class RemoteCacheManager implements BeanLoad {
 
     public abstract String getNullTag() ;
 
-    public abstract <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Throwable;
-    public abstract Long delKeys(String pattern) throws Throwable;
-    public abstract Long del(String... keys) throws Throwable;
-    public abstract Object get(String key, PageDetails<?> pageDetails) throws Throwable;
-    public abstract boolean cas(String key) throws Throwable;
-    public abstract void init() throws Throwable;
+    public abstract <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Exception;
+    public abstract Long delKeys(String pattern) throws Exception;
+    public abstract Long del(String... keys) throws Exception;
+    public abstract Object get(String key, PageDetails<?> pageDetails) throws Exception;
+    public abstract boolean cas(String key) throws Exception;
+    public abstract void init() throws Exception;
 
     @Override
     public Class<?>[] loadArgs() {

@@ -1,5 +1,6 @@
 package com.kould.service;
 
+import com.kould.exception.KacheRedisException;
 import com.kould.properties.DaoProperties;
 import com.kould.function.SyncCommandCallback;
 import io.lettuce.core.RedisClient;
@@ -32,13 +33,13 @@ public class RedisService {
         this.redisClient.shutdown();
     }
 
-    public <T> T executeSync(SyncCommandCallback<T> callback) throws Throwable {
+    public <T> T executeSync(SyncCommandCallback<T> callback) throws KacheRedisException {
         try (StatefulRedisConnection<String, Object> connection = redisConnectionPool.borrowObject()) {
             connection.setAutoFlushCommands(true);
             RedisCommands<String, Object> commands = connection.sync();
             return callback.doInConnection(commands);
         } catch (Throwable e) {
-            throw new Throwable(e);
+            throw new KacheRedisException(e);
         }
     }
 }

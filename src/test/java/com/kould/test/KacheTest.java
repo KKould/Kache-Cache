@@ -3,6 +3,7 @@ package com.kould.test;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.kould.api.Kache;
+import com.kould.properties.LocalCacheProperties;
 import com.kould.test.entity.TestEntity;
 import com.kould.test.mapper.TestMapper;
 import com.kould.test.mapper.impl.TestMapperImpl;
@@ -21,7 +22,7 @@ public class KacheTest {
 
     private final Kache kache = Kache.builder()
             .page(Page.class, "records", List.class)
-//            .load(LocalCacheProperties.class, new LocalCacheProperties(false, 0))
+            .load(LocalCacheProperties.class, new LocalCacheProperties(false, 0))
             .build();
 
     private final Gson gson = new Gson();
@@ -64,6 +65,17 @@ public class KacheTest {
         collectionSort(testMapperTarget.selectTestAll(), testMapperProxy.selectTestAll());
         testMapperProxy.deleteTest(INSERT_ENTITY_TEST);
         collectionSort(testMapperTarget.selectTestAll(), testMapperProxy.selectTestAll());
+
+        // 用于id为0的缓存清空
+        testMapperProxy.updateTest(UPDATE_ENTITY_TEST);
+
+        // 测试Page对象是否顺利解析
+        // 测试多次读取
+        // 读时序列化数据返回，内容应该一致
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestById(0L)), gson.toJson(testMapperProxy.selectTestById(0L)));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestById(0L)), gson.toJson(testMapperProxy.selectTestById(0L)));
+        Assert.assertEquals(gson.toJson(testMapperTarget.selectTestById(0L)), gson.toJson(testMapperProxy.selectTestById(0L)));
+
 
         // 测试Page对象是否顺利解析
         // 测试多次读取

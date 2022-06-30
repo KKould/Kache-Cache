@@ -52,7 +52,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * 初始化预先缓存对应Lua脚本并取出脚本SHA1码存入变量
      */
     @Override
-    public void init() throws Throwable {
+    public void init() throws RuntimeException {
         redisService.executeSync(commands -> {
             scriptGetSHA1 = commands.scriptLoad(SCRIPT_LUA_CACHE_GET);
             return true;
@@ -82,7 +82,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Throwable {
+    public <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws RuntimeException {
         return redisService.executeSync(commands -> {
             Object result = point.execute();
             Class<?> pageClass = pageDetails.getClazz();
@@ -116,7 +116,7 @@ public class RedisCacheManager extends RemoteCacheManager {
         Object[] values = new Object[2];
         if (!key.contains(INDEX_TAG_KEY)) {
             //若为ID方法，则直接将key赋值给id
-            keys[0] = cacheEncoder.getId2Key(key, type);
+            keys[0] = key;
         } else if (result != null) {
             //获取条件方法单结果
             keys[0] = cacheEncoder.getId2Key(result.getPrimaryKey(), type);
@@ -131,14 +131,14 @@ public class RedisCacheManager extends RemoteCacheManager {
         }
         //判断此时是否为id获取的单结果或者为条件查询获取的单结果
         if (!key.equals(keys[0])) {
-            keys[1] = key;
-            values[1] = keys[0];
             lua.append("redis.call('del',KEYS[2]);");
             lua.append("redis.call('lpush',KEYS[2],ARGV[2]);") ;
             lua.append("return redis.call('expire',KEYS[2],")
                     .append(daoProperties.getCacheTime())
                     .append(");");
         }
+        keys[1] = key;
+        values[1] = keys[0];
         commands.eval(lua.toString(), ScriptOutputType.MULTI, keys, values) ;
     }
 
@@ -269,7 +269,7 @@ public class RedisCacheManager extends RemoteCacheManager {
      * @return 成功返回对应Key的结果，失败则返回null
      */
     @Override
-    public Object get(String key, PageDetails<?> pageDetails) throws Throwable {
+    public Object get(String key, PageDetails<?> pageDetails) throws RuntimeException {
         return redisService.executeSync(commands -> {
             //判断是否为直接通过ID获取单条方法
             if (!key.contains(INDEX_TAG_KEY)) {
@@ -313,7 +313,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public boolean cas(String key) throws Throwable {
+    public boolean cas(String key) throws RuntimeException {
         return redisService.executeSync(commands -> {
             if (Boolean.TRUE.equals(commands.setnx(key,CAS_NULL))) {
                 commands.expire(key, daoProperties.getCasKeepTime());
@@ -325,7 +325,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Long delKeys(String pattern) throws Throwable {
+    public Long delKeys(String pattern) throws RuntimeException {
         return redisService.executeSync(commands -> {
             // SCAN参数
             ScanArgs scanArgs = ScanArgs.Builder.limit(500).match(pattern);
@@ -348,7 +348,7 @@ public class RedisCacheManager extends RemoteCacheManager {
     }
 
     @Override
-    public Long del(String... keys) throws Throwable {
+    public Long del(String... keys) throws RuntimeException {
         return redisService.executeSync(commands -> commands.del(keys));
     }
 

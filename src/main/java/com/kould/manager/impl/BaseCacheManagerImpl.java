@@ -10,7 +10,7 @@ import com.kould.entity.MethodPoint;
 public class BaseCacheManagerImpl extends IBaseCacheManager {
 
     @Override
-    public Object daoWrite(String key, MethodPoint point, String type) throws Throwable {
+    public Object daoWrite(String key, MethodPoint point, String type) throws Exception {
         Object result = remoteCacheManager.put(key, type, point, this.pageDetails);
         if (localCacheProperties.isEnable()) {
             localCacheManager.put(key, result, type) ;
@@ -19,7 +19,7 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public Object daoRead(String key, String type) throws Throwable {
+    public Object daoRead(String key, String type) throws Exception {
         if (localCacheProperties.isEnable()) {
             Object result = localCacheManager.get(key, type) ;
             if (result == null) {
@@ -35,17 +35,17 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
     }
 
     @Override
-    public void deleteCache(KacheMessage msg) throws Throwable {
+    public void deleteCache(KacheMessage msg) throws Exception {
         deleteCacheByKey(msg);
     }
 
     @Override
-    public void updateCache(KacheMessage msg) throws Throwable {
+    public void updateCache(KacheMessage msg) throws Exception {
         deleteCacheByKey(msg);
     }
 
     @Override
-    public void insertCache(KacheMessage msg) throws Throwable {
+    public void insertCache(KacheMessage msg) throws Exception {
         deleteCacheByKey(msg);
     }
 
@@ -56,9 +56,9 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
      * 实现幂等，防止远程缓存重复删除
      *
      * @param msg 方法摘要
-     * @throws RuntimeException 删除时异常
+     * @throws Exception 删除时异常
      */
-    private void deleteCacheByKey(KacheMessage msg) throws Throwable {
+    private void deleteCacheByKey(KacheMessage msg) throws Exception {
         String typeName = msg.getType();
         // 若远程缓存CAS失败则仅清空进程缓存
         if (!remoteCacheManager.cas(msg.getId())) {

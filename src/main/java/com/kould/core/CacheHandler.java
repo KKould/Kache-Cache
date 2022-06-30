@@ -15,7 +15,7 @@ public abstract class CacheHandler implements BeanLoad {
 
     protected ListenerProperties listenerProperties;
 
-    public abstract Object load(MethodPoint point, String types, Status methodStatus) throws Throwable;
+    public abstract Object load(MethodPoint point, String types, Status methodStatus) throws Exception;
 
     @Override
     public Class<?>[] loadArgs() {

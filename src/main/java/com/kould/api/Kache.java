@@ -200,9 +200,9 @@ public class Kache {
 
     /**
      * Kache初始化方法
-     * @throws Throwable 初始化异常
+     * @throws Exception 初始化异常
      */
-    public void init() throws Throwable {
+    public void init() throws Exception {
         if (strategy instanceof AmqpStrategy) {
             ((AmqpStrategy) strategy).init();
         }
@@ -211,9 +211,9 @@ public class Kache {
 
     /**
      * Kache资源释放方法
-     * @throws Throwable 释放异常
+     * @throws Exception 释放异常
      */
-    public void destroy() throws Throwable {
+    public void destroy() throws Exception {
         if (strategy instanceof AmqpStrategy) {
             ((AmqpStrategy) strategy).destroy();
         }
