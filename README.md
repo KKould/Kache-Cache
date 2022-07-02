@@ -225,9 +225,11 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 
 #### **1、Kache依赖引入**
 
-#### **2、Kache代理**
+#### **2、缓存实体继承KacheEntity接口实现getPrimaryKey方法**
 
-#### 3、Dao层写入注解
+#### **3、Kache代理**
+
+#### 4、Dao层写入注解
 
 ##### 示例：
 
@@ -241,7 +243,44 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 </dependency>
 ```
 
-**2**.对Mapper进行Kache的代理
+**2**.缓存实体继承KacheEntity接口
+
+```java
+@Data
+@EqualsAndHashCode(callSuper = true)
+@TableName("kork_article")
+public class Article extends BasePO implements KacheEntity {
+
+    private static final long serialVersionUID = -4470366380115322213L;
+
+    @DataFactory(minLen = 10)
+    private String title;
+
+    private String summary;
+
+    @JsonAdapter(IdAdapter.class)
+    private Long authorId;
+
+    @JsonAdapter(IdAdapter.class)
+    private Long bodyId;
+
+    @JsonAdapter(IdAdapter.class)
+    private Long categoryId;
+
+    private Integer commentCounts;
+
+    private Long viewCounts;
+
+    private ArticleType weight;
+
+    @Override
+    public String getPrimaryKey() {
+        return getId().toString();
+    }
+}
+```
+
+**3**.对Mapper进行Kache的代理
 
 ```java
 Kache kache = Kache.builder().build();
@@ -255,7 +294,7 @@ kache.destroy();
 ArticleMapper proxy = kache.getProxy(articleMapper, Article.class);
 ```
 
-**3**.其对应的**Dao层**的Dao方法添加注释：
+**4**.其对应的**Dao层**的Dao方法添加注释：
 
 - 持久化方法注解：@DaoMethod
   - Type：方法类型：
