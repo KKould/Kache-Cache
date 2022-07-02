@@ -221,6 +221,8 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 
 该Kache为原生JDK进行组件管理以支持Kotlin或scala等jdk语言使用，若是使用Spring框架请移步至：[https://gitee.com/Kould/kache-spring](Kache-Spring)
 
+原生使用Kache的使用示例在test/java/com.kould.test/KacheTest中
+
 #### **1、Kache依赖引入**
 
 #### **2、Kache代理**
@@ -235,6 +237,7 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 <dependency>
   <groupId>io.gitee.kould</groupId>
   <artifactId>Kache</artifactId>
+  <version>1.8.9.INFORMAL_VERSION</version>
 </dependency>
 ```
 
@@ -284,15 +287,22 @@ public interface TagMapper extends BaseMapper<Tag> {
 ```
 
 自定义配置或组件：
+PageDetails构造参数：
+1. 分页对象Class：Page.class
+2. 实体数据集合属性名：“records”
+3. 实体数据集合属性Class：List.class
 
 ```java
 // 以接口类型作为键值替换默认配置或增加额外配置
 // 用于无额外参数的配置或组件加载
 load(Class<?> interfaceClass, Object bean);
 
-// 示例:注入MyBatis-Plus的包装类对象Page的PageDetails对象
+// 示例:注入MyBatis-Plus的包装类对象Page的PageDetails对象且关闭本地缓存
 private final Kache kache = Kache.builder()
-            .load(PageDetails.class, new PageDetails<>(Page.class, "records", List.class))
+            // 注册PageDeatils
+            .page(Page.class, "records", List.class)
+            // 关闭本地缓存
+            .load(LocalCacheProperties.class, new LocalCacheProperties(false, 0))
             .build();
 ```
 
