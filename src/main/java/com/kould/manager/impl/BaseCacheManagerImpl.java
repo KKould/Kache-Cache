@@ -36,17 +36,26 @@ public class BaseCacheManagerImpl extends IBaseCacheManager {
 
     @Override
     public void deleteCache(KacheMessage msg) throws Exception {
-        deleteCacheByKey(msg);
+        kacheLock.syncFunction(msg.getType(), value -> {
+            deleteCacheByKey(value);
+            return true;
+        }, msg);
     }
 
     @Override
     public void updateCache(KacheMessage msg) throws Exception {
-        deleteCacheByKey(msg);
+        kacheLock.syncFunction(msg.getType(), value -> {
+            deleteCacheByKey(value);
+            return true;
+        }, msg);
     }
 
     @Override
     public void insertCache(KacheMessage msg) throws Exception {
-        deleteCacheByKey(msg);
+        kacheLock.syncFunction(msg.getType(), value -> {
+            deleteCacheByKey(value);
+            return true;
+        }, msg);
     }
 
     /**

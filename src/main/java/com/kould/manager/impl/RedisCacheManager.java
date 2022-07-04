@@ -2,6 +2,8 @@ package com.kould.manager.impl;
 
 import com.kould.api.KacheEntity;
 import com.kould.entity.PageDetails;
+import com.kould.exception.KacheAsyncWriteException;
+import com.kould.lock.KacheLock;
 import com.kould.properties.DaoProperties;
 import com.kould.api.Kache;
 import com.kould.encoder.CacheEncoder;
@@ -14,6 +16,7 @@ import io.lettuce.core.*;
 import io.lettuce.core.api.sync.RedisCommands;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /*
 使用Redis进行缓存存取的CacheManager
@@ -46,6 +49,8 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     private RedisService redisService;
 
+    private KacheLock kacheLock;
+
     private static final String CAS_NULL = "$Kache";
 
     /**
@@ -76,28 +81,41 @@ public class RedisCacheManager extends RemoteCacheManager {
      *      2、若result为一条POBean：
      *          则将直接获取result的id并与result作为单条PO存入；
      *          再将key和id作为键值对，存入作为索引
+     *
+     * 将数据库结果直接返回并异步解析写入Redis中，避免解析写入时阻塞导致首次读数据无缓存时的响应时间
+     * 通过try同步与其他写操作保持互斥，而其他写操作指向时则悲观认为写操作是在读取数据后修改则跳过这次旧的数据的远程缓存写入
+     * 而此次返回时在开启LocalCache时可以使写入远程缓存时的空白期避免数据获取为空而重新写入
+     * 若极端情况下LocalCache刚写入就因为缓存变动而清空，则此时结合上文写互斥则会因为try同步获取不到锁跳过这次写入避免写入污染数据
      * @param key 索引值
      * @param type 主元缓存类型名
      * @param point 切入点
+     * @param pageDetails 分页描述
      * @return 存入成功返回传入的result，失败则返回null
      */
     @Override
-    public <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws RuntimeException {
-        return redisService.executeSync(commands -> {
-            Object result = point.execute();
-            Class<?> pageClass = pageDetails.getClazz();
-            if (result instanceof Collection) {
-                Collection<KacheEntity> cloneCollection = CloneUtils.cloneBean((Collection<KacheEntity>) result);
-                collection2Lua(commands, key, type, cloneCollection,null);
-            } else if (result != null && pageClass.isAssignableFrom(result.getClass())) {
-                T pageClone = CloneUtils.cloneBean((T) result);
-                Collection<KacheEntity> records = pageDetails.getRecord(pageClone);
-                collection2Lua(commands, key, type, records, pageClone);
-            } else {
-                noPackingResultPut(key, type, commands, (KacheEntity) result);
+    public <T> Object put(String key, String type, MethodPoint point, PageDetails<T> pageDetails) throws Exception {
+        Object result = point.execute();
+        CompletableFuture.runAsync(() -> {
+            try {
+                kacheLock.trySyncFunction(type, value -> redisService.executeSync(commands -> {
+                    Class<?> pageClass = pageDetails.getClazz();
+                    if (value instanceof Collection) {
+                        Collection<KacheEntity> cloneCollection = CloneUtils.cloneBean((Collection<KacheEntity>) value);
+                        collection2Lua(commands, key, type, cloneCollection,null);
+                    } else if (value != null && pageClass.isAssignableFrom(value.getClass())) {
+                        T pageClone = CloneUtils.cloneBean((T) value);
+                        Collection<KacheEntity> records = pageDetails.getRecord(pageClone);
+                        collection2Lua(commands, key, type, records, pageClone);
+                    } else {
+                        noPackingResultPut(key, type, commands, (KacheEntity) value);
+                    }
+                    return value ;
+                }), result, 0L);
+            } catch (Exception e) {
+                throw new KacheAsyncWriteException(e.getMessage(), e);
             }
-            return result ;
         });
+        return result;
     }
 
     /**
@@ -354,6 +372,6 @@ public class RedisCacheManager extends RemoteCacheManager {
 
     @Override
     public Class<?>[] loadArgs() {
-        return new Class[] {DaoProperties.class, CacheEncoder.class, RedisService.class};
+        return new Class[] {DaoProperties.class, CacheEncoder.class, RedisService.class, KacheLock.class};
     }
 }

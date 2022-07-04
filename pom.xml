@@ -6,7 +6,7 @@
 
   <groupId>io.gitee.kould</groupId>
   <artifactId>Kache</artifactId>
-  <version>1.8.8.INFORMAL_VERSION</version>
+  <version>1.9.0.INFORMAL_VERSION</version>
   <packaging>jar</packaging>
 
   <name>Kache</name>

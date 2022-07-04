@@ -3,6 +3,8 @@ package com.kould.api;
 import com.kould.entity.KeyEntity;
 import com.kould.entity.PageDetails;
 import com.kould.exception.KacheBuildException;
+import com.kould.lock.KacheLock;
+import com.kould.lock.impl.LocalLock;
 import com.kould.properties.*;
 import com.kould.interceptor.CacheMethodInterceptor;
 import com.kould.codec.KryoRedisCodec;
@@ -88,6 +90,7 @@ public class Kache {
             beanBoot.put(Strategy.class, new DBFirstStrategy());
             beanBoot.put(CacheHandler.class, new BaseCacheHandler());
             beanBoot.put(RemoteCacheManager.class, new RedisCacheManager());
+            beanBoot.put(KacheLock.class, new LocalLock());
         }
 
         public Kache.Builder page(Class<?> clazz, String fieldName, Class<?> fieldClass) throws NoSuchFieldException, IllegalAccessException {

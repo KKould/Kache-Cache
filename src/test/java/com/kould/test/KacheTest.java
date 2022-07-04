@@ -3,6 +3,7 @@ package com.kould.test;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.kould.api.Kache;
+import com.kould.listener.ListenerHandler;
 import com.kould.properties.LocalCacheProperties;
 import com.kould.test.entity.TestEntity;
 import com.kould.test.mapper.TestMapper;
@@ -110,6 +111,8 @@ public class KacheTest {
         Assert.assertEquals(testMapperTarget.updateTest(UPDATE_ENTITY_TEST),testMapperProxy.updateTest(UPDATE_ENTITY_TEST));
         Assert.assertEquals(testMapperTarget.deleteTest(INSERT_ENTITY_TEST),testMapperProxy.deleteTest(INSERT_ENTITY_TEST));
         Assert.assertEquals(testMapperTarget.deleteTest(UPDATE_ENTITY_TEST),testMapperProxy.deleteTest(UPDATE_ENTITY_TEST));
+
+        System.out.println(gson.toJson(ListenerHandler.details()));
 
         startTaskAllInOnce(5000, () -> {
             try {

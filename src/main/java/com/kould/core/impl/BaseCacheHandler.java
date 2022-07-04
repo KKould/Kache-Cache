@@ -44,6 +44,8 @@ public class BaseCacheHandler extends CacheHandler {
                     // 该次击穿结束，移除该Future帧避免下次击穿获取脏值
                     FUTURE_INDEX.remove(lockKey);
                     return asyncResult;
+                } catch (KacheAsyncWriteException e) {
+                    throw e;
                 } catch (Exception e) {
                     throw new KacheAsyncWriteException(e.getMessage(),e);
                 }

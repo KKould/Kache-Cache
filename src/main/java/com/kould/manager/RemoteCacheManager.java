@@ -3,6 +3,7 @@ package com.kould.manager;
 import com.kould.api.BeanLoad;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.PageDetails;
+import com.kould.lock.KacheLock;
 import com.kould.properties.DaoProperties;
 import com.kould.entity.MethodPoint;
 
@@ -11,6 +12,8 @@ public abstract class RemoteCacheManager implements BeanLoad {
     protected DaoProperties daoProperties;
 
     protected CacheEncoder cacheEncoder;
+
+    protected KacheLock kacheLock;
 
     public abstract String getNullTag() ;
 
@@ -23,6 +26,6 @@ public abstract class RemoteCacheManager implements BeanLoad {
 
     @Override
     public Class<?>[] loadArgs() {
-        return new Class[] {DaoProperties.class, CacheEncoder.class};
+        return new Class[] {DaoProperties.class, CacheEncoder.class, KacheLock.class};
     }
 }

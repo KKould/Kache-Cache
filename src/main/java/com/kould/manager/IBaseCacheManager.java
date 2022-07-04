@@ -4,6 +4,7 @@ import com.kould.api.BeanLoad;
 import com.kould.encoder.CacheEncoder;
 import com.kould.entity.PageDetails;
 import com.kould.entity.KacheMessage;
+import com.kould.lock.KacheLock;
 import com.kould.properties.LocalCacheProperties;
 import com.kould.entity.MethodPoint;
 
@@ -23,6 +24,8 @@ public abstract class IBaseCacheManager implements BeanLoad {
     protected CacheEncoder cacheEncoder ;
 
     protected PageDetails<?> pageDetails;
+
+    protected KacheLock kacheLock;
     /**
      * 抽象层面上进行缓存的具体存储操作调控
      * 优先对远程缓存进行修改
@@ -52,6 +55,6 @@ public abstract class IBaseCacheManager implements BeanLoad {
 
     @Override
     public Class<?>[] loadArgs() {
-        return new Class[] {LocalCacheManager.class, RemoteCacheManager.class, LocalCacheProperties.class, CacheEncoder.class, PageDetails.class};
+        return new Class[] {LocalCacheManager.class, RemoteCacheManager.class, LocalCacheProperties.class, CacheEncoder.class, PageDetails.class, KacheLock.class};
     }
 }
