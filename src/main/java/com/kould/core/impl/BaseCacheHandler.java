@@ -1,5 +1,8 @@
 package com.kould.core.impl;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.kould.api.Kache;
 import com.kould.core.CacheHandler;
 import com.kould.entity.Status;
@@ -9,8 +12,13 @@ import com.kould.entity.MethodPoint;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 public class BaseCacheHandler extends CacheHandler {
+
+    private static final LoadingCache<String, Object> keyLocks = CacheBuilder.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES) // max lock time ever expected
+            .build(CacheLoader.from(Object::new));
 
     @Override
     public Object load(MethodPoint point, String types, Status methodStatus) throws Exception {
@@ -25,14 +33,14 @@ public class BaseCacheHandler extends CacheHandler {
         //key拼接命名空间前缀
         Object[] daoArgs = point.getArgs();
         //以PO类型进行不同持久类领域的划分并拼接参数与方法作为幂等凭据
-        String lockKey = (mainType + methodName + Arrays.hashCode(daoArgs));
+        final String lockKey = (mainType + methodName + Arrays.hashCode(daoArgs));
         //获取缓存
         Object result = this.baseCacheManager.daoRead(key , mainType);
         if (result == null) {
             //为了防止缓存击穿，所以并不使用异步增加缓存，而采用同步锁限制
             //使用本地锁尽可能的减少纵向（单一节点）穿透，而允许横向（分布式）穿透
             //通过intern保证字符串都是源自于常量池而使得相同字符串为同一对象，保证锁的一致性
-            synchronized (lockKey.intern()) {
+            synchronized (keyLocks.getUnchecked(lockKey)) {
                 result = this.baseCacheManager.daoRead(key , mainType);
                 if (result == null) {
                     //此处为真正未命中处，若置于上层则可能导致缓存穿透的线程一起被计数而导致不够准确
