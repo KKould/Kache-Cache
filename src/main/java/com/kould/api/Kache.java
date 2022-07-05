@@ -3,6 +3,7 @@ package com.kould.api;
 import com.kould.entity.KeyEntity;
 import com.kould.entity.PageDetails;
 import com.kould.exception.KacheBuildException;
+import com.kould.listener.ListenerHandler;
 import com.kould.lock.KacheLock;
 import com.kould.lock.impl.LocalLock;
 import com.kould.properties.*;
@@ -221,5 +222,15 @@ public class Kache {
             ((AmqpStrategy) strategy).destroy();
         }
         redisService.shutdown();
+    }
+
+    /**
+     * Kache信息采集
+     * @return Map 包装有一系列信息方法
+     */
+    public Map<String,Object> message() {
+        Map<String, Object> message = new HashMap<>();
+        message.put("listener", ListenerHandler.details());
+        return message;
     }
 }

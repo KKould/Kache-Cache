@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class MethodStatistic implements Serializable {
 
-    private Set<String> KEY_SET = new CopyOnWriteArraySet<>();
+    private final Set<String> keySet = new CopyOnWriteArraySet<>();
 
     private LongAdder hit = new LongAdder();
 
@@ -22,7 +22,7 @@ public class MethodStatistic implements Serializable {
     }
 
     public void addKey(String key) {
-        KEY_SET.add(key);
+        keySet.add(key);
     }
 
     public LongAdder getHit() {

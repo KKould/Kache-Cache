@@ -3,6 +3,8 @@ package com.kould.manager.impl;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.kould.entity.NullValue;
 import com.kould.manager.LocalCacheManager;
 
@@ -20,16 +22,14 @@ public class GuavaCacheManager extends LocalCacheManager {
 
     //维护各个业务的进程间缓存Cache:
     //  Key:DTO名-》Value:Cache<String,Object>
-    private static final Map<String, Cache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, LoadingCache<String,Object>> GUAVA_CACHE_MAP = new ConcurrentHashMap<>();
 
     @Override
     public Object get(String key, String type) throws ExecutionException {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.get(type);
+        LoadingCache<String,Object> cache = GUAVA_CACHE_MAP.get(type);
         if (cache != null) {
-            Object result = cache.get(key, NullValue::getInstance);
-            if (result instanceof NullValue) {
-                return null;
-            } else {
+            Object result = cache.get(key);
+            if (!(result instanceof NullValue)) {
                 return result;
             }
         }
@@ -46,11 +46,11 @@ public class GuavaCacheManager extends LocalCacheManager {
 
     @Override
     public void put(String key, Object result,String type) {
-        Cache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, k -> CacheBuilder.newBuilder()
+        LoadingCache<String,Object> cache = GUAVA_CACHE_MAP.computeIfAbsent(type, k -> CacheBuilder.newBuilder()
                 .weakValues()
                 .expireAfterAccess(daoProperties.getCacheTime(),TimeUnit.SECONDS)
                 .maximumSize(localCacheProperties.getSize())
-                .build());
+                .build(CacheLoader.from(NullValue::getInstance)));
         cache.put(key,result);
     }
 }

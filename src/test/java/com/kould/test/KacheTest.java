@@ -16,6 +16,7 @@ import org.junit.Test;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
@@ -112,7 +113,8 @@ public class KacheTest {
         Assert.assertEquals(testMapperTarget.deleteTest(INSERT_ENTITY_TEST),testMapperProxy.deleteTest(INSERT_ENTITY_TEST));
         Assert.assertEquals(testMapperTarget.deleteTest(UPDATE_ENTITY_TEST),testMapperProxy.deleteTest(UPDATE_ENTITY_TEST));
 
-        System.out.println(gson.toJson(ListenerHandler.details()));
+        Map<String, Object> message = kache.message();
+        System.out.println(gson.toJson(message));
 
         startTaskAllInOnce(5000, () -> {
             try {
