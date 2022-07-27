@@ -219,7 +219,7 @@ Kache适用广泛，组件实现都面向抽象，默认的实现都可以通过
 
 ### 使用 | Use
 
-该Kache为原生JDK进行组件管理以支持Kotlin或scala等jdk语言使用，若是使用Spring框架请移步至：[https://gitee.com/Kould/kache-spring](Kache-Spring)
+该Kache为原生JDK进行组件管理以支持Kotlin或scala等jdk语言使用，若是使用Spring框架请移步至：[https://gitee.com/kroup/kache-spring](Kache-Spring)
 
 原生使用Kache的使用示例在test/java/com.kould.test/KacheTest中
 
